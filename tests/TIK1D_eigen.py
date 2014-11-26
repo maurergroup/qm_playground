@@ -82,7 +82,7 @@ tik1d = Model(
 tik1d.set_potential(pot)
 
 #set basis 
-N=500  # of states
+N=100  # of states
 b = onedgrid(cell[0][0], cell[0][1],N)
 tik1d.set_basis(b)
 
@@ -90,7 +90,8 @@ print tik1d
 
 tik1d.solve()
 
-print tik1d.data.E
+print tik1d.data.wvfn.E
+
 
 
 ####VISUALIZATION
@@ -99,7 +100,7 @@ from matplotlib import pyplot as plt
 #generate figure
 fix, ax = plt.subplots()
 plt.subplots_adjust(bottom=0.2)
-l, = plt.plot(tik1d.basis.x,tik1d.data.psi[:,0])
+l, = plt.plot(tik1d.basis.x,tik1d.data.wvfn.psi[:,0])
 k, = plt.plot(tik1d.basis.x,tik1d.pot(tik1d.basis.x))
 ax.set_ylim([-0.6,0.6])
 
@@ -111,14 +112,14 @@ class Index:
         self.ind += 1
         if self.ind == N:
             self.ind = 0
-        l.set_ydata(tik1d.data.psi[:,self.ind])
+        l.set_ydata(tik1d.data.wvfn.psi[:,self.ind])
         plt.draw()
 
     def prev(self, event):
         self.ind -= 1
         if self.ind == -1:
             self.ind = N-1
-        l.set_ydata(tik1d.data.psi[:,self.ind])
+        l.set_ydata(tik1d.data.wvfn.psi[:,self.ind])
         plt.draw()
 
 callback = Index()

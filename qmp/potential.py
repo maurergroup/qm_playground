@@ -2,7 +2,7 @@
 
 """
 
-from utilities import *
+from qmp.utilities import *
 import numpy as np
 
 class Potential(object):

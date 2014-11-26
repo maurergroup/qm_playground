@@ -4,7 +4,9 @@ gridbasis.py
 all grid-based basis functions
 """
 
-from basis import basis
+from qmp.utilities import *
+from qmp.basis.basis import basis
+import numpy as np
 
 class onedgrid(basis):
     """

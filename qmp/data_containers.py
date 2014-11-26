@@ -4,6 +4,33 @@ collection of different data containers for different
 jobs such as wavefunction, particle, RPMD necklace
 """
 
+import numpy as np
+
+#wave data object
+
+class wave(object):
+    """
+    Abstract wavefunction object
+    contains eigenfunctions, eigenvalues, 
+    and all important subroutines that act 
+    on the wavefunctions.
+    """
+    
+    def __init__(self, basis):
+   
+        self.basis = basis
+        N = basis.N
+        self.psi = np.random.random([N,N])
+        self.E = np.random.random(N) 
+
+    def normalize(self):
+        """
+        Normalizes the wavefunction vector 
+        """
+
+        norm = np.dot(self.psi,self.psi)
+        self.psi = self.psi / np.sqrt(norm)
+
 
 class data_container(dict):
     """
@@ -18,6 +45,20 @@ class data_container(dict):
         self.mass = None
         self.cell = None
 
+    def prep(self, mode, basis):
+
+        #individual preparation
+        if mode is 'wave':
+            self.wvfn_preparation(basis)
+
+        elif mode is 'traj':
+            self.traj_preparation(basis)
+
+        elif mode is 'rpmd':
+            self.rpmd_preparation(basis)
+        else:
+            pass
+
     def __getattr__(self, key):
         if key not in self:
             return dict.__getattribute__(self, key)
@@ -27,34 +68,29 @@ class data_container(dict):
         self[key] = value
 
 
-class wave_container(data_container):
-    """
-    Data Container for wavefunction calculations
-    """
-
-    def __init__(self):
+    def wvfn_preparation(self,basis):
         """
-        Initialises important data structure for wvfn.
+        Initializes wvfn object for wvfn calculations
         """
-
-        data_container.__init__(self)
+    
+        #stationary eigenvalues and eigenfunctions
+        self.wvfn = wave(basis)
+        #self.wvfn.normalize()
         
-        ##Eigenvectors and Eigenvalues
-        #self.psi = None
-        #self.E = None
+        #
 
 
-#class traj_container(data_container):
-    #"""
+    def traj_preparation(self, basis):
+        """
+        Initializes special arrays for wvfn calculations
+        """
+   
+        pass
+    
+    def rpmd_preparation(self, basis):
+        """
+        Initializes special arrays for wvfn calculations
+        """
 
-    #"""
-
-
-#class rpmd_container(data_container):
-
-data_containers= {
-    'wave': wave_container,
-    #'traj': traj_container,
-    #'rpmd': rpmd_container,
-        }
+        pass
 

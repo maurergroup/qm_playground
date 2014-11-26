@@ -2,7 +2,6 @@
 basis.py
 """
 
-from utilities import *
 import numpy as np
 
 class basis(object):

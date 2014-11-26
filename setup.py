@@ -11,6 +11,12 @@ except:
         #)
     #]
 
+packages = ['qmp',
+            'qmp.basis',
+            'qmp.integrator',
+            'qmp.solver',
+            ]
+
 config = {
     'description': 'playground code for solving simple 1D/2D QM problems',
     'author': 'Reinhard J. Maurer',
@@ -19,7 +25,7 @@ config = {
     'author_email': 'reinhard.maurer@yale.edu',
     'version': '0.1',
     'install_requires': ['nose'],
-    'packages': ['qmp'],
+    'packages': packages,
     'name': 'qm_playground'
 }
 

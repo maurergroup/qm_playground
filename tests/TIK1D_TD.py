@@ -48,7 +48,7 @@ tik1d = Model(
         mode='wave',
         basis='onedgrid',
         solver='alglib',
-        #integrator='',
+        integrator='primprop',
         )
 
 #set the potential
@@ -66,7 +66,13 @@ tik1d.solve()
 
 print tik1d.data.E
 
-#prepare initial wavefunction
+#prepare initial wavefunction and dynamics
+
+tik1d.initialize_dynamics()
+
+
+
+
 
 
 

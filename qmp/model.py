@@ -2,7 +2,10 @@
 model class
 """
 
-from utilities import *
+from qmp.utilities import *
+from qmp.integrator import integrator_init
+from qmp.solver import solver_init
+from qmp.data_containers import data_container 
 
 class Model(object):
     """
@@ -10,14 +13,18 @@ class Model(object):
     subroutines to run the calculations.
 
     Before it can run it has to be given a 
-    dynamics object (wavefunction, particle, or necklace), 
-    a potential and an integrator.
+    potential, and a basis.
+
+    There are two basic tasks associated with the 
+    solver subclass (time-independent problems) and the 
+    dyn subclass (time  propagation)
 
     """
 
     def __init__(self, **kwargs):
         """
-        
+        Initializes the calculation model using arbitrary keyword arguments 
+        which are parsed later.
         """
     
         default_parameters = {
@@ -34,28 +41,32 @@ class Model(object):
             self.parameters[key]=value
 
         #exclusions
-        if self.parameters['mode'] = 'wave':
+        if self.parameters['mode'] == 'wave':
             self.parameters['solver'] = 'alglib'
-            if self.parameters['basis'] = 'onedgrid':
+            if self.parameters['basis'] == 'onedgrid':
                 self.parameters['integrator'] = 'primprop'
 
-
         self.pot = None
-        self.integrator = None
+        self.dyn = None
         self.solver = None
         self.basis = None
 
-        from data_containers import *
-        self.data = data_containers[self.parameters['mode']]() 
-
+        self.data = data_container()
         self.data.ndim = self.parameters['ndim']
         self.data.mass = self.parameters['mass']
+        
+        #data also keeps parameters
+        self.data.parameters = self.parameters
 
     def __repr__(self):
 
         string = 'Model Summary:\n'
         for key in self.parameters.keys():
             string += key +' : '+ str(self.parameters[key])+'\n'
+
+        string += '\n'
+        for key in self.data.keys():
+            string += 'contains data entries for: '+key+'\n'
 
         return string
 
@@ -70,43 +81,43 @@ class Model(object):
         basis.data = self.data
         self.basis = basis
 
-    def run(self, steps, dt):
-        """
-        propagates the system for the given time step and time 
-        interval
-        """
-        from integrator import *
-
-        if (self.basis is None) or (self.pot is None):
-            raise ValueError('Integrator can only run with \
-                initialized basis and potential')
-        
-        #initialize integrator
-        self.integrator = integrator_type[self.parameters['integrator']]()
-
-        # Solve Hamiltonian and write data
-        self.data = self.integrator.solve(self.data, self.pot, \
-                self.basis) 
-      
-
+        #now we can prepare the data object for the tasks ahead
+        self.data.prep(self.parameters['mode'], basis) 
 
     def solve(self):
         """
-        Solve the time-independent problem
-        This is only relevant for rpmd and wave. 
-        In the case of rpmd this amounts to PIMD
+        Wrapper for solver.solve
         """
-     
-        from solver import *
 
-        if (self.basis is None) or (self.pot is None):
-            raise ValueError('Solver can only run with \
-                    initialized basis and potential')
+        if (self.basis is None) or \
+           (self.pot is None) or \
+           (self.data is None):
+            raise ValueError('Integrator can only run with \
+                initialized basis and potential')
+        
+        try:
+            self.solver.solve()
+        except (AttributeError, TypeError):
+            print 'Initializing Solver'
+            self.solver = solver_init(self.data, self.pot)
+            self.solver.solve()
 
-        self.solver = solver_init(self.parameters)
+    def run(self, steps, dt):
+        """
+        Wrapper for dyn.run
+        """
 
-        # Solve Hamiltonian and write data
-        self.data = self.solver.solve(self.data, self.pot, \
-                self.basis) 
-
-
+        if (self.basis is None) or \
+           (self.pot is None) or \
+           (self.data is None):
+            raise ValueError('Integrator can only run with \
+                initialized basis and potential')
+        
+        try:
+            self.dyn.run(steps,dt)
+        except AttributeError:
+            print 'Initializing Integrator'
+            self.dyn = integrator_init(self.data, self.pot)
+            #self.dyn.run(steps,dt)
+ 
+        #self.dyn.run(steps, dt)
