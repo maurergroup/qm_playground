@@ -16,11 +16,8 @@ class basis(object):
         """
         """
 
-        self.parameters = None 
+        self.data = None 
 
-    
-    def set_parameters(self,param):
-        self.parameters = param
 
     #def __eval__
     #def deriv_psi
@@ -83,5 +80,12 @@ class onedgrid(basis):
 
     def construct_Tmatrix(self):
 
-        m = self.parameters['mass']
+        m = self.data.mass
         return -(1./2.)*((hbar**2)/m)*self.L
+
+    def construct_Vmatrix(self,pot):
+
+        return np.diag(pot(self.x))
+        
+
+
