@@ -2,7 +2,8 @@
 
 """
 
-from qmp.utilities import *
+from utilities import *
+import numpy as np
 
 class basis(object):
     """
@@ -11,50 +12,76 @@ class basis(object):
     differentiation etc.
     """
 
-    def __init__(self, ndim=1):
+    def __init__(self):
         """
         """
 
-        self.ndim = 1
+        self.parameters = None 
+
+    
+    def set_parameters(self,param):
+        self.parameters = param
 
     #def __eval__
-
-
     #def deriv_psi
-
-
     #def Lap_psi
 
-class 1dgrid(basis):
+
+class onedgrid(basis):
     """
     wavefunction representation as equidistant grid
     """
 
-    def __init__(self, ndim=1, start=0.0, end=1.0, N=100):
+    def __init__(self, start=0.0, end=1.0, N=100):
         """
         Equidistant 1D grid of points as wvfn representation
         """
 
+        basis.__init__(self)
+
         self.x = np.linspace(start, end, N)
-        self.dx = x[1] - x[0] 
+        self.dx = self.x[1] - self.x[0] 
         self.N = N
         
         #wavefunction vector initialised with zeros
         self.psi = np.zeros_like(self.x)
 
-    def __eval__():
+        #define derivative matrix with symm. finite difference
+        D = (np.diag(np.ones(N-1),1) - np.diag(np.ones(N-1),-1) )/(2.*self.dx)
+        #boundary conditions f(0)=0 f(N)=0
+        D[0,0] = 0
+        D[0,1] = 0
+        D[1,0] = 0
+        D[-1,-2] = 0
+        D[-1,-1] = 0
+        D[-2,-1] = 0
+        self.D = D
+
+        #define Laplace operator
+        L = (-2*np.diag(np.ones(N),0) + np.diag(np.ones(N-1),1) \
+                + np.diag(np.ones(N-1),-1)) / (self.dx*self.dx)
+        L[0,0] = 0
+        L[0,1] = 0
+        L[1,0] = 0
+        L[-1,-2] = 0
+        L[-1,-1] = 0
+        L[-2,-1] = 0
+        self.L = L
+        
+
+    def __eval__(self):
 
         return self.psi
 
-    def deriv_psi():
+    def deriv_psi(self):
 
-        #define derivative matrix with symm. finite difference
-        D = (np.diag(np.ones(N),1) - np.diag(np.ones(N),-1) )/(2.*dx)
+        return np.dot(self.D,self.psi)
 
+    def Lap_psi(self):
 
-    def Lap_psi():
+        return np.dot(self.L,self.psi)
 
-        L = 
+    def construct_Tmatrix(self):
 
-
-
+        m = self.parameters['mass']
+        return -(1./2.)*((hbar**2)/m)*self.L

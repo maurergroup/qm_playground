@@ -2,9 +2,9 @@
 model class
 """
 
-from qmp.utilities import *
+from utilities import *
 
-class model(object):
+class Model(object):
     """
     The model class contains all information and all 
     subroutines to run the calculations.
@@ -15,27 +15,48 @@ class model(object):
 
     """
 
-    default_parameters = {
-            'ndim': '1',
-            'mode': 'wave', # wave, traj, rpmd
-            'basis': '1dgrid', # 1dgrid , 2dgrid, pws, 
-            'integrator': 'numerov', # numerov, ...
-            '': '',
-
-
-
-    def __init__(self, ndim=1, mode='qm'):
+    def __init__(self, **kwargs):
         """
         
         """
-
+    
+        default_parameters = {
+                'ndim': 1,
+                'mass': 1.0,
+                'mode': 'wave', # wave, traj, rpmd
+                'basis': 'onedgrid', # 1dgrid , 2dgrid, pws,
+                'solver': 'numpy', # numpy, scipy, Lanczos
+                'integrator': 'numerov', # numerov, ...
+        }
+        
         self.parameters = default_parameters
+        for key, value in kwargs.iteritems():
+            self.parameters[key]=value
+
         self.dyn = None 
         self.pot = None
         self.integrator = None
 
+    def __repr__(self):
 
-   def propagate(self, steps):
+        string = 'Model Summary:\n'
+        for key in self.parameters.keys():
+            string += key +' : '+ str(self.parameters[key])+'\n'
+
+        return string
+
+    def set_potential(self,pot):
+
+        pot.model = self
+        self.pot = pot
+        self.cell = pot.cell
+
+    def set_basis(self,basis):
+
+        basis.set_parameters(self.parameters)
+        self.b = basis
+
+    def propagate(self, steps):
        """
        propagates the system for the given time step
        """
@@ -43,10 +64,11 @@ class model(object):
        raise NotImplementedError('no propagation')
 
 
-   def solve(self):
-       """
+    def solve(self):
+        """
 
-       """
-      
-       raise NotImplementedError('no solution')
+        """
+     
+        
+
 

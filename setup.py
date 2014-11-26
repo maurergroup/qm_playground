@@ -12,17 +12,16 @@ except:
     #]
 
 config = {
-      name = 'qm_playground',
-      version = '0.1',
-      author = 'Reinhard Maurer',
-      author_email = 'reinhard.maurer@yale.edu',
-      description = 'playground code for solving simple 1D/2D QM problems',
-      #long_description = 'python package with numerically intesive subroutines in F90',
-      license = 'GNU GPL',
-      platforms = 'x86_64',
-      install_requires: ['nose'],
-      packages = ['model'],
-      }
+    'description': 'playground code for solving simple 1D/2D QM problems',
+    'author': 'Reinhard J. Maurer',
+    'url': 'URL',
+    'download_url': 'download it.',
+    'author_email': 'reinhard.maurer@yale.edu',
+    'version': '0.1',
+    'install_requires': ['nose'],
+    'packages': ['qmp'],
+    'name': 'qm_playground'
+}
 
 setup(**config)
 

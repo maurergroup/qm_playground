@@ -1,6 +1,11 @@
 """
-qm_playground package"""
+qm_playground package
+"""
 
-#import internal
-#inter = internal.internal
-#from internals import Internals
+from model import Model
+from potential import Potential
+from basis import *
+from utilities import *
+
+import numpy as np
+

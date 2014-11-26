@@ -2,39 +2,42 @@
 
 """
 
-from qmd.utilities import *
+from utilities import *
 import numpy as np
 
-class potential(object):
+class Potential(object):
+    """
+    Defines Potential and all operations on it
     """
 
-    """
-
-    def __init__(self, cell, function=None, firstd=None, secondd=None):
+    def __init__(self, cell=None, function=None, firstd=None, secondd=None):
         """
 
         """
 
+        if cell is None:
+            cell = [[0.,1.]]
         self.cell = cell
         self.f = function
         self.firstd = firstd
         self.secondd = secondd
+        self.model = None
 
-    def eval(x):
+    def __eval__(x):
 
         if self.f is None:
             return 0.0
         else:
             return self.f(x)
     
-    def eval_deriv(x):
+    def deriv(x):
 
         if self.firstd is None:
             return num_deriv(self.f,x)
         else:
             return self.firstd(x)
 
-    def eval_hess(x):
+    def hess(x):
 
         if self.secondd is None:
             return num_deriv2(self.f,x)
