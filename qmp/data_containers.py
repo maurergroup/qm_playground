@@ -21,7 +21,7 @@ class wave(object):
         self.basis = basis
         N = basis.N
         self.psi = np.random.random([N,N])
-        self.E = np.random.random(N) 
+        self.E = np.random.random(N)
 
     def normalize(self):
         """

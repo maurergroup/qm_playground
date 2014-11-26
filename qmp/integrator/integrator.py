@@ -3,6 +3,7 @@ integrator.py
 """
 
 import numpy as np
+#from qmp.logger import Logger
 
 class Integrator(object):
     """
@@ -18,11 +19,17 @@ class Integrator(object):
     
     """
 
-    def __init__(self, data=None, potential=None):
+    def __init__(self, data=None, potential=None, logger=None):
         
         self.data = data
         self.pot = potential
+        
+        #if logger is None:
+            #self.data.logger = Logger()
+        #else:
+            #self.data.logger = logger
 
+        self.counter = 0
 
     def run(self, steps, dt):
         """
