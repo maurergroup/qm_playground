@@ -33,6 +33,13 @@ class Model(object):
         for key, value in kwargs.iteritems():
             self.parameters[key]=value
 
+        #exclusions
+        if self.parameters['mode'] = 'wave':
+            self.parameters['solver'] = 'alglib'
+            if self.parameters['basis'] = 'onedgrid':
+                self.parameters['integrator'] = 'primprop'
+
+
         self.pot = None
         self.integrator = None
         self.solver = None
@@ -63,12 +70,24 @@ class Model(object):
         basis.data = self.data
         self.basis = basis
 
-    def run(self, steps):
-       """
-       propagates the system for the given time step
-       """
+    def run(self, steps, dt):
+        """
+        propagates the system for the given time step and time 
+        interval
+        """
+        from integrator import *
+
+        if (self.basis is None) or (self.pot is None):
+            raise ValueError('Integrator can only run with \
+                initialized basis and potential')
+        
+        #initialize integrator
+        self.integrator = integrator_type[self.parameters['integrator']]()
+
+        # Solve Hamiltonian and write data
+        self.data = self.integrator.solve(self.data, self.pot, \
+                self.basis) 
       
-       raise NotImplementedError('no propagation')
 
 
     def solve(self):
@@ -84,7 +103,7 @@ class Model(object):
             raise ValueError('Solver can only run with \
                     initialized basis and potential')
 
-        self.solver = solver_type[self.parameters['solver']]()
+        self.solver = solver_init(self.parameters)
 
         # Solve Hamiltonian and write data
         self.data = self.solver.solve(self.data, self.pot, \

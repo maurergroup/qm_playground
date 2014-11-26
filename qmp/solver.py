@@ -37,7 +37,7 @@ class scipy_solver(solver):
         H = T + V
 
         #evals, evecs = eigsh(H, states, sigma=0, which='LM')
-        evals, evecs = np.linalg.eig(H)
+        evals, evecs = np.sort(np.linalg.eig(H))
 
         data.E = evals
         data.psi = evecs
@@ -70,11 +70,17 @@ class alglib_solver(solver):
 
         return data
 
+class solver_init():
+
+    solver_type = {
+            'scipy': scipy_solver,
+            'alglib': alglib_solver,
+            #'pimd': pimd_solver,
+            }
+    
+    def __init__(param):
+
+        solver = solver_type[param['solver']]()
 
 
-solver_type = {
-        'scipy': scipy_solver,
-        'alglib': alglib_solver,
-        #'pimd': pimd_solver,
-        }
-
+        return solver

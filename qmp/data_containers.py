@@ -5,7 +5,7 @@ jobs such as wavefunction, particle, RPMD necklace
 """
 
 
-class data_container(object):
+class data_container(dict):
     """
     Base class for all data containers
     """
@@ -17,6 +17,14 @@ class data_container(object):
         self.ndim = None
         self.mass = None
         self.cell = None
+
+    def __getattr__(self, key):
+        if key not in self:
+            return dict.__getattribute__(self, key)
+        return self[key]
+
+    def __setattr__(self, key, value):
+        self[key] = value
 
 
 class wave_container(data_container):
@@ -31,9 +39,9 @@ class wave_container(data_container):
 
         data_container.__init__(self)
         
-        #Eigenvectors and Eigenvalues
-        self.psi = None
-        self.E = None
+        ##Eigenvectors and Eigenvalues
+        #self.psi = None
+        #self.E = None
 
 
 #class traj_container(data_container):
