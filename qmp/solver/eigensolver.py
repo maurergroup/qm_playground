@@ -26,8 +26,9 @@ class scipy_solver(solver):
         V = basis.construct_Vmatrix(self.pot)
         H = T + V
 
-        #evals, evecs = eigsh(H, states, sigma=0, which='LM')
-        evals, evecs = np.sort(np.linalg.eig(H))
+        states = len(H)
+        evals, evecs = eigsh(H, states-1, sigma=0, which='LM')
+        #evals, evecs = np.sort(np.linalg.eig(H))
 
         self.data.wvfn.E = evals
         self.data.wvfn.psi = evecs

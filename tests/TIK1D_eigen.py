@@ -75,7 +75,8 @@ tik1d = Model(
         mass=1.0,
         mode='wave',
         basis='onedgrid',
-        solver='alglib',
+        #solver='alglib',
+        solver='scipy',
         )
 
 #set the potential

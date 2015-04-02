@@ -47,7 +47,8 @@ tik1d = Model(
         mass=1.0,
         mode='wave',
         basis='onedgrid',
-        solver='alglib',
+        solver='scipy',
+        #solver='alglib',
         integrator='primprop',
         )
 

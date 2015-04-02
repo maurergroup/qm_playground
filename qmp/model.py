@@ -41,8 +41,9 @@ class Model(object):
             self.parameters[key]=value
 
         #exclusions
+        #wavepacket dynamics needs a grid basis
         if self.parameters['mode'] == 'wave':
-            self.parameters['solver'] = 'alglib'
+            #self.parameters['solver'] = 'alglib'
             if self.parameters['basis'] == 'onedgrid':
                 self.parameters['integrator'] = 'primprop'
 
