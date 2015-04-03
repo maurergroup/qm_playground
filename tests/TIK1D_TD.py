@@ -47,8 +47,8 @@ tik1d = Model(
         mass=1.0,
         mode='wave',
         basis='onedgrid',
-        solver='scipy',
-        #solver='alglib',
+        #solver='scipy',
+        solver='alglib',
         integrator='primprop',
         )
 
@@ -56,7 +56,7 @@ tik1d = Model(
 tik1d.set_potential(pot)
 
 #set basis 
-N=50  # of states
+N=20  # of states
 b = onedgrid(cell[0][0], cell[0][1],N)
 tik1d.set_basis(b)
 
@@ -79,7 +79,7 @@ tik1d.data.c[1] = 0.5
 norm = np.dot(tik1d.data.c,tik1d.data.c)
 tik1d.data.c /= np.sqrt(norm)
 
-tik1d.run(2,dt)
+tik1d.run(10,dt)
 
 
 

@@ -119,6 +119,6 @@ class Model(object):
         except (AttributeError, TypeError):
             print 'Initializing Integrator'
             self.dyn = integrator_init(self.data, self.pot)
-            #self.dyn.run(steps,dt)
+            self.dyn.run(steps,dt)
  
         #self.dyn.run(steps, dt)

@@ -31,17 +31,18 @@ class prim_propagator(Integrator):
         a timestep of dt.
         """
 
-        wvfn = self.data.wvfn
+        #wvfn = self.data.wvfn
 
         #construct H
-        T=self.data.basis.construct_Tmatrix()
-        V=self.data.basis.construct_Vmatrix(self.pot)
+        T=self.data.wvfn.basis.construct_Tmatrix()
+        V=self.data.wvfn.basis.construct_Vmatrix(self.pot)
         H = T+V
         
         print 'Herrooo'
 
         prop = np.exp(-1j*H*(dt/hbar) )
         c = self.data.c
+        
         psi = self.data.wvfn.psi
         for i in range(steps):
             print 'Time Step : ', i
