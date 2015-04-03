@@ -56,7 +56,7 @@ tik1d = Model(
 tik1d.set_potential(pot)
 
 #set basis 
-N=10  # of states
+N=50  # of states
 b = onedgrid(cell[0][0], cell[0][1],N)
 tik1d.set_basis(b)
 
