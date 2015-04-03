@@ -15,8 +15,8 @@ from qmp.potential2D import *
 
 ## 2D harmonic potential
 def f(x,y):
-    omx, omy = 1., 1.
-    return omx*((x-5.)**2) + omy*((y-5.)**2)
+    omx, omy = .5, .5
+    return omx*((x-10.)**2) + omy*((y-10.)**2)
 
 cell = [[0, 0.], [20., 20.]]
 
@@ -54,17 +54,19 @@ from mpl_toolkits.mplot3d import Axes3D
 x = np.ones(len(tik2d.data.wvfn.E))
 plt.plot(x, tik2d.data.wvfn.E, ls='', marker = '_', mew=8, ms=6)
 plt.show()
+plt.hist(tik2d.data.wvfn.E, 7)
+plt.show()
 
 #generate figure
 #fig = plt.figure()
 #plt.subplots_adjust(bottom=0.2)
 
-fig = plt.figure()
-ax = fig.gca(projection='3d')
-l, = ax.plot_surface(tik2d.basis.xgrid, tik2d.basis.ygrid, \
-                     np.reshape(tik2d.data.wvfn.psi[:,0], (N,N)))
+#fig = plt.figure()
+#ax = fig.gca(projection='3d')
+#l, = ax.plot_surface(tik2d.basis.xgrid, tik2d.basis.ygrid, \
+#                     np.reshape(tik2d.data.wvfn.psi[:,0], (N,N)))
 
-
+raise SystemExit
 from matplotlib.widgets import Slider, Button, RadioButtons
 #BUTTON DEFINITIONS
 class Index:

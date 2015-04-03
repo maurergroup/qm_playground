@@ -27,7 +27,7 @@ class scipy_solver(solver):
         H = T + V
 
         #states = len(H)
-        evals, evecs = eigsh(H, 20, sigma=0., which='LM')
+        evals, evecs = eigsh(H, 25, sigma=0., which='LM')
         #evals, evecs = np.sort(np.linalg.eig(H))
 
         self.data.wvfn.E = evals

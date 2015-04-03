@@ -113,17 +113,17 @@ class  twodgrid(basis):
         self.Dy = Dy
 
         #Laplacian
-        a, b = -2.*np.ones(N), np.ones(N)
-        D = sparse.spdiags([b,a,b], [-1,0,1], N,N)
-        Lx = D/(self.dx*self.dx)
-        Ly = D/(self.dy*self.dy)
+        A, b = -2.*np.eye(N), np.ones(N-1)
+        L1 = sparse.lil_matrix(A+np.diagflat(b,-1)+np.diagflat(b,1))
+        Lx = (L1/(self.dx*self.dx))
+        Ly = (L1/(self.dy*self.dy))
 
         L = sparse.kron(Lx, np.eye(N)) + sparse.kron(np.eye(N), Ly)
 
-        #L[0,:] = [0.]*L.shape[1]
-        #L[:,0] = [0.]*L.shape[0]
-        #L[-1,:] = [0.]*L.shape[1]
-        #L[:,-1] = [0.]*L.shape[0]
+        L[0,:] = [0.]*L.shape[1]
+        L[:,0] = sparse.lil_matrix([0.]*L.shape[0]).T
+        L[-1,:] = [0.]*L.shape[1]
+        L[:,-1] = sparse.lil_matrix([0.]*L.shape[0]).T
         self.L = L
 
 
@@ -145,7 +145,7 @@ class  twodgrid(basis):
 
     def construct_Vmatrix(self,pot):
         Vflat = pot(self.xgrid,self.ygrid).flatten()
-        return sparse.spdiags([Vflat], 0, self.N*self.N,self.N*self.N)
+        return sparse.diags(Vflat, 0, (self.N*self.N,self.N*self.N))
 
 
 
