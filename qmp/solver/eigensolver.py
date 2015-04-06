@@ -23,14 +23,14 @@ class scipy_solver(solver):
         basis = self.data.wvfn.basis
         T = basis.construct_Tmatrix()
         V = basis.construct_Vmatrix(self.pot)
-        H = T + V
+        H = T + V     #(100,100)
 
-        #states = len(H)
-        evals, evecs = eigsh(H, 20, sigma=0., which='LM')
+        states = 20
+        evals, evecs = eigsh(H, states, sigma=0., which='LM')
         #evals, evecs = np.sort(np.linalg.eig(H))
 
         self.data.wvfn.E = evals
-        self.data.wvfn.psi = evecs
+        self.data.wvfn.psi = evecs     #(100,k)
 
 
 class alglib_solver(solver):

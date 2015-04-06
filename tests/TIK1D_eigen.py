@@ -18,7 +18,7 @@ from qmp.basis.gridbasis import *
     #return np.zeros_like(x)
 
 ##particle in deep well 
-def f(x):
+def f_deep_well(x):
     x = np.array([x]).flatten()
     for i,xx in enumerate(x):
         if xx<= 9.0 and xx>1.0:
@@ -27,17 +27,17 @@ def f(x):
             x[i]= 1000000.0
     return x
 ##particle in two square wells 
-def f(x):
+def f_double_square(x):
     x = np.array([x]).flatten()
     for i,xx in enumerate(x):
         if (xx<= 4.0 and xx>2.0) or (xx<= 8.0 and xx>6.0) :
             x[i]= 0.0
         else:
-            x[i]= 1000000.0
+            x[i]= 100.0
     return x
 
 ##particle in two close lying wells
-def f(x):
+def f_double_well(x):
     x = np.array([x]).flatten()
     for i,xx in enumerate(x):
         if (xx<= 4.8 and xx>3.0) or (xx<= 7.0 and xx>5.2) :
@@ -48,7 +48,7 @@ def f(x):
             x[i]= 1000000.0
     return x
 ## harmonic potential
-def f(x):
+def f_harm(x):
     omega = 1.5
     x = np.array([x]).flatten()
     for i, xx in enumerate(x):
@@ -56,7 +56,7 @@ def f(x):
 
     return x
 ## morse potential
-def f(x):
+def f_morse(x):
     a = 0.5
     D = 5.0
     x = np.array([x]).flatten()
@@ -67,7 +67,7 @@ def f(x):
 
 cell = [[0, 20.0]]
 
-pot = Potential(cell, f=f)
+pot = Potential(cell, f=f_double_square)
 
 #initialize the model
 tik1d = Model(
