@@ -118,7 +118,7 @@ tik1d.run(0, dt)
 #prepare wvfn
 #tik1d.data.c[0] = 1
 #tik1d.data.c[1] = 1
-tik1d.data.c = project_gaussian(tik1d.data.wvfn.psi, tik1d.basis.x, 1., 18.5)
+tik1d.data.c = project_gaussian(tik1d.data.wvfn.psi, tik1d.basis.x, amplitude=2., sigma=1., x0=18.5)
 norm = np.dot(tik1d.data.c,tik1d.data.c)
 tik1d.data.c /= np.sqrt(norm)
 

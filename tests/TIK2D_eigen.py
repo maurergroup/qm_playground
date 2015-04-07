@@ -28,15 +28,15 @@ tik2d = Model(
         mass=1.0,
         mode='wave',
         basis='twodgrid',
-        #solver='alglib',
-        solver='scipy',
+        solver='alglib',
+        #solver='scipy',
         )
 
 #set the potential
 tik2d.set_potential(pot)
 
 #set basis 
-N=200  # of states
+N=20  # of states
 b = twodgrid(cell[0], cell[1], N)
 tik2d.set_basis(b)
 
@@ -44,7 +44,9 @@ print tik2d
 
 tik2d.solve()
 
-print tik2d.data.wvfn.E
+print tik2d.data.wvfn.E.shape
+psi = tik2d.data.wvfn.psi
+
 
 ####VISUALIZATION
 
@@ -52,37 +54,53 @@ from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 x = np.ones(len(tik2d.data.wvfn.E))
-plt.plot(x, tik2d.data.wvfn.E, ls='', marker = '_', mew=8, ms=6)
+plt.plot(x, tik2d.data.wvfn.E, ls='', marker = '_')#, mew=8, ms=6)
 plt.show()
-plt.hist(tik2d.data.wvfn.E, 7)
-plt.show()
+#plt.hist(tik2d.data.wvfn.E, 7)
+#plt.show()
 
 #generate figure
-#fig = plt.figure()
-#plt.subplots_adjust(bottom=0.2)
+fig = plt.figure()
+plt.subplots_adjust(bottom=0.2)
 
-#fig = plt.figure()
-#ax = fig.gca(projection='3d')
+fig = plt.figure()
+ax = fig.gca(projection='3d')
 #l, = ax.plot_surface(tik2d.basis.xgrid, tik2d.basis.ygrid, \
-#                     np.reshape(tik2d.data.wvfn.psi[:,0], (N,N)))
+#                     np.reshape(psi[:,0], (N,N)))
 
-raise SystemExit
+ax.plot_surface(tik2d.basis.xgrid, tik2d.basis.ygrid, \
+                     np.reshape(psi[:,0], (N,N)))
+plt.show()
+
+fig = plt.figure()
+ax = fig.gca(projection='3d')
+ax.plot_surface(tik2d.basis.xgrid, tik2d.basis.ygrid, \
+                     np.reshape(psi[:,1], (N,N)))
+plt.show()
+
+fig = plt.figure()
+ax = fig.gca(projection='3d')
+ax.plot_surface(tik2d.basis.xgrid, tik2d.basis.ygrid, \
+                     np.reshape(psi[:,2], (N,N)))
+plt.show()
+
+
 from matplotlib.widgets import Slider, Button, RadioButtons
 #BUTTON DEFINITIONS
 class Index:
     ind = 0
     def next(self, event):
         self.ind += 1
-        if self.ind == N:
+        if self.ind == N**tik2d.data.ndim:
             self.ind = 0
-        l.set_ydata(tik2d.data.wvfn.psi[:,self.ind])
+        l.set_ydata(np.reshape(psi[:,self.ind]), (N,N))
         plt.draw()
 
     def prev(self, event):
         self.ind -= 1
         if self.ind == -1:
-            self.ind = N-1
-        l.set_ydata(tik2d.data.wvfn.psi[:,self.ind])
+            self.ind = (N**tik2d.data.ndim)-1
+        l.set_ydata(np.reshape(psi[:,self.ind]), (N,N))
         plt.draw()
 
 callback = Index()

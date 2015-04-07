@@ -29,8 +29,8 @@ class scipy_solver(solver):
         evals, evecs = eigsh(H, states, sigma=0., which='LM')
         #evals, evecs = np.sort(np.linalg.eig(H))
 
-        self.data.wvfn.E = evals
-        self.data.wvfn.psi = evecs     #(100,k)
+        self.data.wvfn.E = np.array(evals)
+        self.data.wvfn.psi = np.array(evecs)     #(100,k)
 
 
 class alglib_solver(solver):
@@ -56,15 +56,10 @@ class alglib_solver(solver):
         V = basis.construct_Vmatrix(self.pot)
         H = (T + V)
         if issparse(H):
-            H = np.array(H.todense())
+            H = H.todense()
         
         result, E, psi = xa.smatrixevd(H.tolist(), H.shape[0], 1, 1)
 
-        self.data.wvfn.E = E
-        N = self.data.wvfn.basis.N
-        self.data.wvfn.psi = psi
-        #if self.data.ndim == 1:
-        #    self.data.wvfn.psi = np.array(psi).reshape(N,N)
-        #elif self.data.ndim == 2:
-        #    self.data.wvfn.psi = np.array(psi).reshape(N,N,N**2)
+        self.data.wvfn.E = np.array(E)
+        self.data.wvfn.psi = np.array(psi)
 

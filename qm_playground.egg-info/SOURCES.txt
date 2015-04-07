@@ -10,7 +10,6 @@ qmp/data_containers.py
 qmp/logger.py
 qmp/model.py
 qmp/potential.py
-qmp/potential2D.py
 qmp/utilities.py
 qmp/basis/__init__.py
 qmp/basis/basis.py

@@ -118,11 +118,11 @@ class  twodgrid(basis):
         Lx = (L1/(self.dx*self.dx))
         Ly = (L1/(self.dy*self.dy))
 
-        L = sparse.kron(Lx, np.eye(N)) + sparse.kron(np.eye(N), Ly)
+        L = sparse.kron(Lx, np.eye(N)) + sparse.kron(np.eye(N), Ly).tolil()
 
-        L[0,:] = [0.]*L.shape[1]
-        L[:,0] = sparse.lil_matrix([0.]*L.shape[0]).T
-        L[-1,:] = [0.]*L.shape[1]
+        L[0,:] =  sparse.lil_matrix([0.]*L.shape[1])
+        L[:,0] =  sparse.lil_matrix([0.]*L.shape[0]).T
+        L[-1,:] = sparse.lil_matrix([0.]*L.shape[1])
         L[:,-1] = sparse.lil_matrix([0.]*L.shape[0]).T
         self.L = L
 

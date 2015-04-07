@@ -38,7 +38,7 @@ class prim_propagator(Integrator):
         #V=self.data.wvfn.basis.construct_Vmatrix(self.pot)
         #H = T+V
         
-        print 'Herrooo'
+        #print 'Herrooo'
 
         #prop = np.exp(-1j*H*(dt/hbar) )    #(x,x)
         prop = np.diag(np.exp(-1j*self.data.wvfn.E*dt/hbar))    #(states,states)
