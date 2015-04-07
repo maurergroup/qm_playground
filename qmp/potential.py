@@ -98,13 +98,18 @@ class Potential2D(object):
 
         try:
             from matplotlib import pyplot as plt
+            from mpl_toolkits.mplot3d import Axes3D
         except:
-            raise ImportError('cannot import matplotlib')
+            raise ImportError('cannot import matplotlib or mpl_toolkits')
 
         x, y = np.linspace(start[0], end[0], pts), np.linspace(start[1], end[1], pts)
         xgrid, ygrid = np.meshgrid(x,y)
 
         V = self.f(xgrid,ygrid)
 
-        plt.imshow(V)
+        fig = plt.figure()
+        ax = fig.gca(projection='3d')
+        ax.plot_surface(xgrid, ygrid, V, alpha=.5)
+        plt.show()
+    
 

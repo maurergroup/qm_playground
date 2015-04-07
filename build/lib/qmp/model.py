@@ -34,6 +34,7 @@ class Model(object):
                 'basis': 'onedgrid', # onedgrid , twodgrid, pws,
                 'solver': 'scipy', #  scipy, alglib, Lanczos
                 'integrator': 'numerov', # numerov, ...
+                'states': 20,
         }
         
         self.parameters = default_parameters
@@ -51,7 +52,7 @@ class Model(object):
         self.dyn = None
         self.solver = None
         self.basis = None
-
+        
         self.data = data_container()
         self.data.ndim = self.parameters['ndim']
         self.data.mass = self.parameters['mass']

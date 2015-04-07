@@ -49,6 +49,7 @@ class prim_propagator(Integrator):
         psi_basis = self.data.wvfn.psi     #(x,states)
         psi = [psi_basis.dot(c)]    #(x,1)
         
+        print 'Integrating...'
         for i in xrange(1,steps+1):
             #print 'Time Step : ', i
             self.counter +=1 

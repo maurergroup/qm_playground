@@ -24,7 +24,7 @@ def f_wall(x):
         if xx <= 1. or xx > 29.:
             x[i] = 10000000000000.
         elif xx >= 19. and xx < 21.:
-            x[i] = 5
+            x[i] = 2.
         else:
             x[i] = 0.
     return x
@@ -73,12 +73,18 @@ def f_morse(x):
     x = np.array([x]).flatten()
     for i, xx in enumerate(x):
         x[i] = D* (1-np.exp(-a*(xx -10.0)))**2
-
     return x
+
+## 1D "mexican hat"
+def f_mexican(x):
+    sigma = 1.
+    pref = 2./(np.sqrt(3*sigma)*np.pi**(1./4.))
+    brak = 1.-((x-10.)/sigma)**2
+    return pref*brak*np.exp(-(1./2.)*((x-10.)/sigma)**2)
 
 cell = [[0, 30.0]]
 
-pot = Potential(cell, f=f_wall)
+pot = Potential(cell, f=f_mexican)
 
 #initialize the model
 tik1d = Model(
@@ -95,19 +101,19 @@ tik1d = Model(
 tik1d.set_potential(pot)
 
 #set basis 
-N=200  # spatial discretization
+N=512  # spatial discretization
 b = onedgrid(cell[0][0], cell[0][1],N)
 tik1d.set_basis(b)
 
 #number of basis states to consider
-states = 20
+states = 511
 
 print tik1d
 
 #calculate eigenvalues and eigenfunctions
 tik1d.solve()
 
-print tik1d.data.wvfn.E
+print 'SOLVED'
 
 ##prepare initial wavefunction and dynamics
 dt =  1  #whatever the units are ~> a.u.?
@@ -118,16 +124,40 @@ tik1d.run(0, dt)
 #prepare wvfn
 #tik1d.data.c[0] = 1
 #tik1d.data.c[1] = 1
-tik1d.data.c = project_gaussian(tik1d.data.wvfn.psi, tik1d.basis.x, amplitude=2., sigma=1., x0=18.5)
+tik1d.data.c = project_gaussian(tik1d.data.wvfn.psi, tik1d.basis.x, \
+                                amplitude=1., sigma=1., x0=10.)
 norm = np.dot(tik1d.data.c,tik1d.data.c)
 tik1d.data.c /= np.sqrt(norm)
 
 tik1d.run(steps,dt)
+print 'INTEGRATED'
+psi_t = tik1d.data.wvfn.psi_t
 
 
 #####VISUALIZATION
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 
+fig, ax = plt.subplots()
+line, = ax.plot(tik1d.basis.x, psi_t[0,:]*np.conjugate(psi_t[0,:]))
+ax.set_ylim(-0.02, 0.06)
+
+def _init_():
+    line, = ax.plot(tik1d.basis.x, tik1d.pot(tik1d.basis.x), c='r')
+    ax.set_ylim(-0.02,0.06)
+    return line,
+
+def animate(i):
+    line.set_ydata(psi_t[i,:]*np.conjugate(psi_t[i,:]))  # update the data
+    return line,
+
+ani = animation.FuncAnimation(fig, animate, np.arange(1, steps), init_func=_init_, interval=100, blit=False)
+
+plt.show()
+
+raise SystemExit
 from matplotlib import pyplot as plt
+
 ##generate figure
 fix, ax = plt.subplots()
 plt.subplots_adjust(bottom=0.2)

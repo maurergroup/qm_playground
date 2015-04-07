@@ -65,9 +65,17 @@ def f_morse(x):
 
     return x
 
+## 1D "mexican hat"
+def f_mexican(x):
+    sigma = 1.
+    pref = 2./(np.sqrt(3*sigma)*np.pi**(1./4.))
+    brak = 1.-((x-10.)/sigma)**2
+    return pref*brak*np.exp(-(1./2.)*((x-10.)/sigma)**2)
+
+
 cell = [[0, 20.0]]
 
-pot = Potential(cell, f=f_double_square)
+pot = Potential(cell, f=f_mexican)
 
 #initialize the model
 tik1d = Model(
@@ -83,7 +91,7 @@ tik1d = Model(
 tik1d.set_potential(pot)
 
 #set basis 
-N=100  # of states
+N=512  # of states
 b = onedgrid(cell[0][0], cell[0][1],N)
 tik1d.set_basis(b)
 
@@ -91,7 +99,7 @@ print tik1d
 
 tik1d.solve()
 
-print tik1d.data.wvfn.E
+print 'SOLVED'
 
 
 

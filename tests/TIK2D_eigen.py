@@ -14,13 +14,21 @@ from qmp.potential2D import *
 
 
 ## 2D harmonic potential
-def f(x,y):
+def f_harm(x,y):
     omx, omy = .5, .5
     return omx*((x-10.)**2) + omy*((y-10.)**2)
 
+## 2D "mexican hat potential"
+def f_mexican(x,y):
+    sigma = 1.
+    pref = (1./(np.pi*sigma**4))
+    brak = .5-(((x-10.)**2+(y-10.)**2)/(2*sigma**2))
+    return pref*brak*np.exp(-(((x-10.)**2+(y-10)**2)/(2.*sigma**2)))
+        
+
 cell = [[0, 0.], [20., 20.]]
 
-pot = Potential2D(cell, f=f)
+pot = Potential2D(cell, f=f_mexican)
 
 #initialize the model
 tik2d = Model(
@@ -28,23 +36,25 @@ tik2d = Model(
         mass=1.0,
         mode='wave',
         basis='twodgrid',
-        solver='alglib',
-        #solver='scipy',
+        #solver='alglib',
+        solver='scipy',
         )
 
 #set the potential
 tik2d.set_potential(pot)
 
 #set basis 
-N=20  # of states
+N=512  # spatial discretization
 b = twodgrid(cell[0], cell[1], N)
 tik2d.set_basis(b)
+
+states = 511
 
 print tik2d
 
 tik2d.solve()
 
-print tik2d.data.wvfn.E.shape
+#print tik2d.data.wvfn.E.shape
 psi = tik2d.data.wvfn.psi
 
 
@@ -53,9 +63,9 @@ psi = tik2d.data.wvfn.psi
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-x = np.ones(len(tik2d.data.wvfn.E))
-plt.plot(x, tik2d.data.wvfn.E, ls='', marker = '_')#, mew=8, ms=6)
-plt.show()
+#x = np.ones(len(tik2d.data.wvfn.E))
+#plt.plot(x, tik2d.data.wvfn.E, ls='', marker = '_')#, mew=8, ms=6)
+#plt.show()
 #plt.hist(tik2d.data.wvfn.E, 7)
 #plt.show()
 
@@ -63,26 +73,10 @@ plt.show()
 fig = plt.figure()
 plt.subplots_adjust(bottom=0.2)
 
-fig = plt.figure()
+#fig = plt.figure()
 ax = fig.gca(projection='3d')
-#l, = ax.plot_surface(tik2d.basis.xgrid, tik2d.basis.ygrid, \
-#                     np.reshape(psi[:,0], (N,N)))
-
-ax.plot_surface(tik2d.basis.xgrid, tik2d.basis.ygrid, \
+l = ax.plot_surface(tik2d.basis.xgrid, tik2d.basis.ygrid, \
                      np.reshape(psi[:,0], (N,N)))
-plt.show()
-
-fig = plt.figure()
-ax = fig.gca(projection='3d')
-ax.plot_surface(tik2d.basis.xgrid, tik2d.basis.ygrid, \
-                     np.reshape(psi[:,1], (N,N)))
-plt.show()
-
-fig = plt.figure()
-ax = fig.gca(projection='3d')
-ax.plot_surface(tik2d.basis.xgrid, tik2d.basis.ygrid, \
-                     np.reshape(psi[:,2], (N,N)))
-plt.show()
 
 
 from matplotlib.widgets import Slider, Button, RadioButtons
@@ -91,16 +85,21 @@ class Index:
     ind = 0
     def next(self, event):
         self.ind += 1
-        if self.ind == N**tik2d.data.ndim:
+        if self.ind == states:
             self.ind = 0
-        l.set_ydata(np.reshape(psi[:,self.ind]), (N,N))
+        ax.clear()
+        l = ax.plot_surface(tik2d.basis.xgrid, tik2d.basis.ygrid, \
+                     np.reshape(psi[:,self.ind], (N,N)))
+
         plt.draw()
 
     def prev(self, event):
         self.ind -= 1
         if self.ind == -1:
-            self.ind = (N**tik2d.data.ndim)-1
-        l.set_ydata(np.reshape(psi[:,self.ind]), (N,N))
+            self.ind = states-1
+        ax.clear()
+        l = ax.plot_surface(tik2d.basis.xgrid, tik2d.basis.ygrid, \
+                     np.reshape(psi[:,self.ind], (N,N)))
         plt.draw()
 
 callback = Index()

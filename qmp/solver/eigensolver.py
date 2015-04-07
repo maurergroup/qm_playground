@@ -25,7 +25,8 @@ class scipy_solver(solver):
         V = basis.construct_Vmatrix(self.pot)
         H = T + V     #(100,100)
 
-        states = 20
+        states = 511
+        print 'Solving...'
         evals, evecs = eigsh(H, states, sigma=0., which='LM')
         #evals, evecs = np.sort(np.linalg.eig(H))
 
@@ -58,6 +59,7 @@ class alglib_solver(solver):
         if issparse(H):
             H = H.todense()
         
+        print 'Solving...'
         result, E, psi = xa.smatrixevd(H.tolist(), H.shape[0], 1, 1)
 
         self.data.wvfn.E = np.array(E)
