@@ -33,7 +33,7 @@ class Model(object):
                 'mode': 'wave', # wave, traj, rpmd
                 'basis': 'onedgrid', # onedgrid , twodgrid, pws,
                 'solver': 'scipy', #  scipy, alglib, Lanczos
-                'integrator': 'numerov', # numerov, ...
+                'integrator': 'eigenprop', # primprop, eigenprop, splitopprop
                 'states': 20,
         }
         
@@ -41,12 +41,12 @@ class Model(object):
         for key, value in kwargs.iteritems():
             self.parameters[key]=value
 
-        #exclusions
+        #exclusions ~> needed??
         #wavepacket dynamics needs a grid basis
-        if self.parameters['mode'] == 'wave':
+        #if self.parameters['mode'] == 'wave':
             #self.parameters['solver'] = 'alglib'
-            if self.parameters['basis'] == 'onedgrid':
-                self.parameters['integrator'] = 'primprop'
+            #if self.parameters['basis'] == 'onedgrid':
+                #self.parameters['integrator'] = 'primprop'
 
         self.pot = None
         self.dyn = None
@@ -104,7 +104,7 @@ class Model(object):
             self.solver = solver_init(self.data, self.pot)
             self.solver.solve()
 
-    def run(self, steps, dt):
+    def run(self, steps, dt, psi_0=0.):
         """
         Wrapper for dyn.run
         """
@@ -113,13 +113,12 @@ class Model(object):
            (self.pot is None) or \
            (self.data is None):
             raise ValueError('Integrator can only run with \
-                initialized basis and potential')
+                             initialized basis and potential')
         
         try:
-            self.dyn.run(steps,dt)
+            self.dyn.run(steps,dt,psi_0)
         except (AttributeError, TypeError):
             print 'Initializing Integrator'
             self.dyn = integrator_init(self.data, self.pot)
-            self.dyn.run(steps,dt)
+            self.dyn.run(steps,dt,psi_0)
  
-        #self.dyn.run(steps, dt)

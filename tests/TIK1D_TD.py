@@ -78,13 +78,17 @@ def f_morse(x):
 ## 1D "mexican hat"
 def f_mexican(x):
     sigma = 1.
-    pref = 2./(np.sqrt(3*sigma)*np.pi**(1./4.))
+    pref = 5./(np.sqrt(3*sigma)*np.pi**(1./4.))
     brak = 1.-((x-10.)/sigma)**2
-    return pref*brak*np.exp(-(1./2.)*((x-10.)/sigma)**2)
+    f = pref*(brak*np.exp(-(1./2.)*((x-10.)/sigma)**2))
+    return f - min(f)
 
 cell = [[0, 30.0]]
 
 pot = Potential(cell, f=f_mexican)
+
+#number of basis states to consider
+states = 40
 
 #initialize the model
 tik1d = Model(
@@ -95,44 +99,41 @@ tik1d = Model(
         solver='scipy',
         #solver='alglib',
         integrator='primprop',
+        states=states,
         )
 
 #set the potential
 tik1d.set_potential(pot)
 
 #set basis 
-N=512  # spatial discretization
+N=100  # spatial discretization
 b = onedgrid(cell[0][0], cell[0][1],N)
 tik1d.set_basis(b)
-
-#number of basis states to consider
-states = 511
-
 print tik1d
 
 #calculate eigenvalues and eigenfunctions
-tik1d.solve()
-
-print 'SOLVED'
+#tik1d.solve()
+#print 'SOLVED'
 
 ##prepare initial wavefunction and dynamics
-dt =  1  #whatever the units are ~> a.u.?
-steps = 100
+dt =  0.5  #whatever the units are ~> a.u.?
+steps = 20
+psi_0 = create_gaussian(tik1d.basis.x, x0=13.)
 
-tik1d.run(0, dt)
+tik1d.run(0, dt, psi_0 = psi_0)
 
 #prepare wvfn
 #tik1d.data.c[0] = 1
 #tik1d.data.c[1] = 1
-tik1d.data.c = project_gaussian(tik1d.data.wvfn.psi, tik1d.basis.x, \
-                                amplitude=1., sigma=1., x0=10.)
-norm = np.dot(tik1d.data.c,tik1d.data.c)
-tik1d.data.c /= np.sqrt(norm)
+#tik1d.data.c = project_gaussian(tik1d.data.wvfn.psi, tik1d.basis.x, \
+#                                amplitude=1., sigma=1., x0=13.)
+#norm = np.dot(tik1d.data.c,tik1d.data.c)
+#tik1d.data.c /= np.sqrt(norm)
 
-tik1d.run(steps,dt)
+tik1d.run(steps,dt, psi_0=psi_0)
 print 'INTEGRATED'
 psi_t = tik1d.data.wvfn.psi_t
-
+print psi_t
 
 #####VISUALIZATION
 import matplotlib.pyplot as plt
@@ -140,18 +141,19 @@ import matplotlib.animation as animation
 
 fig, ax = plt.subplots()
 line, = ax.plot(tik1d.basis.x, psi_t[0,:]*np.conjugate(psi_t[0,:]))
-ax.set_ylim(-0.02, 0.06)
+#ax.set_ylim(-0.002, 0.08)
 
 def _init_():
-    line, = ax.plot(tik1d.basis.x, tik1d.pot(tik1d.basis.x), c='r')
-    ax.set_ylim(-0.02,0.06)
+#    ax.set_ylim(-0.002,0.08)
     return line,
 
 def animate(i):
     line.set_ydata(psi_t[i,:]*np.conjugate(psi_t[i,:]))  # update the data
+    ax.plot(tik1d.basis.x, tik1d.pot(tik1d.basis.x)/max(tik1d.pot(tik1d.basis.x))*0.075, ls=':', c='r')
     return line,
 
-ani = animation.FuncAnimation(fig, animate, np.arange(1, steps), init_func=_init_, interval=100, blit=False)
+ani = animation.FuncAnimation(fig, animate, np.arange(1, steps), init_func=_init_, \
+                              interval=50, blit=False)
 
 plt.show()
 

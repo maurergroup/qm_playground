@@ -6,7 +6,8 @@ from qmp.integrator.trajintegrators import *
 
 integrator_type = {
     'primprop' : prim_propagator,
-    #''
+    'eigenprop' : eigen_propagator,
+    'splitopprop' : split_operator_propagator,
     }
 
 def integrator_init(data, potential):

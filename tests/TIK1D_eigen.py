@@ -68,15 +68,24 @@ def f_morse(x):
 ## 1D "mexican hat"
 def f_mexican(x):
     sigma = 1.
-    pref = 2./(np.sqrt(3*sigma)*np.pi**(1./4.))
+    pref = 20./(np.sqrt(3*sigma)*np.pi**(1./4.))
     brak = 1.-((x-10.)/sigma)**2
-    return pref*brak*np.exp(-(1./2.)*((x-10.)/sigma)**2)
+    f = pref*(brak*np.exp(-(1./2.)*((x-10.)/sigma)**2))
+    return f - min(f)
 
 
 cell = [[0, 20.0]]
 
-pot = Potential(cell, f=f_mexican)
+#x = np.linspace(cell[0][0], cell[0][1], 500)
+#V = f_mexican(x)
+#import matplotlib.pyplot as plt
+#plt.plot(x,V)
+#plt.show()
 
+#raise SystemExit
+
+pot = Potential(cell, f=f_mexican)
+states = 30
 #initialize the model
 tik1d = Model(
         ndim=1,
@@ -85,13 +94,14 @@ tik1d = Model(
         basis='onedgrid',
         #solver='alglib',
         solver='scipy',
+        states=states,
         )
 
 #set the potential
 tik1d.set_potential(pot)
 
 #set basis 
-N=512  # of states
+N=1600  # spatial discretization
 b = onedgrid(cell[0][0], cell[0][1],N)
 tik1d.set_basis(b)
 
@@ -109,9 +119,9 @@ from matplotlib import pyplot as plt
 #generate figure
 fix, ax = plt.subplots()
 plt.subplots_adjust(bottom=0.2)
-l, = plt.plot(tik1d.basis.x,tik1d.data.wvfn.psi[:,0])
-k, = plt.plot(tik1d.basis.x,tik1d.pot(tik1d.basis.x))
-ax.set_ylim([-0.6,0.6])
+l, = plt.plot(tik1d.basis.x,10.*tik1d.data.wvfn.psi[:,0]*np.conjugate(tik1d.data.wvfn.psi[:,0]))
+k, = plt.plot(tik1d.basis.x,tik1d.pot(tik1d.basis.x)/max(tik1d.pot(tik1d.basis.x))*0.1, ls=':')
+ax.set_ylim([-0.02,0.12])
 
 from matplotlib.widgets import Slider, Button, RadioButtons
 #BUTTON DEFINITIONS
@@ -119,16 +129,16 @@ class Index:
     ind = 0
     def next(self, event):
         self.ind += 1
-        if self.ind == N:
+        if self.ind == states:
             self.ind = 0
-        l.set_ydata(tik1d.data.wvfn.psi[:,self.ind])
+        l.set_ydata(10.*tik1d.data.wvfn.psi[:,self.ind]*np.conjugate(tik1d.data.wvfn.psi[:,self.ind]))
         plt.draw()
 
     def prev(self, event):
         self.ind -= 1
         if self.ind == -1:
-            self.ind = N-1
-        l.set_ydata(tik1d.data.wvfn.psi[:,self.ind])
+            self.ind = states-1
+        l.set_ydata(10.*tik1d.data.wvfn.psi[:,self.ind]*np.conjugate(tik1d.data.wvfn.psi[:,self.ind]))
         plt.draw()
 
 callback = Index()

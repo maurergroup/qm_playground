@@ -22,28 +22,28 @@ def f(x,y):
 ## 2D "mexican hat potential"
 def f_mexican(x,y):
     sigma = 1.
-    pref = (1./(np.pi*sigma**4))
+    pref = 5./(np.pi*sigma**4)
     brak = .5-(((x-10.)**2+(y-10.)**2)/(2*sigma**2))
-    return pref*brak*np.exp(-(((x-10.)**2+(y-10)**2)/(2.*sigma**2)))
+    f = pref*brak*np.exp(-(((x-10.)**2+(y-10)**2)/(2.*sigma**2)))
+    return f - min(f.flatten())
+
 
 
 cell = [[0, 0.], [20., 20.]]
 
-x = np.linspace(0., 20., 200)
-y = np.linspace(0., 20., 200)
-xval, yval = np.meshgrid(x,y)
-V = f_mexican(xval, yval)
+#x = np.linspace(0., 20., 200)
+#y = np.linspace(0., 20., 200)
+#xval, yval = np.meshgrid(x,y)
+#V = f_mexican(xval, yval)
+#from matplotlib import pyplot as plt
+#from matplotlib import cm
+#from mpl_toolkits.mplot3d import Axes3D
+#fig = plt.figure()
+#ax = fig.gca(projection='3d')
+#ax.plot_surface(xval, yval, V, cmap=cm.coolwarm)
+#plt.show()
+#raise SystemExit
 
-from matplotlib import pyplot as plt
-from matplotlib import cm
-from mpl_toolkits.mplot3d import Axes3D
-
-fig = plt.figure()
-ax = fig.gca(projection='3d')
-ax.plot_surface(xval, yval, V, cmap=cm.coolwarm)
-plt.show()
-
-raise SystemExit
 pot = Potential2D(cell, f=f_mexican)
 
 #initialize the model
@@ -54,14 +54,14 @@ tik2d = Model(
         basis='twodgrid',
         #solver='alglib',
         solver='scipy',
-        integrator='primprop',
+        integrator='eigenprop',
         )
 
 #set the potential
 tik2d.set_potential(pot)
 
 #set basis 
-N=200     # spatial discretization
+N=400     # spatial discretization
 b = twodgrid(cell[0], cell[1], N)
 tik2d.set_basis(b)
 
@@ -73,7 +73,7 @@ print 'SOLVED'
 #print tik2d.data.wvfn.E.shape
 
 ##prepare initial wavefunction and dynamics
-dt =  0.5     #whatever the units are ~> a.u.?
+dt =  .5     #whatever the units are ~> a.u.?
 steps = 120     #number of steps to propagate
 
 tik2d.run(0, dt)
@@ -82,7 +82,7 @@ tik2d.run(0, dt)
 #tik2d.data.c[0] = 1
 #tik2d.data.c[1] = 1
 tik2d.data.c = project_gaussian2D(tik2d.data.wvfn.psi, tik2d.basis.xgrid, \
-                     tik2d.basis.ygrid, amplitude=10., sigma=1., x0=[9.,9.])
+                     tik2d.basis.ygrid, amplitude=10., sigma=1., x0=[7.,9.])
 norm = np.dot(tik2d.data.c,tik2d.data.c)
 tik2d.data.c /= np.sqrt(norm)
 
@@ -97,7 +97,7 @@ psi_t = tik2d.data.wvfn.psi_t     #(steps+1, x**ndim)
 
 from matplotlib import pyplot as plt
 from matplotlib import cm
-#import matplotlib.animation as animation
+import matplotlib.animation as animation
 from mpl_toolkits.mplot3d import Axes3D
 plt.switch_backend('QT4Agg')
 theta = 25.
@@ -107,41 +107,22 @@ fig = plt.figure()
 plt.subplots_adjust(bottom=0.2)
 ax = fig.gca(projection='3d')
 
-
 frame = None
-#cset = None
 for i in xrange(steps+1):
     oldframe = frame
-    #oldcset = cset
-    
+
     frame = ax.plot_surface(tik2d.basis.xgrid, tik2d.basis.ygrid, \
-                    np.reshape(psi_t[i,:]*np.conjugate(psi_t[i,:]), (N,N)), alpha=0.75, \
-                    antialiased=False, cmap = cm.coolwarm, lw=0.1)
-    #k = ax.plot_surface(tik2d.basis.xgrid[50:150,50:150], tik2d.basis.ygrid[50:150,50:150], \
-    #                    tik2d.pot(tik2d.basis.xgrid, tik2d.basis.ygrid)[50:150,50:150], \
-    #                    color='red', alpha=0.05, linewidth=0.)
-    #ax.plot([10.,10.,10.], [10.,10.,10.], [-10., 0., 10.], marker='o', mfc='green', ms=8, lw=0.)
-    #cset = ax.contour(tik2d.basis.xgrid, tik2d.basis.ygrid, \
-    #                  np.reshape(psi_t[0,:]*np.conjugate(psi_t[i,:]), (N,N)), \
-    #                  zdir='z', offset=-0.0025, cmap=cm.coolwarm)
-    #cset = ax.contour(tik2d.basis.xgrid, tik2d.basis.ygrid, \
-    #                  np.reshape(psi_t[0,:]*np.conjugate(psi_t[i,:]), (N,N)), \
-    #                  zdir='x', offset=cell[0][0], cmap=cm.coolwarm)
-    #cset = ax.contour(tik2d.basis.xgrid, tik2d.basis.ygrid, \
-    #                  np.reshape(psi_t[0,:]*np.conjugate(psi_t[i,:]), (N,N)), \
-    #                  zdir='y', offset=cell[1][1], cmap=cm.coolwarm)
-    ax.set_zlim(-0.0025,0.0025)
-    ax.view_init(elev=theta , azim=-45.)
+                    8.*np.reshape(psi_t[i,:]*np.conjugate(psi_t[i,:]), (N,N)), alpha=0.75, \
+                    antialiased=False, cmap = cm.coolwarm, lw=0.)
+    ax.set_zlim(-0.0015,0.0015)
+    ax.view_init(elev=theta , azim=-45.+3*i)
     fmng = plt.get_current_fig_manager()
     fmng.window.showMaximized()
 
     if oldframe is not None:
         ax.collections.remove(oldframe)
-    
-    #if oldcset is not None:
-    #    ax.collections.remove(oldcset)
         
-    plt.pause(0.005)
+    plt.pause(0.001)
     
 
 raise SystemExit

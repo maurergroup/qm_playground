@@ -25,7 +25,8 @@ class scipy_solver(solver):
         V = basis.construct_Vmatrix(self.pot)
         H = T + V     #(100,100)
 
-        states = 511
+        states = self.data.parameters['states']
+        print states
         print 'Solving...'
         evals, evecs = eigsh(H, states, sigma=0., which='LM')
         #evals, evecs = np.sort(np.linalg.eig(H))
