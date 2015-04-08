@@ -56,6 +56,7 @@ class Model(object):
         self.data = data_container()
         self.data.ndim = self.parameters['ndim']
         self.data.mass = self.parameters['mass']
+        self.data.solved = False
         
         #data also keeps parameters
         self.data.parameters = self.parameters

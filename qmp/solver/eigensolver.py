@@ -33,6 +33,7 @@ class scipy_solver(solver):
 
         self.data.wvfn.E = np.array(evals)
         self.data.wvfn.psi = np.array(evecs)     #(100,k)
+        self.data.solved = True
 
 
 class alglib_solver(solver):
@@ -65,4 +66,4 @@ class alglib_solver(solver):
 
         self.data.wvfn.E = np.array(E)
         self.data.wvfn.psi = np.array(psi)
-
+        self.data.solved = True

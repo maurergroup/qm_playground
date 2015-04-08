@@ -44,7 +44,7 @@ def create_gaussian(x, x0=0., amplitude=1., sigma=1.):
         amplitude:  amplitude of wave (default 1.)
         sigma:      variance of gaussian (default 1.)
     """
-    return amplitude*np.exp( -(1/2.)*((x-x0)/sigma)**2 )
+    return amplitude*np.exp( -(1/2.)*((x-x0)/sigma)**2 )/(np.sqrt(2*np.pi*sigma**2))
     
 def create_gaussian2D(xgrid, ygrid, x0=[0.,0.], amplitude=1., sigma=1.):
     """

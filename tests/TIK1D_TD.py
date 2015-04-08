@@ -106,7 +106,7 @@ tik1d = Model(
 tik1d.set_potential(pot)
 
 #set basis 
-N=100  # spatial discretization
+N=500  # spatial discretization
 b = onedgrid(cell[0][0], cell[0][1],N)
 tik1d.set_basis(b)
 print tik1d
@@ -117,7 +117,7 @@ print tik1d
 
 ##prepare initial wavefunction and dynamics
 dt =  0.5  #whatever the units are ~> a.u.?
-steps = 20
+steps = 200
 psi_0 = create_gaussian(tik1d.basis.x, x0=13.)
 
 tik1d.run(0, dt, psi_0 = psi_0)
@@ -133,11 +133,16 @@ tik1d.run(0, dt, psi_0 = psi_0)
 tik1d.run(steps,dt, psi_0=psi_0)
 print 'INTEGRATED'
 psi_t = tik1d.data.wvfn.psi_t
-print psi_t
+E_t = tik1d.data.wvfn.E_t
+
 
 #####VISUALIZATION
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+
+plt.plot(np.linspace(0., steps*dt, steps+1), E_t)
+plt.show()
+
 
 fig, ax = plt.subplots()
 line, = ax.plot(tik1d.basis.x, psi_t[0,:]*np.conjugate(psi_t[0,:]))
@@ -149,7 +154,7 @@ def _init_():
 
 def animate(i):
     line.set_ydata(psi_t[i,:]*np.conjugate(psi_t[i,:]))  # update the data
-    ax.plot(tik1d.basis.x, tik1d.pot(tik1d.basis.x)/max(tik1d.pot(tik1d.basis.x))*0.075, ls=':', c='r')
+    ax.plot(tik1d.basis.x, tik1d.pot(tik1d.basis.x)/max(tik1d.pot(tik1d.basis.x))*0.15, ls=':', c='r')
     return line,
 
 ani = animation.FuncAnimation(fig, animate, np.arange(1, steps), init_func=_init_, \

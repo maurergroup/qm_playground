@@ -30,18 +30,18 @@ class eigen_propagator(Integrator):
         Propagates psi_0 for 'steps' timesteps of length 'dt'.
         """
 
-        if self.data.wvfn.E is None:
+        if self.data.solved == False:
             raise ValueError('System has to be solved first for eigendecomposition!')
-        
+                
         psi_basis = self.data.wvfn.psi     #(x,states)
         
         if steps == 0:
             self.data.c[0] = 1
             c = self.data.c
-        elif (np.all(self.data.c) == 0.) and (psi_0 == 0.):
+        elif (np.all(self.data.c) == 0.) and (np.all(psi_0) == 0.):
             raise ValueError('Integrator needs either expansion coefficients \
                              or initial wave function to propagate system!')
-        elif psi_0 == 0.:
+        elif np.all(psi_0) == 0.:
             c = self.data.c
         elif (len(psi_0.flatten()) != self.data.wvfn.psi.shape[0]):
             raise ValueError('Initial wave function needs to be defined on \
@@ -51,6 +51,7 @@ class eigen_propagator(Integrator):
         
         prop = np.diag(np.exp(-1j*self.data.wvfn.E*dt/hbar))    #(states,states)
         psi = [psi_basis.dot(c)]    #(x,1)
+        E = [np.dot(np.conjugate(c), c)]
         
         print 'Integrating...'
         for i in xrange(1,steps+1):
@@ -59,9 +60,10 @@ class eigen_propagator(Integrator):
             c = np.dot(prop,c)
             psi = np.append(psi, np.dot(psi_basis,c))
             psi = psi.reshape(i+1,psi_basis.shape[0])
-            #E = np.dot(c\cc,psi),np.dot(H,np.dot(c,psi))
+            E.append(np.dot(np.conjugate(c), c))
             
         self.data.wvfn.psi_t = np.array(psi)
+        self.data.wvfn.E_t = np.array(E)
         
 
 class prim_propagator(Integrator):
@@ -86,8 +88,7 @@ class prim_propagator(Integrator):
         """
         Propagates the system for 'steps' timesteps of length 'dt'.
         """
-        import scipy.sparse.linalg as la
-        import scipy.sparse as sparse
+        import scipy.linalg as la
         
         #construct H
         T=self.data.wvfn.basis.construct_Tmatrix()
@@ -97,18 +98,19 @@ class prim_propagator(Integrator):
             raise ValueError('Please provide initial wave function on appropriate grid')
 
         H = np.array(T+V)
-        prop = np.exp(-1j*H*dt/hbar)    #(x,x)
-        psi = np.array([psi_0])    #(x,1)
-        
+        prop = la.expm(-1j*H*dt/hbar)    #(x,x)
+        psi = np.array([psi_0.flatten()])    #(1,x)
+        E = [np.dot(np.conjugate(psi_0.flatten()), np.dot(H,psi_0.flatten()))]
         print 'Integrating...'
         for i in xrange(steps):
             #print 'Time Step : ', i
             self.counter +=1 
             psi = np.append(psi, np.dot(prop,psi[i]))
-            psi = psi.reshape(i+2,T.shape[0])
-            #E = np.dot(c\cc,psi),np.dot(H,np.dot(c,psi))
+            psi = np.reshape(psi, (i+2,T.shape[0]))
+            E.append(np.dot(psi[i+1].conjugate(), np.dot(H,psi[i+1])))
             
         self.data.wvfn.psi_t = np.array(psi)
+        self.data.wvfn.E_t = np.array(E)
         
 
 class split_operator_propagator(Integrator):
@@ -143,7 +145,8 @@ class split_operator_propagator(Integrator):
         if (psi_0.all() == 0.) or (len(psi_0.flatten()) != V.shape[1]):
             raise ValueError('Please provide initial wave function on appropriate grid')
 
-        expV = np.exp(-1j*V*dt/hbar)
+        expV = np.exp(-1j*V*dt/hbar/2.)
+        
 
         #fancy implementation
 
