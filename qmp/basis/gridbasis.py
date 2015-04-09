@@ -58,6 +58,9 @@ class onedgrid(basis):
     def deriv_psi(self):
 
         return np.dot(self.D,self.psi)
+    
+    def Nabla_psi(self):
+        return np.dot(self.D,self.psi)
 
     def Lap_psi(self):
 
@@ -137,9 +140,12 @@ class  twodgrid(basis):
         Returns array of derivatives (result[0]: d/dx, result[1]: d/dy)
         """
         return np.array([np.dot(self.psi, self.Dx), np.dot(self.Dy, self.psi)])
+    
+    def Nabla_psi(self):
+        return np.dot(self.psi, self.Dx) + np.dot(self.Dy, self.psi)
 
     def Lap_psi(self):
-        return self.L.dot(self.psi.flatten())#+reshape?
+        return (self.L.dot(self.psi.flatten())).reshape(self.N, self.N)
 
     def construct_Tmatrix(self):
         m = self.data.mass

@@ -98,7 +98,7 @@ tik1d = Model(
         basis='onedgrid',
         solver='scipy',
         #solver='alglib',
-        integrator='primprop',
+        integrator='splitopprop',
         states=states,
         )
 
@@ -120,7 +120,7 @@ dt =  0.5  #whatever the units are ~> a.u.?
 steps = 200
 psi_0 = create_gaussian(tik1d.basis.x, x0=13.)
 
-tik1d.run(0, dt, psi_0 = psi_0)
+tik1d.run(0, dt, psi_0x = psi_0)
 
 #prepare wvfn
 #tik1d.data.c[0] = 1
@@ -130,18 +130,18 @@ tik1d.run(0, dt, psi_0 = psi_0)
 #norm = np.dot(tik1d.data.c,tik1d.data.c)
 #tik1d.data.c /= np.sqrt(norm)
 
-tik1d.run(steps,dt, psi_0=psi_0)
+tik1d.run(steps,dt, psi_0x=psi_0)
 print 'INTEGRATED'
 psi_t = tik1d.data.wvfn.psi_t
-E_t = tik1d.data.wvfn.E_t
+#E_t = tik1d.data.wvfn.E_t
 
 
 #####VISUALIZATION
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-plt.plot(np.linspace(0., steps*dt, steps+1), E_t)
-plt.show()
+#plt.plot(np.linspace(0., steps*dt, steps+1), E_t)
+#plt.show()
 
 
 fig, ax = plt.subplots()

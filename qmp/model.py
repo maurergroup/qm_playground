@@ -105,7 +105,7 @@ class Model(object):
             self.solver = solver_init(self.data, self.pot)
             self.solver.solve()
 
-    def run(self, steps, dt, psi_0=0.):
+    def run(self, steps, dt, psi_0x=0., psi_0p=0.):
         """
         Wrapper for dyn.run
         """
@@ -117,9 +117,9 @@ class Model(object):
                              initialized basis and potential')
         
         try:
-            self.dyn.run(steps,dt,psi_0)
+            self.dyn.run(steps,dt,psi_0x, psi_0p)
         except (AttributeError, TypeError):
             print 'Initializing Integrator'
             self.dyn = integrator_init(self.data, self.pot)
-            self.dyn.run(steps,dt,psi_0)
+            self.dyn.run(steps,dt,psi_0x, psi_0p)
  
