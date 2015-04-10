@@ -105,7 +105,7 @@ class Model(object):
             self.solver = solver_init(self.data, self.pot)
             self.solver.solve()
 
-    def run(self, steps, dt, psi_0x=0., psi_0p=0.):
+    def run(self, steps, dt, psi_0):
         """
         Wrapper for dyn.run
         """
@@ -116,10 +116,16 @@ class Model(object):
             raise ValueError('Integrator can only run with \
                              initialized basis and potential')
         
+        if (self.parameters['integrator'] == 'eigen') and \
+           (self.data.solved == False):
+            print 'Propagator requires eigenstates. Start solving eigenvalue problem.'
+            self.solve()
+            print 'SOLVED'
+        
         try:
-            self.dyn.run(steps,dt,psi_0x, psi_0p)
+            self.dyn.run(steps,dt,psi_0)
         except (AttributeError, TypeError):
             print 'Initializing Integrator'
             self.dyn = integrator_init(self.data, self.pot)
-            self.dyn.run(steps,dt,psi_0x, psi_0p)
+            self.dyn.run(steps,dt,psi_0)
  

@@ -2,8 +2,8 @@
 
 """
 
-hbar = 1.0
-mass = 1
+hbar = 1.
+mass = 1.
 
 
 

@@ -25,29 +25,26 @@ class eigen_propagator(Integrator):
         self.data.c = np.zeros_like(self.data.wvfn.E)
         
 
-    def run(self, steps, dt, psi_0x, psi_0p):
+    def run(self, steps, dt, psi_0):
         """
-        Propagates psi_0x for 'steps' timesteps of length 'dt'.
+        Propagates psi_0 for 'steps' timesteps of length 'dt'.
         """
 
-        if self.data.solved == False:
-            raise ValueError('System has to be solved first for eigendecomposition!')
-                
         psi_basis = self.data.wvfn.psi     #(x,states)
         
         if steps == 0:
             self.data.c[0] = 1
             c = self.data.c
-        elif (np.all(self.data.c) == 0.) and (np.all(psi_0x) == 0.):
+        elif (np.all(self.data.c) == 0.) and (np.all(psi_0) == 0.):
             raise ValueError('Integrator needs either expansion coefficients \
                              or initial wave function to propagate system!')
-        elif np.all(psi_0x) == 0.:
+        elif np.all(psi_0) == 0.:
             c = self.data.c
-        elif (len(psi_0x.flatten()) != self.data.wvfn.psi.shape[0]):
+        elif (len(psi_0.flatten()) != self.data.wvfn.psi.shape[0]):
             raise ValueError('Initial wave function needs to be defined on \
                              same grid as system was solved on!')
         else:
-            c = np.dot(psi_0x.flatten(), psi_basis)
+            c = np.dot(psi_0.flatten(), psi_basis)
         
         prop = np.diag(np.exp(-1j*self.data.wvfn.E*dt/hbar))    #(states,states)
         psi = [psi_basis.dot(c)]    #(x,1)
@@ -85,7 +82,7 @@ class prim_propagator(Integrator):
 
         ##something?
         
-    def run(self, steps, dt, psi_0x, psi_0p):
+    def run(self, steps, dt, psi_0):
         """
         Propagates the system for 'steps' timesteps of length 'dt'.
         """
@@ -95,13 +92,13 @@ class prim_propagator(Integrator):
         T=self.data.wvfn.basis.construct_Tmatrix()
         V=self.data.wvfn.basis.construct_Vmatrix(self.pot)
         
-        if (psi_0x.all() == 0.) or (len(psi_0x.flatten()) != T.shape[1]):
+        if (psi_0.all() == 0.) or (len(psi_0.flatten()) != T.shape[1]):
             raise ValueError('Please provide initial wave function on appropriate grid')
 
         H = np.array(T+V)
         prop = la.expm(-1j*H*dt/hbar)    #(x,x)
-        psi = np.array([psi_0x.flatten()])    #(1,x)
-        E = [np.dot(np.conjugate(psi_0x.flatten()), np.dot(H,psi_0x.flatten()))]
+        psi = np.array([psi_0.flatten()])    #(1,x)
+        E = [np.dot(np.conjugate(psi_0.flatten()), np.dot(H,psi_0.flatten()))]
         self.counter = 0
         
         print 'Integrating...'
@@ -138,36 +135,54 @@ class split_operator_propagator(Integrator):
 
         ##whatever has to be here
 
-    def run(self, steps, dt, psi_0x, psi_0p):
+    def run(self, steps, dt, psi_0):
         """
         Propagates the system for 'steps' timesteps of length 'dt'.
         """
+        from numpy.fft import fft as FT
+        from numpy.fft import ifft as iFT
+        from numpy.fft import fftfreq as FTp
 
-        V = self.data.wvfn.basis.construct_Vmatrix(self.pot)
+        V = self.data.wvfn.basis.get_potential_flat(self.pot)
+        N = V.size
 
-        if (psi_0x.all() == 0.) or (len(psi_0x.flatten()) != V.shape[1]):
+        if (psi_0.all() == 0.) or (len(psi_0.flatten()) != N):
             raise ValueError('Please provide initial wave function on appropriate grid')
 
         m = self.data.mass
-        expV = np.exp(-1j*V*dt/hbar/2.)
-        p_op = -1j*hbar*self.data.wvfn.basis.Nabla_psi()
-        psi = np.array([psi_0x.flatten()])
-        if np.all(psi_0p) == 0.:
-            psi_p = np.dot(np.conjugate(psi_0x).dot(p_op), psi_0x)
-        else:
-            psi_p = psi_0p
+        dx = self.data.wvfn.basis.dx
         
+        expV = np.exp(-1j*V*dt/hbar)
+        p = 2.*np.pi*FTp(N, dx)
+        expT = np.exp(-1j*(dt/hbar)*(p**2)/(4.*m))
+        
+        psi = np.array([psi_0.flatten()])
+        E, E_kin, E_pot = [], [], []
+
         self.counter = 0
-        
+
         print 'Integrating...'
         for i in xrange(steps):
             self.counter += 1
-            expT = np.exp(np.diag(-1j*(dt/hbar)*(psi_p**2)/(2.*m)))
-            psi1 = np.dot(expV, psi[i])
-            psi2 = np.dot(expT, FT(psi1))
-            psi3 = np.dot(expV, iFT(psi2))
-            psi = (np.append(psi, psi3)).reshape(i+2,V.shape[0])
-            psi_p = np.dot(np.conjugate(psi[i]).dot(p_op), psi[i])
+            psi1 = iFT( expT*FT(psi[i]) ) 
+            psi2 = FT( expV*psi1 ) 
+            psi3 = iFT( expT*psi2 )
+            psi = (np.append(psi, psi3)).reshape(i+2,N)
             
+            e_kin = (np.conjugate(psi3).dot( iFT(p**2 * FT(psi3)) ))/2./m
+            e_pot = np.conjugate(psi3).dot(V*psi3)
+            E_kin.append(e_kin)
+            E_pot.append(e_pot)
+            E.append(e_kin+e_pot)
+        
+        psi_ft = FT(psi[-1])
+        e_kin = np.dot(np.conjugate(psi[-1]), iFT( p**2/2./m*psi_ft))
+        e_pot = np.conjugate(psi[-1]).dot(V*psi[-1])
+        E_kin.append(e_kin)
+        E_pot.append(e_pot)
+        E.append(e_kin+e_pot)
         self.data.wvfn.psi_t = np.array(psi)
+        self.data.wvfn.E_t = np.array(E)
+        self.data.wvfn.E_kin_t = np.array(E_kin)
+        self.data.wvfn.E_pot_t = np.array(E_pot)
         

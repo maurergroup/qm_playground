@@ -5,9 +5,13 @@ from qmp.integrator.waveintegrators import *
 from qmp.integrator.trajintegrators import *
 
 integrator_type = {
+    'primitive' : prim_propagator,
     'primprop' : prim_propagator,
-    'eigenprop' : eigen_propagator,
+    'eigen' : eigen_propagator,
+    'eigenprop' :eigen_propagator,
+    'SOFT' : split_operator_propagator,
     'splitopprop' : split_operator_propagator,
+    'split_operator' : split_operator_propagator,
     }
 
 def integrator_init(data, potential):

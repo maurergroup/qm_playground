@@ -11,11 +11,11 @@ sys.path.append('..')
 from qmp import *
 from qmp.basis.gridbasis import twodgrid
 from qmp.potential import Potential2D
-from qmp.integrator.dyn_tools import project_gaussian2D
+from qmp.integrator.dyn_tools import create_gaussian2D
 
 
 ## 2D harmonic potential
-def f(x,y):
+def f_harm(x,y):
     omx, omy = .025, .025
     return omx*((x-10.)**2) + omy*((y-10.)**2)
 
@@ -44,7 +44,7 @@ cell = [[0, 0.], [20., 20.]]
 #plt.show()
 #raise SystemExit
 
-pot = Potential2D(cell, f=f_mexican)
+pot = Potential2D(cell, f=f_harm)
 
 #initialize the model
 tik2d = Model(
@@ -54,7 +54,7 @@ tik2d = Model(
         basis='twodgrid',
         #solver='alglib',
         solver='scipy',
-        integrator='eigenprop',
+        integrator='SOFT',
         )
 
 #set the potential
@@ -64,29 +64,26 @@ tik2d.set_potential(pot)
 N=400     # spatial discretization
 b = twodgrid(cell[0], cell[1], N)
 tik2d.set_basis(b)
-
 print tik2d
 
-tik2d.solve()
-
-print 'SOLVED'
-#print tik2d.data.wvfn.E.shape
 
 ##prepare initial wavefunction and dynamics
 dt =  .5     #whatever the units are ~> a.u.?
 steps = 120     #number of steps to propagate
 
-tik2d.run(0, dt)
+psi_0 = create_gaussian2D(tik2d.basis.xgrid, tik2d.basis.ygrid, x0=[8.,9.], p0=[1.,2.], sigma=1.)
+
+tik2d.run(0, dt, psi_0=psi_0)
 
 #prepare wvfn
 #tik2d.data.c[0] = 1
 #tik2d.data.c[1] = 1
-tik2d.data.c = project_gaussian2D(tik2d.data.wvfn.psi, tik2d.basis.xgrid, \
-                     tik2d.basis.ygrid, amplitude=10., sigma=1., x0=[7.,9.])
-norm = np.dot(tik2d.data.c,tik2d.data.c)
-tik2d.data.c /= np.sqrt(norm)
+#tik2d.data.c = project_gaussian2D(tik2d.data.wvfn.psi, tik2d.basis.xgrid, \
+#                     tik2d.basis.ygrid, amplitude=10., sigma=1., x0=[7.,9.])
+#norm = np.dot(tik2d.data.c,tik2d.data.c)
+#tik2d.data.c /= np.sqrt(norm)
 
-tik2d.run(steps,dt)
+tik2d.run(steps,dt, psi_0=psi_0)
 print 'INTEGRATED'
 
 # number steps: initial + propagated = steps + 1
@@ -115,7 +112,7 @@ for i in xrange(steps+1):
                     8.*np.reshape(psi_t[i,:]*np.conjugate(psi_t[i,:]), (N,N)), alpha=0.75, \
                     antialiased=False, cmap = cm.coolwarm, lw=0.)
     ax.set_zlim(-0.0015,0.0015)
-    ax.view_init(elev=theta , azim=-45.+3*i)
+    ax.view_init(elev=theta , azim=-45.)
     fmng = plt.get_current_fig_manager()
     fmng.window.showMaximized()
 

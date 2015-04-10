@@ -101,7 +101,7 @@ tik1d = Model(
 tik1d.set_potential(pot)
 
 #set basis 
-N=1600  # spatial discretization
+N=500  # spatial discretization
 b = onedgrid(cell[0][0], cell[0][1],N)
 tik1d.set_basis(b)
 
