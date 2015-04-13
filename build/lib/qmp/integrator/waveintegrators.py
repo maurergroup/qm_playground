@@ -31,24 +31,28 @@ class eigen_propagator(Integrator):
         """
 
         psi_basis = self.data.wvfn.psi     #(x,states)
-        
+
         if steps == 0:
             self.data.c[0] = 1
             c = self.data.c
-        elif (np.all(self.data.c) == 0.) and (np.all(psi_0) == 0.):
+        elif not (np.any(self.data.c) != 0.) and not (np.any(psi_0) != 0.):
             raise ValueError('Integrator needs either expansion coefficients \
-                             or initial wave function to propagate system!')
-        elif np.all(psi_0) == 0.:
+or initial wave function to propagate system!')
+        elif not (np.any(psi_0) != 0.):
             c = self.data.c
-        elif (len(psi_0.flatten()) != self.data.wvfn.psi.shape[0]):
+            norm = np.sqrt(np.conjugate(c).dot(c))
+            c /= norm
+        elif (len(psi_0.flatten()) != psi_basis.shape[0]):
             raise ValueError('Initial wave function needs to be defined on \
-                             same grid as system was solved on!')
+same grid as system was solved on!')
         else:
             c = np.dot(psi_0.flatten(), psi_basis)
+            norm = np.sqrt(np.conjugate(c).dot(c))
+            c /= norm
         
         prop = np.diag(np.exp(-1j*self.data.wvfn.E*dt/hbar))    #(states,states)
         psi = [psi_basis.dot(c)]    #(x,1)
-        E = [np.dot(np.conjugate(c), c)]
+        E = [np.dot(np.conjugate(c), (c*self.data.wvfn.E))]
         
         self.counter = 0
         print 'Integrating...'
@@ -58,7 +62,7 @@ class eigen_propagator(Integrator):
             c = np.dot(prop,c)
             psi = np.append(psi, np.dot(psi_basis,c))
             psi = psi.reshape(i+1,psi_basis.shape[0])
-            E.append(np.dot(np.conjugate(c), c))
+            E.append(np.dot(np.conjugate(c), (c*self.data.wvfn.E)))
             
         self.data.wvfn.psi_t = np.array(psi)
         self.data.wvfn.E_t = np.array(E)
@@ -92,7 +96,7 @@ class prim_propagator(Integrator):
         T=self.data.wvfn.basis.construct_Tmatrix()
         V=self.data.wvfn.basis.construct_Vmatrix(self.pot)
         
-        if (psi_0.all() == 0.) or (len(psi_0.flatten()) != T.shape[1]):
+        if (not psi_0.any() != 0.) or (len(psi_0.flatten()) != T.shape[1]):
             raise ValueError('Please provide initial wave function on appropriate grid')
 
         H = np.array(T+V)
@@ -146,7 +150,7 @@ class split_operator_propagator(Integrator):
         V = self.data.wvfn.basis.get_potential_flat(self.pot)
         N = V.size
 
-        if (psi_0.all() == 0.) or (len(psi_0.flatten()) != N):
+        if (not psi_0.any() != 0.) or (len(psi_0.flatten()) != N):
             raise ValueError('Please provide initial wave function on appropriate grid')
 
         m = self.data.mass
@@ -169,7 +173,7 @@ class split_operator_propagator(Integrator):
             psi3 = iFT( expT*psi2 )
             psi = (np.append(psi, psi3)).reshape(i+2,N)
             
-            e_kin = (np.conjugate(psi3).dot( iFT(p**2 * FT(psi3)) ))/2./m
+            e_kin = (np.conjugate(psi3).dot( iFT(p**2/2./m * FT(psi3)) ))
             e_pot = np.conjugate(psi3).dot(V*psi3)
             E_kin.append(e_kin)
             E_pot.append(e_pot)

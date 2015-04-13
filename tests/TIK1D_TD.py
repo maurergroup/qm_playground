@@ -14,11 +14,11 @@ from qmp.visualizations import *           #
 cell = [[0., 40.0]]
 
 ### POTENTIAL ### 
-pot = Potential( cell, f=create_potential(cell, name='mexican_hat') )
+pot = Potential( cell, f=create_potential(cell, name='mexican_hat', mexican_scale=10.) )
 
 ### NUMBER OF BASIS STATES ### 
 ## for propagation in eigenbasis
-states = 40
+states = 256
 
 ### INITIALIZE MODEL ### 
 tik1d = Model(
@@ -36,7 +36,7 @@ tik1d.set_potential(pot)
 
 ### SET BASIS ### 
 ## number of grid points
-N=400
+N=512
 b = onedgrid(cell[0][0], cell[0][1],N)
 tik1d.set_basis(b)
 
@@ -50,8 +50,9 @@ dt =  .1
 steps = 200
 
 ## initial wave functions
-sigma = 1.
-psi_0 = create_gaussian(tik1d.basis.x, x0=15., p0=1., sigma=sigma)
+sigma = 0.2
+psi_0 = create_gaussian(tik1d.basis.x, x0=17., p0=0., sigma=sigma)
+psi_0 = psi_0/np.sqrt(np.conjugate(psi_0).dot(psi_0))
 
 ##analytical -- bogus!
 #def rho_evol(x, sigma0, x0, p0, t):
@@ -78,9 +79,7 @@ V_x = tik1d.pot(tik1d.basis.x)
 ### VISUALIZATION ###
 
 ## view animation
-movie1D(tik1d.basis.x, psi_t, V_x, dt=dt)#, E_arr=E_t, abs_rho_arr=rho_t, E_kin_arr=E_kin_t, E_pot_arr=E_pot_t)
+movie1D(tik1d.basis.x, psi_t, V_x, dt=dt, E_arr=E_t, rho_tot_arr=rho_t, E_kin_arr=E_kin_t, E_pot_arr=E_pot_t)
 
 ## view slideshow
 #slideshow1D(tik1d.basis.x, psi_t, V_x)
-
-

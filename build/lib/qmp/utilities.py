@@ -1,5 +1,7 @@
 """
-
+utilities including
+constants
+functions for numerical derivatives
 """
 
 hbar = 1.

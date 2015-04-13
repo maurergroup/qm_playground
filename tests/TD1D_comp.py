@@ -8,10 +8,10 @@ from qmp.pot_tools import *
 
 cell = [[0., 30.0]]
 
-pot = Potential( cell, f=create_potential('harmonic', cell, harm_omega=0.5, harm_pos=15.) )
+pot = Potential( cell, f=create_potential(cell, 'mexican_hat', mexican_scale=10.) )
 
 #number of basis states to consider
-states = 40
+states = 512
 
 #initialize the model
 tik1d = Model(
@@ -28,19 +28,17 @@ tik1d = Model(
 tik1d.set_potential(pot)
 
 #set basis 
-N=800  # spatial discretization
+N=1024  # spatial discretization
 b = onedgrid(cell[0][0], cell[0][1],N)
 tik1d.set_basis(b)
 print tik1d
 
 ##prepare initial wavefunction and dynamics
 dt =  .1  #whatever the units are ~> a.u.?
-steps = 100
-sigma = 1.
-psi_0 = create_gaussian(tik1d.basis.x, x0=13., p0=0., sigma=sigma)
+steps = 200
+sigma = .2
+psi_0 = create_gaussian(tik1d.basis.x, x0=17., p0=0., sigma=sigma)
 psi_0 = psi_0/np.sqrt(np.conjugate(psi_0).dot(psi_0))
-
-tik1d.run(0, dt, psi_0 = psi_0)
 
 tik1d.run(steps,dt, psi_0=psi_0)
 print 'INTEGRATED'
@@ -67,13 +65,10 @@ tik1d_eigen = Model(
 tik1d_eigen.set_potential(pot)
 
 #set basis 
-N=800  # spatial discretization
-b = onedgrid(cell[0][0], cell[0][1],N)
 tik1d_eigen.set_basis(b)
 print tik1d_eigen
 
 tik1d_eigen.run(0, dt, psi_0 = psi_0)
-
 tik1d_eigen.run(steps,dt, psi_0=psi_0)
 print 'INTEGRATED'
 psi_t_eigen = tik1d_eigen.data.wvfn.psi_t
@@ -99,12 +94,8 @@ tik1d_prim = Model(
 tik1d_prim.set_potential(pot)
 
 #set basis 
-N=800  # spatial discretization
-b = onedgrid(cell[0][0], cell[0][1],N)
 tik1d_prim.set_basis(b)
 print tik1d_prim
-
-tik1d_prim.run(0, dt, psi_0 = psi_0)
 
 tik1d_prim.run(steps,dt, psi_0=psi_0)
 print 'INTEGRATED'
