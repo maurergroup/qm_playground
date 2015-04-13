@@ -9,8 +9,10 @@ qmp/__init__.py
 qmp/data_containers.py
 qmp/logger.py
 qmp/model.py
+qmp/pot_tools.py
 qmp/potential.py
 qmp/utilities.py
+qmp/visualizations.py
 qmp/basis/__init__.py
 qmp/basis/basis.py
 qmp/basis/gridbasis.py

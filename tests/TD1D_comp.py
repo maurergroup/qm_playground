@@ -1,94 +1,14 @@
-"""
-time independent 
-solutions to the 1D Particle in different 
-potentials
-"""
-
 import numpy as np
-
 import sys
 sys.path.append('..')
 from qmp import *
 from qmp.basis.gridbasis import onedgrid
 from qmp.integrator.dyn_tools import *
-
-#we dont define a  potential
-
-##free particle 
-def f_free(x):
-    return np.zeros_like(x)
-
-def f_wall(x):
-    x = np.array([x]).flatten()
-    for i, xx in enumerate(x):
-        if xx <= 1. or xx > 29.:
-            x[i] = 10000000000000.
-        elif xx >= 19. and xx < 21.:
-            x[i] = 2.
-        else:
-            x[i] = 0.
-    return x
-
-##particle in deep well 
-def f(x):
-    x = np.array([x]).flatten()
-    for i,xx in enumerate(x):
-        if xx<= 9.0 and xx>1.0:
-            x[i]= 0.0
-        else:
-            x[i]= 1000000.0
-    return x
-##particle in two square wells 
-def f_double_square(x):
-    x = np.array([x]).flatten()
-    for i,xx in enumerate(x):
-        if (xx<= 4.0 and xx>2.0) or (xx<= 8.0 and xx>6.0) :
-            x[i]= 0.0
-        else:
-            x[i]= 2.5
-    return x
-##particle in two close lying wells
-def f_close_wells(x):
-    x = np.array([x]).flatten()
-    for i,xx in enumerate(x):
-        if (xx<= 4.8 and xx>3.0) or (xx<= 7.0 and xx>5.2) :
-            x[i]= 0.0
-        elif xx>4.8 and xx<=5.2:
-            x[i]=20.0
-        else:
-            x[i]= 1000000.0
-    return x
-## harmonic potential
-def f_harm(x):
-    omega = .5
-    x = np.array([x]).flatten()
-    for i, xx in enumerate(x):
-        x[i] = omega* (xx -15.)**2
-
-    return x
-## morse potential
-def f_morse(x):
-    a = 0.5
-    D = 5.0
-    x = np.array([x]).flatten()
-    for i, xx in enumerate(x):
-        x[i] = D* (1-np.exp(-a*(xx -10.0)))**2
-    return x
-
-## 1D "mexican hat"
-def f_mexican(x):
-    sigma = 1.
-    pref = 3./(np.sqrt(3*sigma)*np.pi**(1./4.))
-    brak = 1.-((x-15.)/sigma)**2
-    f = pref*(brak*np.exp(-(1./2.)*((x-15.)/sigma)**2))
-    return f - min(f)
-
-def f_gauss(x):
-    return create_gaussian(x, sigma=5., x0=15.)
+from qmp.pot_tools import *
 
 cell = [[0., 30.0]]
 
-pot = Potential(cell, f=f_harm)
+pot = Potential( cell, f=create_potential('harmonic', cell, harm_omega=0.5, harm_pos=15.) )
 
 #number of basis states to consider
 states = 40
