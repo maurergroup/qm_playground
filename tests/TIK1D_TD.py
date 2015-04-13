@@ -52,7 +52,7 @@ steps = 200
 ## initial wave functions
 sigma = 0.2
 psi_0 = create_gaussian(tik1d.basis.x, x0=17., p0=0., sigma=sigma)
-psi_0 = psi_0/np.sqrt(np.conjugate(psi_0).dot(psi_0))
+psi_0 /= np.sqrt(np.conjugate(psi_0).dot(psi_0))
 
 ##analytical -- bogus!
 #def rho_evol(x, sigma0, x0, p0, t):

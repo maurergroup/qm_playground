@@ -155,10 +155,20 @@ class split_operator_propagator(Integrator):
 
         m = self.data.mass
         dx = self.data.wvfn.basis.dx
+        nx = self.data.wvfn.basis.N
+        nDim = self.data.ndim
         
         expV = np.exp(-1j*V*dt/hbar)
-        p = 2.*np.pi*FTp(N, dx)
-        expT = np.exp(-1j*(dt/hbar)*(p**2)/(4.*m))
+        if nDim == 1:
+            p = np.pi*FTp(N, dx)
+            p = p**2
+        elif nDim == 2:
+            p = FTp(nx,dx).conj()*FTp(nx,dx)
+            p = np.pi**2*(np.kron(np.ones(nx), p) + np.kron(p, np.ones(nx)))
+        else:
+            raise NotImplementedError('Only evolving 1D and 2D systems implemented')
+        
+        expT = np.exp(-1j*(dt/hbar)*p/m)
         
         psi = np.array([psi_0.flatten()])
         E, E_kin, E_pot = [], [], []
@@ -173,14 +183,14 @@ class split_operator_propagator(Integrator):
             psi3 = iFT( expT*psi2 )
             psi = (np.append(psi, psi3)).reshape(i+2,N)
             
-            e_kin = (np.conjugate(psi3).dot( iFT(p**2/2./m * FT(psi3)) ))
+            e_kin = (np.conjugate(psi3).dot( iFT(2.*p/m * FT(psi3)) ))
             e_pot = np.conjugate(psi3).dot(V*psi3)
             E_kin.append(e_kin)
             E_pot.append(e_pot)
             E.append(e_kin+e_pot)
         
         psi_ft = FT(psi[-1])
-        e_kin = np.dot(np.conjugate(psi[-1]), iFT( p**2/2./m*psi_ft))
+        e_kin = np.dot(np.conjugate(psi[-1]), iFT( 2.*p/m*psi_ft))
         e_pot = np.conjugate(psi[-1]).dot(V*psi[-1])
         E_kin.append(e_kin)
         E_pot.append(e_pot)

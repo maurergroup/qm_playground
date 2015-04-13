@@ -121,3 +121,113 @@ def slideshow1D(basis, psi_arr, pot):
 
 	plt.show()
 
+
+def movie2D(xgrid, ygrid, psi_arr, pot=0.):
+	from matplotlib import pyplot as plt
+	from matplotlib import cm
+	import matplotlib.animation as animation
+	from mpl_toolkits.mplot3d import Axes3D
+	theta = 25.
+	if not (np.any(pot) != 0.):
+		pot = np.ones_like(xgrid)
+		ls_pot = ''
+	else:
+		ls_pot = '-'
+	
+	#generate figure
+	fig = plt.figure()
+	plt.subplots_adjust(bottom=0.2)
+	ax = fig.gca(projection='3d')
+	
+	N = xgrid.shape[0]
+	rho_max = max(np.conjugate(psi_arr.flatten())*psi_arr.flatten())
+	pot_max = max(pot.flatten())
+	
+	frame = None
+	for i in xrange(psi_arr.shape[0]):
+	    oldframe = frame
+	
+	    frame = ax.plot_surface(xgrid, ygrid, np.reshape(psi_arr[i,:]*np.conjugate(psi_arr[i,:]), (N,N)), \
+				    alpha=0.75, antialiased=False, cmap = cm.coolwarm, lw=0.)
+	    ax.set_zlim(-0.025*rho_max,rho_max+0.1*rho_max)
+	    ax.contour(xgrid, ygrid, pot, zdir='z', offset=ax.get_zlim()[0], ls=ls_pot, cmap=cm.spectral)
+	    ax.contour(xgrid, ygrid, pot/pot_max*rho_max, zdir='x', offset=min(xgrid.flatten()), ls=ls_pot, cmap=cm.spectral)
+	    ax.contour(xgrid, ygrid, pot/pot_max*rho_max, zdir='y', offset=max(ygrid.flatten()), ls=ls_pot, cmap=cm.spectral)
+
+	
+	    if oldframe is not None:
+		ax.collections.remove(oldframe)
+		
+	    plt.pause(0.0005)
+	    
+
+
+def slideshow2D(xgrid, ygrid, psi_arr, pot=0.):
+
+	from matplotlib import pyplot as plt
+	from mpl_toolkits.mplot3d import Axes3D
+	from matplotlib import cm
+	from matplotlib.widgets import Slider, Button, RadioButtons
+
+	if not (np.any(pot) != 0.):
+		pot = np.ones_like(xgrid)
+		ls_pot = ''
+	else:
+		ls_pot = '-'
+	
+	N = xgrid.shape[0]
+	
+	psi_max = max(psi_arr.flatten())
+	psi_min = min(psi_arr.flatten())
+	pot_max = max(pot.flatten())
+	
+	## generate figure
+	fig = plt.figure()
+	plt.subplots_adjust(bottom=0.2)
+	ax = fig.gca(projection='3d')
+	ax.view_init(elev=theta , azim=-45.)
+	l = ax.plot_surface(xgrid, ygrid, np.reshape(psi_arr[:,0], (N,N)), lw=0., cmap=cm.coolwarm)
+	ax.set_zlim([psi_min-0.1*psi_min, psi_max+0.1*psi_max])
+	ax.contour(xgrid, ygrid, pot, zdir='z', offset=ax.get_zlim()[0], ls=ls_pot, cmap=cm.spectral)
+        ax.contour(xgrid, ygrid, pot/pot_max*psi_max, zdir='x', offset=min(xgrid.flatten()), ls=ls_pot, cmap=cm.spectral)
+        ax.contour(xgrid, ygrid, pot/pot_max*psi_max, zdir='y', offset=max(ygrid.flatten()), ls=ls_pot, cmap=cm.spectral)
+
+	
+	
+	## buttons
+	class Index:
+	    ind = 0
+	    def next(self, event):
+	        self.ind += 1
+		if self.ind == psi_arr.shape[1]:
+		    self.ind = 0
+		ax.clear()
+		l = ax.plot_surface(xgrid, ygrid, np.reshape(psi_arr[:,self.ind], (N,N)), lw=0., cmap=cm.coolwarm)
+		ax.set_zlim([psi_min-0.1*psi_min, psi_max+0.1*psi_max])
+		ax.contour(xgrid, ygrid, pot, zdir='z', offset=ax.get_zlim()[0], ls=ls_pot, cmap=cm.spectral)
+		ax.contour(xgrid, ygrid, pot/pot_max*psi_max, zdir='x', offset=min(xgrid.flatten()), ls=ls_pot, cmap=cm.spectral)
+		ax.contour(xgrid, ygrid, pot/pot_max*psi_max, zdir='y', offset=max(ygrid.flatten()), ls=ls_pot, cmap=cm.spectral)
+		plt.draw()
+	
+	    def prev(self, event):
+		self.ind -= 1
+		if self.ind == -1:
+		    self.ind = psi_arr.shape[1]-1
+		ax.clear()
+		l = ax.plot_surface(xgrid, ygrid, np.reshape(psi_arr[:,self.ind], (N,N)), lw=0., cmap=cm.coolwarm)
+		ax.set_zlim([psi_min-0.1*psi_min, psi_max+0.1*psi_max])
+		ax.contour(xgrid, ygrid, pot, zdir='z', offset=ax.get_zlim()[0], ls=ls_pot, cmap=cm.spectral)
+		ax.contour(xgrid, ygrid, pot/pot_max*psi_max, zdir='x', offset=min(xgrid.flatten()), ls=ls_pot, cmap=cm.spectral)
+		ax.contour(xgrid, ygrid, pot/pot_max*psi_max, zdir='y', offset=max(ygrid.flatten()), ls=ls_pot, cmap=cm.spectral)
+		plt.draw()
+	
+	callback = Index()
+	pos_prev_button = plt.axes([0.7,0.05,0.1,0.075])
+	pos_next_button = plt.axes([0.81,0.05,0.1,0.075])
+	button_next = Button(pos_next_button, 'Next Wvfn')
+	button_next.on_clicked(callback.next)
+	button_prev = Button(pos_prev_button, 'Prev Wvfn')
+	button_prev.on_clicked(callback.prev)
+	
+	plt.show()
+
