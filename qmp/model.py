@@ -105,7 +105,7 @@ class Model(object):
             self.solver = solver_init(self.data, self.pot)
             self.solver.solve()
 
-    def run(self, steps, dt, psi_0):
+    def run(self, steps, dt, psi_0=0.):
         """
         Wrapper for dyn.run
         """

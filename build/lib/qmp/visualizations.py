@@ -5,7 +5,7 @@
 import numpy as np
 
 
-def movie1D(basis, psi_arr, pot, dt=1., E_arr=None, rho_tot_arr=None, E_kin_arr=None, E_pot_arr=None):
+def wave_movie1D(basis, psi_arr, pot, dt=1., E_arr=None, rho_tot_arr=None, E_kin_arr=None, E_pot_arr=None):
 	import matplotlib.pyplot as plt
 	import matplotlib.animation as animation
 
@@ -81,7 +81,7 @@ def movie1D(basis, psi_arr, pot, dt=1., E_arr=None, rho_tot_arr=None, E_kin_arr=
 	plt.show()
 
 
-def slideshow1D(basis, psi_arr, pot):
+def wave_slideshow1D(basis, psi_arr, pot):
 
 	from matplotlib import pyplot as plt
 	from matplotlib.widgets import Slider, Button, RadioButtons
@@ -122,7 +122,7 @@ def slideshow1D(basis, psi_arr, pot):
 	plt.show()
 
 
-def movie2D(xgrid, ygrid, psi_arr, pot=0.):
+def wave_movie2D(xgrid, ygrid, psi_arr, pot=0.):
 	from matplotlib import pyplot as plt
 	from matplotlib import cm
 	import matplotlib.animation as animation
@@ -162,7 +162,7 @@ def movie2D(xgrid, ygrid, psi_arr, pot=0.):
 	    
 
 
-def slideshow2D(xgrid, ygrid, psi_arr, pot=0.):
+def wave_slideshow2D(xgrid, ygrid, psi_arr, pot=0.):
 
 	from matplotlib import pyplot as plt
 	from mpl_toolkits.mplot3d import Axes3D

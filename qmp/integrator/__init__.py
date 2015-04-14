@@ -12,6 +12,8 @@ integrator_type = {
     'SOFT' : split_operator_propagator,
     'splitopprop' : split_operator_propagator,
     'split_operator' : split_operator_propagator,
+    'velocity_verlet' : velocity_verlet_integrator,
+    'vel_verlet' : velocity_verlet_integrator,
     }
 
 def integrator_init(data, potential):
