@@ -17,9 +17,11 @@ qmp/basis/__init__.py
 qmp/basis/basis.py
 qmp/basis/gridbasis.py
 qmp/basis/phasespace_basis.py
+qmp/basis/rpmdbasis.py
 qmp/integrator/__init__.py
 qmp/integrator/dyn_tools.py
 qmp/integrator/integrator.py
+qmp/integrator/rpmdintegrators.py
 qmp/integrator/trajintegrators.py
 qmp/integrator/waveintegrators.py
 qmp/solver/__init__.py

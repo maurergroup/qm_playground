@@ -3,6 +3,7 @@
 
 from qmp.integrator.waveintegrators import *
 from qmp.integrator.trajintegrators import *
+from qmp.integrator.rpmdintegrators import *
 
 integrator_type = {
     'primitive' : prim_propagator,
@@ -14,6 +15,10 @@ integrator_type = {
     'split_operator' : split_operator_propagator,
     'velocity_verlet' : velocity_verlet_integrator,
     'vel_verlet' : velocity_verlet_integrator,
+    'velocity_verlet_rpmd' : rpmd_velocity_verlet_integrator,
+    'vel_verlet_rpmd' : rpmd_velocity_verlet_integrator,
+    'rpmd_vel_verlet' : rpmd_velocity_verlet_integrator,
+    'rpmd_velocity_verlet' : rpmd_velocity_verlet_integrator,
     }
 
 def integrator_init(data, potential):

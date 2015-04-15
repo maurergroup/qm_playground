@@ -6,6 +6,7 @@ functions for numerical derivatives
 
 hbar = 1.
 mass = 1.
+kB = 3.1668114E-6
 
 import numpy as np
 
