@@ -6,6 +6,7 @@ from qmp import *                          #
 from qmp.basis.rpmdbasis import *          #
 from qmp.potential import Potential2D      #
 from qmp.pot_tools import *                #
+from qmp.visualizations import *           #
 ############################################
 
 
@@ -18,7 +19,16 @@ def f_harm(x,y):
     omx, omy = .5, .5
     return omx*((x-10.)**2) + omy*((y-10.)**2)
 
-pot = Potential2D( cell, f=f_harm )
+## 2D "mexican hat potential"
+def f_mexican(x,y):
+    sigma = 1.
+    pref = 20./(np.pi*sigma**4)
+    brak = 1.-(((x-10.)**2+(y-10.)**2)/(2*sigma**2))
+    f = pref*brak*np.exp(-(((x-10.)**2+(y-10)**2)/(2.*sigma**2)))
+    return f - min(f.flatten())
+
+
+pot = Potential2D( cell, f=f_mexican )
 
 
 ### INITIALIZE MODEL ### 
@@ -33,11 +43,11 @@ rpmd2d = Model(
 rpmd2d.set_potential(pot)
 
 ### SET INITIAL VALUES ###
-rs = [[13.,13.],[8.,10.]]
-vs = [[-2.,1.],[0.,5.]]
-masses = [1., 2.]
+rs = [[13.,13.],[9.,9.]]
+vs = [[-2.,1.],[.4,.45]]
+masses = [1., 1.]
 n_beads = 5
-Temp = [200., 300.]
+Temp = [200., 393.]
 
 b = bead_basis(rs, vs, masses, n_beads, Temperature=Temp)
 rpmd2d.set_basis(b)
@@ -47,7 +57,7 @@ print rpmd2d
 
 ### DYNAMICS PARAMETERS ###
 dt =  .1
-steps = 50
+steps = 100
 
 
 ### EVOLVE SYSTEM ###
@@ -61,39 +71,18 @@ E_t = rpmd2d.data.rpmd.E_t
 E_kin = rpmd2d.data.rpmd.E_kin_t
 E_pot = rpmd2d.data.rpmd.E_pot_t
 
-V_t1, V_t2 = [], []
-for i in xrange(steps+1):
-         V_t1.append(rpmd2d.pot(r_t[0,i,0],r_t[0,i,1]))
-         V_t2.append(rpmd2d.pot(r_t[1,i,0],r_t[1,i,1]))
+x = np.linspace(0., 20., 200)
+y = np.linspace(0., 20., 200)
+xg, yg = np.meshgrid(x,y)
+V_xy = rpmd2d.pot(xg, yg)
 
 ### VISUALIZATION ###
-x = np.linspace(0.,20.,600)
-y = np.linspace(0.,20.,600)
-xv,yv = np.meshgrid(x,y)
-V_xy = rpmd2d.pot(xv,yv)
+import matplotlib.pyplot as plt
 
-from matplotlib import pyplot as plt
-from matplotlib import cm
-from mpl_toolkits.mplot3d import Axes3D
-theta = 25.
-
-plt.plot(E_t[0].T)
-plt.plot(E_t[1].T)
+plt.plot(E_t[0])
+plt.plot(E_t[1])
 plt.show()
 
-#generate figure
-fig = plt.figure()
-plt.subplots_adjust(bottom=0.2)
-ax = fig.gca(projection='3d')
 
-frame = None
-for i in xrange(steps+1):
-    ax.clear()
-    ax.plot_surface(xv, yv, V_xy, alpha=0.7, antialiased=False, cmap = cm.coolwarm, lw=0.,zorder=3)
-    ax.scatter(r_t[0,i,0], r_t[0,i,1], V_t1[i]+0.2, marker='o', s=20., c='k',zorder=1)
-    ax.scatter(r_t[1,i,0], r_t[1,i,1], V_t2[i]+0.2, marker='o', s=20., c='r',zorder=2)
-        
-    plt.pause(0.0005)
-    
-    
-    
+contour_movie2D(xg, yg, V_xy, r_t[1], steps+1, trace=True)
+

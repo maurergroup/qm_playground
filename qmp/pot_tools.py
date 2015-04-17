@@ -162,4 +162,89 @@ Available potentials: 'free', 'box', 'double_box', \n\
 'harmonic', 'morse', 'mexican_hat', and 'gaussian'")
 
 
+def create_potential2D(cell, name='free', **kwargs):
+	"""
+	returns potential function
 
+	parameters:
+	===========
+	name:    name of potential(
+	    'free',
+            'box',
+            'double_box',
+	    'elbow',
+            'wall',
+            'harmonic',
+            'morse',
+            'mexican_hat',
+            'gauss')
+        cell:    simulation box
+        kwargs:  parameters of specific potential (see definitions)
+	"""
+
+	print "Using model potential '"+str(name)+"'"
+	print 'Parameters:'
+	for key, value in kwargs.iteritems():
+            print '    '+key+':  '+str(value)
+	if kwargs == {}:
+	    print 'No specific parameters given. Using defaults.'
+	print ''
+
+	## free particle
+	def f_free(x,y):
+	    return np.zeros_like(x)
+
+	## 2D box
+	def f_box(x,y):
+	    box_p = kwargs.get('box_pos', np.mean(cell,0))
+	    box_wx = kwargs.get('box_widthx', np.mean(cell,0)[0]/2.)/2.
+	    box_wy = kwargs.get('box_widthy', np.mean(cell,0)[1]/2.)/2.
+	    box_h = kwargs.get('box_height', 10000000000.)
+	    
+	    m = (x < box_p[0]+box_wx)*(x > box_p[0]-box_wx)
+	    m *= (y<box_p[1]+box_wy)*(y>box_p[1]-box_wy)
+	    return m*box_h
+	    
+	## double box
+	def f_double_box(x,y):
+	    box1_p = kwargs.get('box1_pos', np.mean(cell,0)/3.)
+	    box1_wx = kwargs.get('box1_widthx', np.mean(cell,0)[0]/2.)/2.
+	    box1_wy = kwargs.get('box1_widthy', np.mean(cell,0)[1]/2.)/2.
+	    box2_p = kwargs.get('box2_pos', 2.*np.mean(cell,0)/3.)
+    	    box2_wx = kwargs.get('box2_widthx', np.mean(cell,0)[0]/2.)/2.
+	    box2_wy = kwargs.get('box2_widthy', np.mean(cell,0)[1]/2.)/2.
+	    db_h = kwargs.get('double_box_height', 1000000.)
+	    
+	    m1 = (x < box1_p[0]+box1_wx)*(x > box1_p[0]-box1_wx)
+	    m1 *= (y<box1_p[1]+box1_wy)*(y>box1_p[1]-box1_wy)
+	    m2 = (x < box2_p[0]+box2_wx)*(x > box2_p[0]-box2_wx)
+	    m2 *= (y<box2_p[1]+box2_wy)*(y>box2_p[1]-box2_wy)
+	    return -(m1+m2)*db_h
+	
+	
+	## elbow potential
+	
+	    
+
+	if name == 'free':
+	    return f_free
+	elif name == 'wall':
+	    return f_wall
+	elif name == 'box':
+	    return f_box
+	elif name == 'double_box':
+	    return f_double_box
+	elif name == 'harmonic':
+	    return f_harm
+	elif name == 'morse':
+	    return f_morse
+	elif name == 'elbow':
+	    return f_elbow
+	elif name == 'mexican_hat':
+	    return f_mexican
+	elif name == 'gaussian':
+	    return f_gauss
+	else:
+	    raise NotImplementedError("Name '"+name+"' could not be resolved\n\
+Available potentials: 'free', 'box', 'double_box', 'elbow',\n\
+'harmonic', 'morse', 'mexican_hat', and 'gaussian'")

@@ -32,6 +32,34 @@ class wave(object):
         self.psi = self.psi / np.sqrt(norm)
 
 
+class traj(object):
+    """
+    initializes point(s) in phase space given in basis
+    """
+    
+    def __init__(self, basis):
+        
+        self.basis = basis
+        self.r = basis.r
+        self.v = basis.v
+        self.masses = basis.masses
+        
+        
+class rpmd(object):
+    """
+    initializes beads in phase space according to basis
+    """
+    
+    def __init__(self, basis):
+        
+        self.basis = basis
+        self.r = basis.r
+        self.v = basis.v
+        self.masses = basis.masses
+        self.n_beads = basis.nb
+
+
+
 class data_container(dict):
     """
     Base class for all data containers
@@ -82,15 +110,16 @@ class data_container(dict):
 
     def traj_preparation(self, basis):
         """
-        Initializes special arrays for wvfn calculations
+        Initializes arrays for traj dynamics
         """
    
-        pass
+        ##error handling?
+        self.traj = traj(basis)
     
     def rpmd_preparation(self, basis):
         """
         Initializes special arrays for wvfn calculations
         """
 
-        pass
+        self.rpmd = rpmd(basis)
 

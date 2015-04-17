@@ -19,7 +19,15 @@ def f_harm(x,y):
     omx, omy = .5, .5
     return omx*((x-10.)**2) + omy*((y-10.)**2)
 
-pot = Potential2D( cell, f=f_harm )
+## 2D "mexican hat potential"
+def f_mexican(x,y):
+    sigma = 1.
+    pref = 20./(np.pi*sigma**4)
+    brak = 1.-(((x-10.)**2+(y-10.)**2)/(2*sigma**2))
+    f = pref*brak*np.exp(-(((x-10.)**2+(y-10)**2)/(2.*sigma**2)))
+    return f - min(f.flatten())
+
+pot = Potential2D( cell, f=f_mexican )
 
 
 ### INITIALIZE MODEL ### 
@@ -34,9 +42,9 @@ traj2d = Model(
 traj2d.set_potential(pot)
 
 ### SET INITIAL VALUES ###
-rs = [[10., 14.], [8., 7.]]
-vs = [[3.,0.], [0.5, 2.]]
-masses = [1., 2.]
+rs = [[13.,13.],[9.,9.]]
+vs = [[-2.,1.],[.4,.45]]
+masses = [1., 1.]
 
 b = phasespace(rs, vs, masses)
 traj2d.set_basis(b)
@@ -45,8 +53,8 @@ print traj2d
 
 
 ### DYNAMICS PARAMETERS ###
-dt =  .2
-steps = 400
+dt =  .1
+steps = 100
 
 
 ### EVOLVE SYSTEM ###
@@ -67,24 +75,5 @@ V_xy = traj2d.pot(xg, yg)
 
 ### VISUALIZATION ###
 
-from matplotlib import pyplot as plt
-from matplotlib import cm
-from mpl_toolkits.mplot3d import Axes3D
-theta = 25.
+contour_movie2D(xg, yg, V_xy, r_t[:,1,:], steps+1, trace=True)
 
-#generate figure
-fig = plt.figure()
-plt.subplots_adjust(bottom=0.2)
-ax = fig.gca(projection='3d')
-
-frame = None
-for i in xrange(steps+1):
-    ax.clear()
-    ax.plot_surface(xg, yg, V_xy, alpha=0.75, antialiased=False, cmap = cm.coolwarm, lw=0.)
-    ax.scatter(r_t[i,0,0], r_t[i,0,1], traj2d.pot(r_t[i,0,0], r_t[i,0,1])+0.1, marker='o', s=20., c='k')
-    ax.scatter(r_t[i,1,0], r_t[i,1,1], traj2d.pot(r_t[i,1,0], r_t[i,1,1])+0.1, marker='o', s=20., c='k')
-        
-    plt.pause(0.0005)
-    
-    
-    

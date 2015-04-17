@@ -127,7 +127,7 @@ def create_potential(cell, name='free', **kwargs):
 	    pref = mex_sc/(np.sqrt(3*mex_si)*np.pi**(1./4.))
 	    brak = 1.-((x-mex_p)/mex_si)**2
 	    f = pref*(brak*np.exp(-(1./2.)*((x-mex_p)/mex_si)**2))
-	    f -= min(f)
+	    f += 2.*pref*np.exp(-3./2.)
 	    return f
 
 	## gaussian
@@ -157,9 +157,9 @@ def create_potential(cell, name='free', **kwargs):
 	elif name == 'gaussian':
 	    return f_gauss
 	else:
-	    raise NotImplementedError(name+" could not be resolved\n\
-		Available potentials: 'free', 'box', 'double_box', \
-		'harmonic', 'morse', 'mexican_hat', and 'gaussian'")
+	    raise NotImplementedError("Name '"+name+"' could not be resolved\n\
+Available potentials: 'free', 'box', 'double_box', \n\
+'harmonic', 'morse', 'mexican_hat', and 'gaussian'")
 
 
 
