@@ -3,7 +3,7 @@ contains predefined model potentials
 """
 
 import numpy as np
-from qmp.integrator.dyn_tools import create_gaussian
+from qmp.integrator.dyn_tools import *
 
 def create_potential(cell, name='free', **kwargs):
 	"""
@@ -19,7 +19,7 @@ def create_potential(cell, name='free', **kwargs):
             'harmonic',
             'morse',
             'mexican_hat',
-            'gauss')
+            'gaussian')
         cell:    simulation box
         kwargs:  parameters of specific potential (see definitions)
 	"""
@@ -175,9 +175,8 @@ def create_potential2D(cell, name='free', **kwargs):
 	    'elbow',
             'wall',
             'harmonic',
-            'morse',
             'mexican_hat',
-            'gauss')
+            'gaussian')
         cell:    simulation box
         kwargs:  parameters of specific potential (see definitions)
 	"""
@@ -223,6 +222,83 @@ def create_potential2D(cell, name='free', **kwargs):
 	
 	
 	## elbow potential
+	def f_elbow(x,y):
+	    elbow_sc = kwargs.get('elbow_scale', 2.)
+	    elbow_p1 = kwargs.get('elbow_pos1', [11,4.])
+	    elbow_p2 = kwargs.get('elbow_pos2', [4.,31./3.])
+	    elbow_si1 = kwargs.get('elbow_sigma1', [9./2.,1.])
+	    elbow_si2 = kwargs.get('elbow_sigma2', [3./2.,11./2.])
+	    
+	    z2 = np.exp( -(1./2.)*(((x-y-0.1)/2.)**2 + ((x-y-0.1)/2.)**2))
+	    z = 100.*(-create_gaussian2D(x,y,x0=elbow_p1,sigma=elbow_si1)-create_gaussian2D(x,y,x0=elbow_p2,sigma=elbow_si2))+(50./3.)*z2
+	    return np.real(elbow_sc*z)
+	
+
+	## harmonic potential
+	def f_harm(x,y):
+	    omx = kwargs.get('harmonic_omega_x', 1./2.)
+	    omy = kwargs.get('harmonic_omega_y', 1./2.)
+	    harm_p = kwargs.get('harmonic_pos', np.mean(cell,0))
+	    if (harm_p[0] < cell[0][0]) or \
+	       (harm_p[0] > cell[1][0]) or \
+	       (harm_p[1] < cell[0][1]) or \
+	       (harm_p[1] > cell[1][1]):
+		raise ValueError('Please define positions within cell')
+	    
+	    return omx*((x-harm_p[0])**2) + omy*((y-harm_p[1])**2)
+	
+
+	## wall
+	def f_wall(x,y):
+	    wall_dir = kwargs.get('wall_dir', 0)
+	    wall_p = kwargs.get('wall_pos', np.mean(cell,wall_dir))
+	    wall_h = kwargs.get('wall_height', 100000000.)
+	    
+	    if wall_dir == 0:
+		m = (x > wall_p)
+	    elif wall_dir == 1:
+		m = (y > wall_p)
+	    else:
+		raise ValueError("Please define 'wall_dir' as 0 or 1 (corresponds to x or y direction, respectively)")
+	    
+	    if (wall_dir == 0) and \
+	       ((wall_p < cell[0][0]) or (wall_p > cell[1][0])):
+		raise ValueError('Please define position within cell')
+	    elif (wall_dir == 1) and \
+	       ((wall_p < cell[0][1]) or (wall_p > cell[1][1])):
+		raise ValueError('Please define position within cell')
+	
+	    return m*wall_h
+	
+
+	## mexican hat
+	def f_mexican(x,y):
+	    mex_si = kwargs.get('mexican_sigma', 1.)
+	    mex_sc = kwargs.get('mexican_scale', 20.)
+	    mex_p = kwargs.get('mexican_pos', np.mean(cell,0))
+	    if (mex_p[0] < cell[0][0]) or \
+	       (mex_p[0] > cell[1][0]) or \
+	       (mex_p[1] < cell[0][1]) or \
+	       (mex_p[1] > cell[1][1]):
+		raise ValueError('Please define positions within cell')
+	    
+	    pref = mex_sc/(np.pi*mex_si**4)
+	    brak = 1.-(((x-mex_p[0])**2+(y-mex_p[1])**2)/(2*mex_si**2))
+	    f = pref*brak*np.exp(-(((x-mex_p[0])**2+(y-mex_p[1])**2)/(2.*mex_si**2)))
+	    return f - min(f.flatten())
+	
+
+	## gaussian
+	def f_gauss(x,y):
+	    gauss_s = kwargs.get('gaussian_sigma', [1.,1.])
+	    gauss_p = kwargs.get('gaussian_pos', np.mean(cell,0))
+	    if (gauss_p[0] < cell[0][0]) or \
+	       (gauss_p[0] > cell[1][0]) or \
+	       (gauss_p[1] < cell[0][1]) or \
+	       (gauss_p[1] > cell[1][1]):
+		raise ValueError('Please define positions within cell')
+	    
+	    return np.real(create_gaussian2D(x, y, sigma=gauss_s, x0=gauss_p))
 	
 	    
 
@@ -236,8 +312,8 @@ def create_potential2D(cell, name='free', **kwargs):
 	    return f_double_box
 	elif name == 'harmonic':
 	    return f_harm
-	elif name == 'morse':
-	    return f_morse
+	#elif name == 'morse':
+	#    return f_morse
 	elif name == 'elbow':
 	    return f_elbow
 	elif name == 'mexican_hat':
@@ -247,4 +323,4 @@ def create_potential2D(cell, name='free', **kwargs):
 	else:
 	    raise NotImplementedError("Name '"+name+"' could not be resolved\n\
 Available potentials: 'free', 'box', 'double_box', 'elbow',\n\
-'harmonic', 'morse', 'mexican_hat', and 'gaussian'")
+'harmonic', 'mexican_hat', and 'gaussian'")

@@ -54,8 +54,8 @@ class bead_basis(basis):
         
         for i_par in xrange(self.npar):
             for i_bead in xrange(self.nb-1):
-                self.r_beads[i_par,i_bead] = self.r[i_par] + self.get_offset_bead(self.masses[i_par], self.Temp[i_par])
-                self.v_beads[i_par,i_bead] = self.get_v_bead(self.v[i_par])
+                self.r_beads[i_par,i_bead] = self.r[i_par] #+ self.get_offset_bead(self.masses[i_par], self.Temp[i_par])
+                self.v_beads[i_par,i_bead] = self.v[i_par] #self.get_v_bead(self.v[i_par])
             self.v_beads[i_par,self.nb-1] = self.nb*self.v[i_par] - np.sum(self.v_beads[i_par,:], 0)
             self.r_beads[i_par,self.nb-1] = self.nb*self.r[i_par] - np.sum(self.r_beads[i_par,:], 0)
 
@@ -77,7 +77,7 @@ class bead_basis(basis):
         return self.r, self.v
 
     def get_kinetic_energy(self, m, v_beads):
-        return m*np.sum(v_beads*v_beads,1)/2.
+        return m*np.sum(v*v)/2.
 
     def get_potential_energy(self, r_beads, pot, m, om):
         M = np.eye(self.nb) - np.diag(np.ones(self.nb-1),1)
@@ -85,11 +85,11 @@ class bead_basis(basis):
         return pot(*np.array(r_beads).T) + (1./2.)*m*om*om*np.sum(M.dot(r_beads)*M.dot(r_beads), 1)
             
     
-    def get_forces(self, r_beads, pot, m, om):
-        M = np.eye(self.nb) - np.diag(np.ones(self.nb-1),1)
-        M[-1,0] = -1.
+    def get_forces(self, r1, r2, pot, m, om):
+        #M = np.eye(self.nb) - np.diag(np.ones(self.nb-1),1)
+        #M[-1,0] = -1.
         if self.ndim == 1:
-            return -1.*(num_deriv(pot, *np.array(r_beads).T) + m*om*om*M.dot(r_beads).T)
+            return -1.*(num_deriv(pot, r1) + m*om*om*(r1-r2))
         elif self.ndim == 2:
-            return -1.*(num_deriv_2D(pot, *np.array(r_beads).T) + m*om*om*M.dot(r_beads).T)
+            return -1.*(num_deriv_2D(pot, *r1) + m*om*om*(r1-r2))
     

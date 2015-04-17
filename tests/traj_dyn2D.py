@@ -7,27 +7,15 @@ from qmp.basis.phasespace_basis import *   #
 from qmp.pot_tools import *                #
 from qmp.visualizations import *           #
 from qmp.potential import Potential2D      #
+from qmp.utilities import *
 ############################################
 
 
 ### SIMULATION CELL ### 
-cell = [[0., 20.0]]
+cell = [[0.,0.], [20.,20.]]
 
 ### POTENTIAL ###
-## 2D harmonic potential
-def f_harm(x,y):
-    omx, omy = .5, .5
-    return omx*((x-10.)**2) + omy*((y-10.)**2)
-
-## 2D "mexican hat potential"
-def f_mexican(x,y):
-    sigma = 1.
-    pref = 20./(np.pi*sigma**4)
-    brak = 1.-(((x-10.)**2+(y-10.)**2)/(2*sigma**2))
-    f = pref*brak*np.exp(-(((x-10.)**2+(y-10)**2)/(2.*sigma**2)))
-    return f - min(f.flatten())
-
-pot = Potential2D( cell, f=f_mexican )
+pot = Potential2D( cell, f=create_potential2D(cell, name='elbow') )
 
 
 ### INITIALIZE MODEL ### 
@@ -42,19 +30,18 @@ traj2d = Model(
 traj2d.set_potential(pot)
 
 ### SET INITIAL VALUES ###
-rs = [[13.,13.],[9.,9.]]
-vs = [[-2.,1.],[.4,.45]]
-masses = [1., 1.]
+rs = [[2.5,8.],[15.,3.5], [15.,4.5]]
+vs = [[0.,-1.],[0.,0.],[-0.001,-0.00001]]
+masses = [2., 1., 1.]
 
 b = phasespace(rs, vs, masses)
 traj2d.set_basis(b)
 
 print traj2d
 
-
 ### DYNAMICS PARAMETERS ###
 dt =  .1
-steps = 100
+steps = 300
 
 
 ### EVOLVE SYSTEM ###
@@ -68,12 +55,12 @@ E_t = traj2d.data.traj.E_t
 E_kin = traj2d.data.traj.E_kin_t
 E_pot = traj2d.data.traj.E_pot_t
 
-x = np.linspace(0., 20., 200)
-y = np.linspace(0., 20., 200)
+x = np.linspace(0., 20., 500)
+y = np.linspace(0., 20., 500)
 xg, yg = np.meshgrid(x,y)
 V_xy = traj2d.pot(xg, yg)
 
 ### VISUALIZATION ###
 
-contour_movie2D(xg, yg, V_xy, r_t[:,1,:], steps+1, trace=True)
+contour_movie2D(xg, yg, V_xy, r_t, steps+1, npar=3, trace=True)
 

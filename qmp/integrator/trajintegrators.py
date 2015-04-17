@@ -20,30 +20,34 @@ class velocity_verlet_integrator(Integrator):
         N = self.data.traj.basis.npar
         ndim = self.data.traj.basis.ndim
         m = self.data.traj.basis.masses
-        r_t = np.array([self.data.traj.basis.r])
-        v_t = np.array([self.data.traj.basis.v])
-        E_pot = []
-        E_kin = []
-        E_tot = []
+        r_t = np.zeros((N,steps+1,ndim))
+        r_t[:,0,:] = np.array(self.data.traj.basis.r)
+        v_t = np.zeros((N,steps+1,ndim))
+        v_t[:,0,:] = np.array(self.data.traj.basis.v)
+        E_pot = np.zeros((N,steps+1))
+        E_kin = np.zeros((N,steps+1))
+        E_tot = np.zeros((N,steps+1))
         
-        for i in xrange(steps):
-            e_pot = self.data.traj.basis.get_potential_energy(r_t[i], self.pot)
-            e_kin = self.data.traj.basis.get_kinetic_energy(m, v_t[i])
-            E_pot.append(e_pot)
-            E_kin.append(e_kin)
-            E_tot.append(e_pot+e_kin)
-            
-            F = self.data.traj.basis.get_forces(r_t[i], self.pot)
-            v1 = v_t[i].T + F/m*dt/2.
-            r_t = np.append(r_t, (r_t[i].T+v1*dt).T).reshape(i+2,N,ndim)
-            F = ( F + self.data.traj.basis.get_forces(r_t[i+1], self.pot) )/2.
-            v_t = np.append(v_t, (v_t[i].T+F/m*dt).T).reshape(i+2,N,ndim)
-            
-        e_pot = self.data.traj.basis.get_potential_energy(r_t[-1], self.pot)
-        e_kin = self.data.traj.basis.get_kinetic_energy(m, v_t[-1])
-        E_pot.append(e_pot)
-        E_kin.append(e_kin)
-        E_tot.append(e_pot+e_kin)
+        for i_par in xrange(N):
+            for i_step in xrange(steps):
+                e_pot = self.data.traj.basis.get_potential_energy(r_t[i_par,i_step], self.pot)
+                e_kin = self.data.traj.basis.get_kinetic_energy(m[i_par], v_t[i_par,i_step])
+                E_pot[i_par,i_step] = e_pot
+                E_kin[i_par,i_step] = e_kin
+                E_tot[i_par,i_step] = (e_pot+e_kin)
+                
+                F = self.data.traj.basis.get_forces(r_t[i_par, i_step], self.pot)
+                v1 = v_t[i_par,i_step] + F/m[i_par]*dt/2.
+                r_t[i_par,i_step+1] = r_t[i_par,i_step]+v1*dt
+                F = ( F + self.data.traj.basis.get_forces(r_t[i_par,i_step+1], self.pot) )/2.
+                v_t[i_par,i_step+1] = v_t[i_par,i_step]+F/m[i_par]*dt
+                
+            e_pot = self.data.traj.basis.get_potential_energy(r_t[i_par,-1], self.pot)
+            e_kin = self.data.traj.basis.get_kinetic_energy(m[i_par], v_t[i_par,-1])
+            E_pot[i_par,steps] = e_pot
+            E_kin[i_par,steps] = e_kin
+            E_tot[i_par,steps] = (e_pot+e_kin)
+                
         
         self.data.traj.r_t = r_t
         self.data.traj.v_t = v_t

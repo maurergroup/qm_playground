@@ -14,21 +14,7 @@ from qmp.visualizations import *           #
 cell = [[0.,0.], [20.,20.0]]
 
 ### POTENTIAL ###
-## 2D harmonic potential
-def f_harm(x,y):
-    omx, omy = .5, .5
-    return omx*((x-10.)**2) + omy*((y-10.)**2)
-
-## 2D "mexican hat potential"
-def f_mexican(x,y):
-    sigma = 1.
-    pref = 20./(np.pi*sigma**4)
-    brak = 1.-(((x-10.)**2+(y-10.)**2)/(2*sigma**2))
-    f = pref*brak*np.exp(-(((x-10.)**2+(y-10)**2)/(2.*sigma**2)))
-    return f - min(f.flatten())
-
-
-pot = Potential2D( cell, f=f_mexican )
+pot = Potential2D( cell, f=create_potential2D(cell, name='elbow') )
 
 
 ### INITIALIZE MODEL ### 
@@ -43,10 +29,10 @@ rpmd2d = Model(
 rpmd2d.set_potential(pot)
 
 ### SET INITIAL VALUES ###
-rs = [[13.,13.],[9.,9.]]
-vs = [[-2.,1.],[.4,.45]]
-masses = [1., 1.]
-n_beads = 5
+rs = [[2.5,8.],[15.,3.5], [15.,4.5]]
+vs = [[0.,-1.],[0.,0.],[-0.001,-0.00001]]
+masses = [2., 1., 1.]
+n_beads = 2
 Temp = [200., 393.]
 
 b = bead_basis(rs, vs, masses, n_beads, Temperature=Temp)
@@ -57,7 +43,7 @@ print rpmd2d
 
 ### DYNAMICS PARAMETERS ###
 dt =  .1
-steps = 100
+steps = 200
 
 
 ### EVOLVE SYSTEM ###
@@ -67,9 +53,9 @@ print 'INTEGRATED'
 ## gather information
 r_t = rpmd2d.data.rpmd.r_t
 v_t = rpmd2d.data.rpmd.v_t
-E_t = rpmd2d.data.rpmd.E_t
-E_kin = rpmd2d.data.rpmd.E_kin_t
-E_pot = rpmd2d.data.rpmd.E_pot_t
+#E_t = rpmd2d.data.rpmd.E_t
+#E_kin = rpmd2d.data.rpmd.E_kin_t
+#E_pot = rpmd2d.data.rpmd.E_pot_t
 
 x = np.linspace(0., 20., 200)
 y = np.linspace(0., 20., 200)
@@ -79,10 +65,5 @@ V_xy = rpmd2d.pot(xg, yg)
 ### VISUALIZATION ###
 import matplotlib.pyplot as plt
 
-plt.plot(E_t[0])
-plt.plot(E_t[1])
-plt.show()
-
-
-contour_movie2D(xg, yg, V_xy, r_t[1], steps+1, trace=True)
+contour_movie2D(xg, yg, V_xy, r_t, steps+1, npar=3, trace=True)
 
