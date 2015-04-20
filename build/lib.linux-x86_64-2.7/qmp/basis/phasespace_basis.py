@@ -41,18 +41,19 @@ class phasespace(basis):
     def __eval__(self):
         return self.r, self.v
 
-    def get_kinetic_energy(self, masses, v):
-        return masses*np.sum(v*v,1)/2.
+    def get_kinetic_energy(self, mass, v):
+        return mass*np.sum(v*v)/2.
 
     def get_potential_energy(self, r, pot):
-        return pot(*np.array(r).T)
-#        except:
-#            raise ValueError('Could not evaluate potential with given coordinates')
+        if self.ndim == 1:
+            return pot(r)
+        elif self.ndim == 2:
+            return pot(r[0],r[1])
             
     
     def get_forces(self, r, pot):
         if self.ndim == 1:
-            return -1.*num_deriv(pot, *np.array(r).T)
+            return -1.*num_deriv(pot, r)
         elif self.ndim == 2:
-            return -1.*num_deriv_2D(pot, *np.array(r).T)
+            return -1.*num_deriv_2D(pot, *r)
     

@@ -29,11 +29,11 @@ rpmd2d = Model(
 rpmd2d.set_potential(pot)
 
 ### SET INITIAL VALUES ###
-rs = [[2.5,8.],[15.,3.5], [15.,4.5]]
-vs = [[0.,-1.],[0.,0.],[-0.001,-0.00001]]
-masses = [2., 1., 1.]
-n_beads = 2
-Temp = [200., 393.]
+rs = [[15.,4.5]]#,[15.,3.5], [2.5,8.]]
+vs = [[-.001,-0.00001]]#,[0.,0.],[1.,-2.]]
+masses = [1.]#, 1., 1.]
+n_beads = 3
+Temp = [10.]#, 393., 1000.]
 
 b = bead_basis(rs, vs, masses, n_beads, Temperature=Temp)
 rpmd2d.set_basis(b)
@@ -43,7 +43,7 @@ print rpmd2d
 
 ### DYNAMICS PARAMETERS ###
 dt =  .1
-steps = 200
+steps = 100
 
 
 ### EVOLVE SYSTEM ###
@@ -53,17 +53,23 @@ print 'INTEGRATED'
 ## gather information
 r_t = rpmd2d.data.rpmd.r_t
 v_t = rpmd2d.data.rpmd.v_t
-#E_t = rpmd2d.data.rpmd.E_t
-#E_kin = rpmd2d.data.rpmd.E_kin_t
-#E_pot = rpmd2d.data.rpmd.E_pot_t
+E_t = rpmd2d.data.rpmd.E_t
+E_kin = rpmd2d.data.rpmd.E_kin_t
+E_pot = rpmd2d.data.rpmd.E_pot_t
 
+rb_t = rpmd2d.data.rpmd.rb_t
+vb_t = rpmd2d.data.rpmd.vb_t
+Eb_t = rpmd2d.data.rpmd.Eb_t
+Eb_kin = rpmd2d.data.rpmd.Eb_kin_t
+Eb_pot = rpmd2d.data.rpmd.Eb_pot_t
+
+#r_all = np.reshape(np.append(r_t,rb_t), (3,steps+1,2))
 x = np.linspace(0., 20., 200)
 y = np.linspace(0., 20., 200)
 xg, yg = np.meshgrid(x,y)
 V_xy = rpmd2d.pot(xg, yg)
 
 ### VISUALIZATION ###
-import matplotlib.pyplot as plt
 
-contour_movie2D(xg, yg, V_xy, r_t, steps+1, npar=3, trace=True)
+contour_movie2D(xg, yg, V_xy, r_t, steps+1, npar=1, trace=True)
 

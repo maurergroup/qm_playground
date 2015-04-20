@@ -30,9 +30,9 @@ traj2d = Model(
 traj2d.set_potential(pot)
 
 ### SET INITIAL VALUES ###
-rs = [[2.5,8.],[15.,3.5], [15.,4.5]]
-vs = [[0.,-1.],[0.,0.],[-0.001,-0.00001]]
-masses = [2., 1., 1.]
+rs = [[15.,4.5],[15.,3.5], [2.5,8.]]
+vs = [[-.001,-0.00001],[0.,0.],[1.,-2.]]
+masses = [1., 1., 1.]
 
 b = phasespace(rs, vs, masses)
 traj2d.set_basis(b)

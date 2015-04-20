@@ -13,7 +13,7 @@ from qmp.pot_tools import *                #
 cell = [[0., 40.0]]
 
 ### POTENTIAL ### 
-pot = Potential( cell, f=create_potential(cell, name='harmonic') )
+pot = Potential( cell, f=create_potential(cell, name='mexican_hat') )
 
 
 ### INITIALIZE MODEL ### 
