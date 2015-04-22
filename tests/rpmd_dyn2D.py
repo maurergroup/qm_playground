@@ -9,6 +9,7 @@ from qmp.pot_tools import *                #
 from qmp.visualizations import *           #
 ############################################
 
+import scipy.linalg as la
 
 ### SIMULATION CELL ### 
 cell = [[0.,0.], [20.,20.0]]
@@ -30,20 +31,19 @@ rpmd2d.set_potential(pot)
 
 ### SET INITIAL VALUES ###
 rs = [[15.,4.5]]#,[15.,3.5], [2.5,8.]]
-vs = [[-.001,-0.00001]]#,[0.,0.],[1.,-2.]]
-masses = [1.]#, 1., 1.]
-n_beads = 3
-Temp = [10.]#, 393., 1000.]
+vs = [[-0.2,-0.1]]#,[0.,0.],[1.,-2.]]
+masses = [150.]#, 1., 1.]
+n_beads = 16
+Temp = [40.]#, 393., 1000.]
 
-b = bead_basis(rs, vs, masses, n_beads, Temperature=Temp)
+b = bead_basis(rs, vs, masses, n_beads, Temperature=Temp)#, trial_init=True)
 rpmd2d.set_basis(b)
 
 print rpmd2d
 
-
 ### DYNAMICS PARAMETERS ###
-dt =  .1
-steps = 100
+dt =  .2
+steps = 1E3
 
 
 ### EVOLVE SYSTEM ###
@@ -63,13 +63,21 @@ Eb_t = rpmd2d.data.rpmd.Eb_t
 Eb_kin = rpmd2d.data.rpmd.Eb_kin_t
 Eb_pot = rpmd2d.data.rpmd.Eb_pot_t
 
-#r_all = np.reshape(np.append(r_t,rb_t), (3,steps+1,2))
 x = np.linspace(0., 20., 200)
 y = np.linspace(0., 20., 200)
 xg, yg = np.meshgrid(x,y)
 V_xy = rpmd2d.pot(xg, yg)
 
 ### VISUALIZATION ###
+
+import matplotlib.pyplot as plt
+
+for ib in xrange(n_beads):
+         plt.plot(rb_t[0,ib,-1,0], rb_t[0,ib,-1,1],marker='x')
+
+plt.plot(r_t[0,-1,0],r_t[0,-1,1],marker='o')
+plt.show()
+
 
 contour_movie2D(xg, yg, V_xy, r_t, steps+1, npar=1, trace=True)
 

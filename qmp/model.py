@@ -123,9 +123,9 @@ class Model(object):
             print 'SOLVED'
         
         try:
-            self.dyn.run(steps,dt,psi_0)
+            self.dyn.run(int(steps),dt,psi_0)
         except (AttributeError, TypeError):
             print 'Initializing Integrator'
             self.dyn = integrator_init(self.data, self.pot)
-            self.dyn.run(steps,dt,psi_0)
+            self.dyn.run(int(steps),dt,psi_0)
  

@@ -13,7 +13,7 @@ from qmp.visualizations import *           #
 cell = [[0., 40.0]]
 
 ### POTENTIAL ### 
-pot = Potential( cell, f=create_potential(cell, name='morse') )
+pot = Potential( cell, f=create_potential(cell, name='mexican_hat') )
 
 
 ### INITIALIZE MODEL ### 
@@ -28,9 +28,9 @@ traj1d = Model(
 traj1d.set_potential(pot)
 
 ### SET INITIAL VALUES ###
-rs = [[13.]]
-vs = [[-2.]]
-masses = [1.]
+rs = [[17.],[18.]]
+vs = [[.6],[.2]]
+masses = [1., 2.]
 
 b = phasespace(rs, vs, masses)
 traj1d.set_basis(b)
@@ -66,7 +66,7 @@ fig = plt.figure()
 ax = plt.subplot2grid((4,1), (1,0), rowspan=3, colspan=2)
 ax1 = plt.subplot2grid((4,1), (0,0))
 
-wave_plot, = ax.plot(r_t[0], traj1d.pot(r_t[0]), label='$r_1(t)$',ls='',marker='o',mfc='r',mec='r',ms=8.5)
+wave_plot, = ax.plot(r_t[0], traj1d.pot(r_t[0]), ls='',marker='o',mfc='r',mec='r',ms=8.5)
 
 
 def _init_():
@@ -89,12 +89,13 @@ def _init_():
 
     ax.set_xlabel('$x$ $[a.u.]$')
     ax.set_ylim(min(V_x)-0.1*max(V_x), max(V_x)+0.2)
-    ax.legend(loc=2)
+    ax.legend(loc=2, numpoints=1)
     return wave_plot,
 
 def animate(i):
-    wave_plot.set_ydata(traj1d.pot(r_t[i]))  # update data
-    wave_plot.set_xdata(r_t[i])
+    wave_plot.set_data(r_t[i], traj1d.pot(r_t[i]))  # update data
+    wave_plot.set_label('$r_1(t$ $=$ ${0:>4.1f}$ $au)$' .format(i*dt))
+    ax.legend(loc=2,numpoints=1)
 
     return wave_plot,
 
