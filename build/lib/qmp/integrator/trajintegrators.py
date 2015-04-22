@@ -15,7 +15,7 @@ class velocity_verlet_integrator(Integrator):
         Integrator.__init__(self, **kwargs)
         
         
-    def run(self, steps, dt, psi_0):
+    def run(self, steps, dt, **kwargs):
         
         N = self.data.traj.basis.npar
         ndim = self.data.traj.basis.ndim

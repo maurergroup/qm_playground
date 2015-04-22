@@ -22,20 +22,20 @@ rpmd1d = Model(
          ndim=1,
          mode='rpmd',
          basis='rpmd_basis',
-         integrator='rpmd_vel_verlet',
+         integrator='RPMD_VelocityVerlet',
         )
 
 ### SET POTENTIAL ###
 rpmd1d.set_potential(pot)
 
 ### SET INITIAL VALUES ###
-rs = [[17.]]#,[18.]]
-vs = [[2.]]#,[.2]]
+rs = [[20.]]#,[18.]]
+vs = [[0.]]#,[.2]]
 masses = [2.]#, 2.]
 n_beads = 5
 Temp = [200.]#, 250.]
 
-b = bead_basis(rs, vs, masses, n_beads, Temperature=Temp)
+b = bead_basis(rs, vs, masses, n_beads, T=Temp)
 rpmd1d.set_basis(b)
 
 print rpmd1d
@@ -43,11 +43,17 @@ print rpmd1d
 
 ### DYNAMICS PARAMETERS ###
 dt =  .2
-steps = 500
+steps = 1E6
+
+### THERMOSTAT ###
+thermostat = {'name' : 'Andersen',
+              'cfreq' : 1E-3,
+              'T_set' : 400.,
+             }
 
 
 ### EVOLVE SYSTEM ###
-rpmd1d.run(steps,dt)
+rpmd1d.run(steps,dt, thermostat=thermostat)
 print 'INTEGRATED'
 
 ## gather information

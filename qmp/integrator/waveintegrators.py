@@ -25,11 +25,12 @@ class eigen_propagator(Integrator):
         self.data.c = np.zeros_like(self.data.wvfn.E)
         
 
-    def run(self, steps, dt, psi_0):
+    def run(self, steps, dt, **kwargs):
         """
         Propagates psi_0 for 'steps' timesteps of length 'dt'.
         """
 
+        psi_0 = kwargs.get('psi_0')
         psi_basis = self.data.wvfn.psi     #(x,states)
 
         if steps == 0:
@@ -86,11 +87,13 @@ class prim_propagator(Integrator):
 
         ##something?
         
-    def run(self, steps, dt, psi_0):
+    def run(self, steps, dt, **kwargs):
         """
         Propagates the system for 'steps' timesteps of length 'dt'.
         """
         import scipy.linalg as la
+        
+        psi_0 = kwargs.get('psi_0')
         
         #construct H
         T=self.data.wvfn.basis.construct_Tmatrix()
@@ -139,7 +142,7 @@ class split_operator_propagator(Integrator):
 
         ##whatever has to be here
 
-    def run(self, steps, dt, psi_0):
+    def run(self, steps, dt, **kwargs):
         """
         Propagates the system for 'steps' timesteps of length 'dt'.
         """
@@ -147,6 +150,8 @@ class split_operator_propagator(Integrator):
         from numpy.fft import ifft as iFT
         from numpy.fft import fftfreq as FTp
 
+        psi_0 = kwargs.get('psi_0')
+        
         V = self.data.wvfn.basis.get_potential_flat(self.pot)
         N = V.size
 

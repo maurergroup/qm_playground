@@ -61,6 +61,7 @@ class Model(object):
         #data also keeps parameters
         self.data.parameters = self.parameters
 
+
     def __repr__(self):
 
         string = 'Model Summary:\n'
@@ -73,12 +74,14 @@ class Model(object):
 
         return string
 
+
     def set_potential(self,pot):
 
         pot.data = self.data
         self.pot = pot
         self.data.cell = pot.cell
-
+        
+    
     def set_basis(self,basis):
 
         basis.data = self.data
@@ -86,6 +89,7 @@ class Model(object):
 
         #now we can prepare the data object for the tasks ahead
         self.data.prep(self.parameters['mode'], basis) 
+
 
     def solve(self):
         """
@@ -105,7 +109,8 @@ class Model(object):
             self.solver = solver_init(self.data, self.pot)
             self.solver.solve()
 
-    def run(self, steps, dt, psi_0=0.):
+
+    def run(self, steps, dt, **kwargs):
         """
         Wrapper for dyn.run
         """
@@ -123,9 +128,9 @@ class Model(object):
             print 'SOLVED'
         
         try:
-            self.dyn.run(int(steps),dt,psi_0)
+            self.dyn.run(int(steps),dt,**kwargs)
         except (AttributeError, TypeError):
             print 'Initializing Integrator'
             self.dyn = integrator_init(self.data, self.pot)
-            self.dyn.run(int(steps),dt,psi_0)
+            self.dyn.run(int(steps),dt,**kwargs)
  
