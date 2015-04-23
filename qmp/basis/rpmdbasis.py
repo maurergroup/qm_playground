@@ -58,6 +58,8 @@ class bead_basis(basis):
             self.nb = 2
         else:
             self.nb = n_beads
+        
+        self.m_beads = self.masses/self.nb
             
         if (T is None) or (len(T)!=self.npar):
             print "Dude, you gave me an inconsistent list of temperatures or none at all ~> using 293.15 K throughout"
@@ -133,12 +135,15 @@ class bead_basis(basis):
         return self.r, self.v
 
     def get_kinetic_energy(self, m, v):
-        return m*np.sum(v*v)/2.
+        return m*np.sum(v*v,1)/2.
 
-    def get_potential_energy(self, r, pot, m, om):
+    def get_potential_energy_beads(self, r, pot, m, om):
         M = np.eye(self.nb) - np.diag(np.ones(self.nb-1),1)
         M[-1,0] = -1.
         return pot(*(r.T)).T + (1./2.)*m*om*om*np.sum(M.dot(r)*M.dot(r),1)
+    
+    def get_potential_energy(self, r, pot):
+        return pot(*(r.T)).T
             
     
     def get_forces(self, r, pot, m, om):

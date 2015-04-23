@@ -14,7 +14,7 @@ from qmp.visualizations import *           #
 cell = [[0., 40.0]]
 
 ### POTENTIAL ### 
-pot = Potential( cell, f=create_potential(cell, name='mexican_hat', mexican_scale=10.) )
+pot = Potential( cell, f=create_potential(cell, name='morse') )
 
 ### NUMBER OF BASIS STATES ### 
 ## for propagation in eigenbasis
@@ -36,7 +36,7 @@ tik1d.set_potential(pot)
 
 ### SET BASIS ### 
 ## number of grid points
-N=512
+N=1024
 b = onedgrid(cell[0][0], cell[0][1],N)
 tik1d.set_basis(b)
 
@@ -44,15 +44,18 @@ print tik1d
 print 'grid points:',N
 print ''
 
+tik1d.solve()
+
 ### INITIAL WAVE FUNCTION AND DYNAMICS PARAMETERS ###
 ## time step, number of steps
 dt =  .1
 steps = 200
 
 ## initial wave functions
-sigma = 0.2
-psi_0 = create_gaussian(tik1d.basis.x, x0=17., p0=0., sigma=sigma)
-psi_0 /= np.sqrt(np.conjugate(psi_0).dot(psi_0))
+psi_0 = 1./np.sqrt(2.)*(tik1d.data.wvfn.psi[:,2]+tik1d.data.wvfn.psi[:,3])
+#sigma = 0.2
+#psi_0 = create_gaussian(tik1d.basis.x, x0=17., p0=0., sigma=sigma)
+#psi_0 /= np.sqrt(np.conjugate(psi_0).dot(psi_0))
 
 ##analytical -- bogus!
 #def rho_evol(x, sigma0, x0, p0, t):
@@ -60,7 +63,7 @@ psi_0 /= np.sqrt(np.conjugate(psi_0).dot(psi_0))
 #    return (1./(np.sqrt(2*np.pi)*sigma_t))*np.exp( -(1./2.)*(x-x0-p0*t)**2 )
 
 ### EVOLVE SYSTEM ###
-tik1d.run(steps,dt)#, psi_0=psi_0)
+tik1d.run(steps,dt, psi_0=psi_0)
 print 'INTEGRATED'
 
 ## gather information
@@ -79,7 +82,7 @@ V_x = tik1d.pot(tik1d.basis.x)
 ### VISUALIZATION ###
 
 ## view animation
-movie1D(tik1d.basis.x, psi_t, V_x, dt=dt, E_arr=E_t, rho_tot_arr=rho_t, E_kin_arr=E_kin_t, E_pot_arr=E_pot_t)
+wave_movie1D(tik1d.basis.x, psi_t, V_x, dt=dt, E_arr=E_t, rho_tot_arr=rho_t, E_kin_arr=E_kin_t, E_pot_arr=E_pot_t)
 
 ## view slideshow
-#slideshow1D(tik1d.basis.x, psi_t, V_x)
+#wave_slideshow1D(tik1d.basis.x, psi_t, V_x)

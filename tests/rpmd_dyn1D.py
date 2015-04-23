@@ -14,7 +14,21 @@ import scipy.linalg as la
 cell = [[0., 40.0]]
 
 ### POTENTIAL ### 
-pot = Potential( cell, f=create_potential(cell, name='harmonic') )
+a = 0.5
+D = 5.
+steps = 200000
+t, dt = np.linspace(0.,20000.,steps, retstep=True)
+m = 5.
+pos= 10.
+T = 10.
+r_analyt = EOM_morse_analyt(a,D,m,t,pos, Temp=T)
+
+pot = Potential( cell, f=create_potential(cell,
+                                          name='morse',
+                                          morse_a = a,
+                                          morse_D = D,
+                                          morse_pos = pos,
+                                          ) )
 
 
 ### INITIALIZE MODEL ### 
@@ -29,11 +43,11 @@ rpmd1d = Model(
 rpmd1d.set_potential(pot)
 
 ### SET INITIAL VALUES ###
-rs = [[20.]]#,[18.]]
+rs = [[min(r_analyt)]]#,[18.]]
 vs = [[0.]]#,[.2]]
-masses = [2.]#, 2.]
-n_beads = 5
-Temp = [200.]#, 250.]
+masses = [m]#, 2.]
+n_beads = 4
+Temp = [T]#, 250.]
 
 b = bead_basis(rs, vs, masses, n_beads, T=Temp)
 rpmd1d.set_basis(b)
@@ -42,18 +56,18 @@ print rpmd1d
 
 
 ### DYNAMICS PARAMETERS ###
-dt =  .2
-steps = 1E6
+#dt =  .1
+#steps = 1E4
 
 ### THERMOSTAT ###
 thermostat = {'name' : 'Andersen',
-              'cfreq' : 1E-3,
+              'cfreq' : 1E-4,
               'T_set' : 400.,
              }
 
 
 ### EVOLVE SYSTEM ###
-rpmd1d.run(steps,dt, thermostat=thermostat)
+rpmd1d.run(steps,dt)#, thermostat=thermostat)
 print 'INTEGRATED'
 
 ## gather information
@@ -64,6 +78,13 @@ vb_t = rpmd1d.data.rpmd.vb_t
 E_t = rpmd1d.data.rpmd.E_t
 E_kin = rpmd1d.data.rpmd.E_kin_t
 E_pot = rpmd1d.data.rpmd.E_pot_t
+
+print min(r_analyt)
+print min(r_t[0])
+print max(r_analyt)
+print max(r_t[0])
+print np.mean(r_analyt)
+print np.mean(r_t[0])
 
 ### VISUALIZATION ###
 V_x = rpmd1d.pot(np.linspace(0.,40.,600))

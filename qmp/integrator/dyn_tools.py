@@ -93,7 +93,7 @@ def create_thermostat(name='no_thermostat', **kwargs):
         
         return v, dt
     
-    def no_ts(v, m, dt):
+    def no_ts(v, m, dt, ndim):
         return v, 0
     
     if name == 'no_thermostat':
@@ -103,3 +103,14 @@ def create_thermostat(name='no_thermostat', **kwargs):
     else:
         raise KeyError("Thermostat '"+name+"' is not implemented yet or misspelled. Available: 'Andersen', 'no_thermostat'")
     
+    
+def EOM_morse_analyt(a, D, m, t, pos, Temp=293.15):
+    from qmp.utilities import kB
+
+    if kB*Temp >= D:
+        raise ValueError('System not bound at given Temperature')
+    
+    xi = np.arccos(np.sqrt(kB*Temp/D))
+    om_0 = a*np.sqrt(2.*D/m)
+    return pos + (np.log( (1.-np.cos(xi)*np.cos(om_0*np.sin(xi)*t))/(np.sin(xi)**2) ))/a
+

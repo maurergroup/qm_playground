@@ -29,7 +29,8 @@ class RPMD_VelocityVerlet(Integrator):
         Np = self.basis.npar
         Nb = self.basis.nb
         ndim = self.basis.ndim
-        m = self.basis.masses
+        m = self.basis.m_beads
+        mp = self.basis.masses
         om = self.basis.om
         rb_t = np.zeros((Np,Nb,steps+1,ndim))
         rb_t[:,:,0,:] = np.array(self.basis.r_beads)
@@ -49,7 +50,7 @@ class RPMD_VelocityVerlet(Integrator):
             dt_ts = np.zeros(Nb)
             for i_s in xrange(steps):
                 ## energy stuff
-                e_pot[i_p,:,i_s] = self.basis.get_potential_energy(rb_t[i_p,:,i_s], self.pot, m[i_p], om[i_p])
+                e_pot[i_p,:,i_s] = self.basis.get_potential_energy_beads(rb_t[i_p,:,i_s], self.pot, m[i_p], om[i_p])
                 e_kin[i_p,:,i_s] = self.basis.get_kinetic_energy(m[i_p], vb_t[i_p,:,i_s])
                 e_tot[i_p,:,i_s] = e_kin[i_p,:,i_s]+e_pot[i_p,:,i_s]
                 
@@ -64,15 +65,15 @@ class RPMD_VelocityVerlet(Integrator):
                 dt_ts += dt
                 vb_t[i_p,:,i_s+1], dt_ts = thermo(vb_t[i_p,:,i_s+1], m[i_p], dt_ts, ndim)
                 
-                    
-            e_pot[i_p,:,steps] = self.basis.get_potential_energy(rb_t[i_p,:,steps], self.pot, m[i_p], om[i_p])
+            e_pot[i_p,:,steps] = self.basis.get_potential_energy_beads(rb_t[i_p,:,steps], self.pot, m[i_p], om[i_p])
             e_kin[i_p,:,steps] = self.basis.get_kinetic_energy(m[i_p], vb_t[i_p,:,steps])
             e_tot[i_p,:,steps] = e_kin[i_p,:,i_s]+e_pot[i_p,:,i_s]
-            E_pot[i_p] = np.mean(e_pot[i_p],0)
-            E_kin[i_p] = np.mean(e_kin[i_p],0)
-            E_tot[i_p] = np.mean(e_pot+e_kin)
             r_t[i_p] = np.mean(rb_t[i_p],0)
             v_t[i_p] = np.mean(vb_t[i_p],0)
+            E_pot[i_p] = np.mean(e_pot[i_p],0)
+            E_kin[i_p] = np.mean(e_kin[i_p],0)
+            E_tot[i_p] = np.mean(e_tot[i_p],0)
+            
                 
         
         self.data.rpmd.rb_t = rb_t
