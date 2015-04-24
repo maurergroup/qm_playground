@@ -39,10 +39,11 @@ rpmd1d = Model(
          integrator='RPMD_VelocityVerlet',
         )
 
-### SET POTENTIAL ###
+## set potential
 rpmd1d.set_potential(pot)
 
-### SET INITIAL VALUES ###
+
+### INITIAL VALUES ###
 rs = [[min(r_analyt)]]#,[18.]]
 vs = [[0.]]#,[.2]]
 masses = [m]#, 2.]
@@ -51,7 +52,6 @@ Temp = [T]#, 250.]
 
 b = bead_basis(rs, vs, masses, n_beads, T=Temp)
 rpmd1d.set_basis(b)
-
 print rpmd1d
 
 
@@ -70,7 +70,7 @@ thermostat = {'name' : 'Andersen',
 rpmd1d.run(steps,dt)#, thermostat=thermostat)
 print 'INTEGRATED'
 
-## gather information
+### GATHER INFO ###
 r_t = rpmd1d.data.rpmd.r_t
 rb_t = rpmd1d.data.rpmd.rb_t
 v_t = rpmd1d.data.rpmd.v_t

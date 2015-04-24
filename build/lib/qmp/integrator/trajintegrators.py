@@ -3,6 +3,7 @@ trajintegrators.py
 """
 
 from qmp.integrator.integrator import Integrator
+from qmp.termcolors import *
 import numpy as np
 
 
@@ -28,6 +29,7 @@ class velocity_verlet_integrator(Integrator):
         E_kin = np.zeros((N,steps+1))
         E_tot = np.zeros((N,steps+1))
         
+        print gray+'Integrating...'+endcolor
         for i_par in xrange(N):
             for i_step in xrange(steps):
                 e_pot = self.data.traj.basis.get_potential_energy(r_t[i_par,i_step], self.pot)
@@ -48,6 +50,7 @@ class velocity_verlet_integrator(Integrator):
             E_kin[i_par,steps] = e_kin
             E_tot[i_par,steps] = (e_pot+e_kin)
                 
+        print gray+'INTEGRATED'+endcolor
         
         self.data.traj.r_t = r_t
         self.data.traj.v_t = v_t

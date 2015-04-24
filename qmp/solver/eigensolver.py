@@ -4,7 +4,9 @@ eigensolvers.py
 
 from qmp.utilities import *
 from qmp.solver.solver import solver
+from qmp.termcolors import *
 import numpy as np
+
 
 class scipy_solver(solver):
     """
@@ -27,12 +29,14 @@ class scipy_solver(solver):
 
         states = self.data.parameters['states']
 
-        print 'Solving...'
+        print gray+'Solving...'+endcolor
         evals, evecs = eigsh(H, states, sigma=0., which='LM')
-        #evals, evecs = np.sort(np.linalg.eig(H))
+        print gray+'SOLVED\n'+endcolor
+
+        ## NORMALIZE EIGENVECTORS!!
 
         self.data.wvfn.E = np.array(evals)
-        self.data.wvfn.psi = np.array(evecs)     #(100,k)
+        self.data.wvfn.psi = np.array(evecs)
         self.data.solved = True
 
 
@@ -49,7 +53,7 @@ class alglib_solver(solver):
         try: 
             import xalglib as xa
         except:
-            print 'Cannot import alglib'
+            print red+'Cannot import alglib'+endcolor
             pass
 
         from scipy.sparse import issparse
@@ -61,9 +65,13 @@ class alglib_solver(solver):
         if issparse(H):
             H = H.todense()
         
-        print 'Solving...'
+        print gray+'Solving...'+endcolor
         result, E, psi = xa.smatrixevd(H.tolist(), H.shape[0], 1, 1)
+        print gray+'SOLVED\n'+endcolor
 
         self.data.wvfn.E = np.array(E)
         self.data.wvfn.psi = np.array(psi)
         self.data.solved = True
+
+
+#--EOF--#

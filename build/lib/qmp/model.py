@@ -5,7 +5,9 @@ model class
 from qmp.utilities import *
 from qmp.integrator import integrator_init
 from qmp.solver import solver_init
-from qmp.data_containers import data_container 
+from qmp.data_containers import data_container
+from qmp.termcolors import *
+
 
 class Model(object):
     """
@@ -105,7 +107,7 @@ class Model(object):
         try:
             self.solver.solve()
         except (AttributeError, TypeError):
-            print 'Initializing Solver'
+            print gray+'Initializing Solver'+endcolor
             self.solver = solver_init(self.data, self.pot)
             self.solver.solve()
 
@@ -115,22 +117,25 @@ class Model(object):
         Wrapper for dyn.run
         """
 
+        add_info = kwargs.get('additional', None)
+        
         if (self.basis is None) or \
            (self.pot is None) or \
            (self.data is None):
             raise ValueError('Integrator can only run with \
                              initialized basis and potential')
         
-        if (self.parameters['integrator'] == 'eigen') and \
+        if ((self.parameters['integrator'] == 'eigen') or (add_info=='coefficients')) and \
            (self.data.solved == False):
-            print 'Propagator requires eigenstates. Start solving eigenvalue problem.'
+            print gray+'Projection onto eigen basis requires solving eigenvalue problem...'+endcolor
             self.solve()
-            print 'SOLVED'
         
         try:
             self.dyn.run(int(steps),dt,**kwargs)
         except (AttributeError, TypeError):
-            print 'Initializing Integrator'
+            print gray+'Initializing Integrator'+endcolor
             self.dyn = integrator_init(self.data, self.pot)
             self.dyn.run(int(steps),dt,**kwargs)
  
+
+#--EOF--#

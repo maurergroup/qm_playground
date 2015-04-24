@@ -3,39 +3,20 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 
-def project_gaussian(evecs, basis, sigma=1., x0=0., p0=0.):
+def project_wvfn(wvfn, evecs):
     """
     project wave packet onto eigenvectors, return vector of coefficients
     
     parameters:
     ===========
         evecs: matrix containing eigenvectors(eigenvalue problem solved beforehand)
-        basis: grid wavepacket will be created on
-        sigma: variance of wave packet
-        x0:    center of wave packet
+        wvfn:  wavepacket to be projected on eigenstates (defined on same grid as evecs)
     """
-    x = basis
-    gauss_wave = create_gaussian(x, x0=x0, sigma=sigma, p0=p0)
-    c = np.dot(gauss_wave, evecs)
-    return c
+    c = np.dot(wvfn.flatten(), evecs)
+    norm = np.sqrt(np.conjugate(c).dot(c))
+    return c/norm
 
     
-def project_gaussian2D(evecs, xgrid, ygrid, sigma=1., x0=[0.,0.], p0=[0.,0.]):
-    """
-    project 2D wave packet onto eigenvectors, return vector of coefficients
-    
-    parameters:
-    ===========
-        evecs: matrix containing flattened eigenvectors
-        *grid: x/y grid wavepacket will be created on
-        sigma: variance of wave packet, opt: [sigma_x, sigma_y]
-        x0:    center of wave packet [x0,y0]
-        """
-    gauss_wave = create_gaussian2D(xgrid, ygrid, x0=x0, p0=p0, sigma=sigma)
-    c = np.dot(gauss_wave.flatten(), evecs)
-    return c
-
-
 def create_gaussian(x, x0=0., p0=0., sigma=1.):
     """
     creates gaussian wave
@@ -114,3 +95,5 @@ def EOM_morse_analyt(a, D, m, t, pos, Temp=293.15):
     om_0 = a*np.sqrt(2.*D/m)
     return pos + (np.log( (1.-np.cos(xi)*np.cos(om_0*np.sin(xi)*t))/(np.sin(xi)**2) ))/a
 
+
+#--EOF--#

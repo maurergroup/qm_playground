@@ -4,6 +4,7 @@ rpmd integrators.py
 
 from qmp.integrator.integrator import Integrator
 from qmp.integrator.dyn_tools import create_thermostat
+from qmp.termcolors import *
 import numpy as np
 
 
@@ -45,7 +46,7 @@ class RPMD_VelocityVerlet(Integrator):
         e_kin = np.zeros((Np,Nb,steps+1))
         e_tot = np.zeros((Np,Nb,steps+1))
         
-        print 'Integrating...'
+        print gray+'Integrating...'+endcolor
         for i_p in xrange(Np):     ## loop over beads rewritten in vector-matrix-formalism
             dt_ts = np.zeros(Nb)
             for i_s in xrange(steps):
@@ -74,7 +75,7 @@ class RPMD_VelocityVerlet(Integrator):
             E_kin[i_p] = np.mean(e_kin[i_p],0)
             E_tot[i_p] = np.mean(e_tot[i_p],0)
             
-                
+        print gray+'INTEGRATED'+endcolor
         
         self.data.rpmd.rb_t = rb_t
         self.data.rpmd.vb_t = vb_t
