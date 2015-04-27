@@ -3,39 +3,20 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 
-def project_gaussian(evecs, basis, sigma=1., x0=0., p0=0.):
+def project_wvfn(wvfn, evecs):
     """
     project wave packet onto eigenvectors, return vector of coefficients
     
     parameters:
     ===========
         evecs: matrix containing eigenvectors(eigenvalue problem solved beforehand)
-        basis: grid wavepacket will be created on
-        sigma: variance of wave packet
-        x0:    center of wave packet
+        wvfn:  wavepacket to be projected on eigenstates (defined on same grid as evecs)
     """
-    x = basis
-    gauss_wave = create_gaussian(x, x0=x0, sigma=sigma, p0=p0)
-    c = np.dot(gauss_wave, evecs)
-    return c
+    c = np.dot(wvfn.flatten(), evecs)
+    norm = np.sqrt(np.conjugate(c).dot(c))
+    return c/norm
 
     
-def project_gaussian2D(evecs, xgrid, ygrid, sigma=1., x0=[0.,0.], p0=[0.,0.]):
-    """
-    project 2D wave packet onto eigenvectors, return vector of coefficients
-    
-    parameters:
-    ===========
-        evecs: matrix containing flattened eigenvectors
-        *grid: x/y grid wavepacket will be created on
-        sigma: variance of wave packet, opt: [sigma_x, sigma_y]
-        x0:    center of wave packet [x0,y0]
-        """
-    gauss_wave = create_gaussian2D(xgrid, ygrid, x0=x0, p0=p0, sigma=sigma)
-    c = np.dot(gauss_wave.flatten(), evecs)
-    return c
-
-
 def create_gaussian(x, x0=0., p0=0., sigma=1.):
     """
     creates gaussian wave
@@ -68,15 +49,51 @@ def create_gaussian2D(xgrid, ygrid, x0=[0.,0.], p0=[0.,0.], sigma=[1.,1.]):
     return wave
 
 
-def blub(start, end):
-    x = np.linspace(start[0],end[0],1000)
-    y = np.linspace(start[1],end[1],1000)
-    xv,yv = np.meshgrid(x,y)
-    z2 = np.exp( -(1/2.)*(((xv-yv-0.05)/2.5)**2 + ((xv-yv-0.05)/2.5)**2))
-    z = 150.*(-create_gaussian2D(xv,yv,x0=[10.,3.],sigma=[11./2.,1.])-create_gaussian2D(xv,yv,x0=[3.,7.],sigma=[3./2.,6.]))+0.4*z2
-    z -= min(z.flatten())
-    fig=plt.figure(figsize=(10,10))
-    ax=plt.gca(projection='3d')
-    ax.plot_surface(xv,yv,z,lw=0.,cmap=cm.jet,alpha=0.75)
-    ax.view_init(elev=0.,azim=-135.)
-    plt.show()
+def create_thermostat(name='no_thermostat', **kwargs):
+    """
+    returns thermostat as defined by **kwargs
+    """
+    from qmp.utilities import kB
+    from scipy.stats import norm
+    
+    def andersen_ts(v, m, dt, ndim):
+        cfreq = kwargs.get('cfreq', 0.001)
+        T_set = kwargs.get('T_set', 293.)
+        
+        p_rand = np.random.random(v.shape[0])
+        mask = np.array([(p_rand < cfreq*dt)]*ndim).T
+        #if p_rand < cfreq*dt:
+        s = np.sqrt(kB*T_set/m)
+        p_rand = np.random.random(v.shape)
+        #v = norm.ppf(p_rand,scale=s)
+        #dt = 0.
+        
+        v_rand = norm.ppf(p_rand,scale=s)
+        v = v_rand*mask + v*(1.-mask)
+        dt = dt*mask[:,0]
+        
+        return v, dt
+    
+    def no_ts(v, m, dt, ndim):
+        return v, 0
+    
+    if name == 'no_thermostat':
+        return no_ts
+    elif (name == 'Andersen') or (name == 'andersen'):
+        return andersen_ts
+    else:
+        raise KeyError("Thermostat '"+name+"' is not implemented yet or misspelled. Available: 'Andersen', 'no_thermostat'")
+    
+    
+def EOM_morse_analyt(a, D, m, t, pos, Temp=293.15):
+    from qmp.utilities import kB
+
+    if kB*Temp >= D:
+        raise ValueError('System not bound at given Temperature')
+    
+    xi = np.arccos(np.sqrt(kB*Temp/D))
+    om_0 = a*np.sqrt(2.*D/m)
+    return pos + (np.log( (1.-np.cos(xi)*np.cos(om_0*np.sin(xi)*t))/(np.sin(xi)**2) ))/a
+
+
+#--EOF--#

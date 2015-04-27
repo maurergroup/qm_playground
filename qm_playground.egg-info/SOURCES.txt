@@ -11,6 +11,7 @@ qmp/logger.py
 qmp/model.py
 qmp/pot_tools.py
 qmp/potential.py
+qmp/potential2D.py
 qmp/termcolors.py
 qmp/utilities.py
 qmp/visualizations.py

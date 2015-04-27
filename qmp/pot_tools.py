@@ -142,17 +142,14 @@ def create_potential(cell, name='free', **kwargs):
 
 
 	## double well
-	symm_dwell_h = kwargs.get('symm_double_well_barrier', 1./2.)
-	symm_dwell_w = kwargs.get('symm_double_well_width', 2.)
-	symm_dwell_c = kwargs.get('symm_double_well_center', np.mean(cell))
+	dwell_h = kwargs.get('double_well_barrier', 2.)
+	dwell_w = kwargs.get('double_well_width', 2.)
+	dwell_c = kwargs.get('double_well_center', np.mean(cell))
+	dwell_a = kwargs.get('double_well_asymmetry', 0.)
+	    
+	def f_dwell(x):
+	    return dwell_h/(dwell_w**4)*((x-dwell_c)**2 - dwell_w**2)**2 + dwell_a*(x-dwell_c)**3
 	
-	def f_symm_dwell(x):
-	    return symm_dwell_h/(symm_dwell_w**4)*((x-symm_dwell_c)**2 - symm_dwell_w**2)**2
-	
-
-
-	def f_asymm_dwell(x):
-	    return dwell_d1*(x-dwell_p1)**4-dwell_d2*(x-dwell_p2)**2
 	
 
 	if name == 'free':
@@ -171,10 +168,8 @@ def create_potential(cell, name='free', **kwargs):
 	    return f_mexican
 	elif name == 'gaussian':
 	    return f_gauss
-	elif name == 'double_well1':
-	    return f_dwell1
-	elif name == 'double_well2':
-	    return f_dwell2
+	elif name == 'double_well':
+	    return f_dwell
 	else:
 	    raise NotImplementedError("Name '"+name+"' could not be resolved\n\
 Available potentials: 'free', 'box', 'double_box', \n\

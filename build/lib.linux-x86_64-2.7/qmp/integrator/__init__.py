@@ -15,10 +15,8 @@ integrator_type = {
     'split_operator' : split_operator_propagator,
     'velocity_verlet' : velocity_verlet_integrator,
     'vel_verlet' : velocity_verlet_integrator,
-    'velocity_verlet_rpmd' : rpmd_velocity_verlet_integrator,
-    'vel_verlet_rpmd' : rpmd_velocity_verlet_integrator,
-    'rpmd_vel_verlet' : rpmd_velocity_verlet_integrator,
-    'rpmd_velocity_verlet' : rpmd_velocity_verlet_integrator,
+    'VelocityVerlet_RPMD' : RPMD_VelocityVerlet,
+    'RPMD_VelocityVerlet' : RPMD_VelocityVerlet,
     }
 
 def integrator_init(data, potential):

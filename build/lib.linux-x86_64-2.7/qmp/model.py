@@ -5,7 +5,9 @@ model class
 from qmp.utilities import *
 from qmp.integrator import integrator_init
 from qmp.solver import solver_init
-from qmp.data_containers import data_container 
+from qmp.data_containers import data_container
+from qmp.termcolors import *
+
 
 class Model(object):
     """
@@ -61,6 +63,7 @@ class Model(object):
         #data also keeps parameters
         self.data.parameters = self.parameters
 
+
     def __repr__(self):
 
         string = 'Model Summary:\n'
@@ -73,12 +76,14 @@ class Model(object):
 
         return string
 
+
     def set_potential(self,pot):
 
         pot.data = self.data
         self.pot = pot
         self.data.cell = pot.cell
-
+        
+    
     def set_basis(self,basis):
 
         basis.data = self.data
@@ -86,6 +91,7 @@ class Model(object):
 
         #now we can prepare the data object for the tasks ahead
         self.data.prep(self.parameters['mode'], basis) 
+
 
     def solve(self):
         """
@@ -101,31 +107,35 @@ class Model(object):
         try:
             self.solver.solve()
         except (AttributeError, TypeError):
-            print 'Initializing Solver'
+            print gray+'Initializing Solver'+endcolor
             self.solver = solver_init(self.data, self.pot)
             self.solver.solve()
 
-    def run(self, steps, dt, psi_0=0.):
+
+    def run(self, steps, dt, **kwargs):
         """
         Wrapper for dyn.run
         """
 
+        add_info = kwargs.get('additional', None)
+        
         if (self.basis is None) or \
            (self.pot is None) or \
            (self.data is None):
             raise ValueError('Integrator can only run with \
                              initialized basis and potential')
         
-        if (self.parameters['integrator'] == 'eigen') and \
+        if ((self.parameters['integrator'] == 'eigen') or (add_info=='coefficients')) and \
            (self.data.solved == False):
-            print 'Propagator requires eigenstates. Start solving eigenvalue problem.'
+            print gray+'Projection onto eigen basis requires solving eigenvalue problem...'+endcolor
             self.solve()
-            print 'SOLVED'
         
         try:
-            self.dyn.run(steps,dt,psi_0)
+            self.dyn.run(int(steps),dt,**kwargs)
         except (AttributeError, TypeError):
-            print 'Initializing Integrator'
+            print gray+'Initializing Integrator'+endcolor
             self.dyn = integrator_init(self.data, self.pot)
-            self.dyn.run(steps,dt,psi_0)
+            self.dyn.run(int(steps),dt,**kwargs)
  
+
+#--EOF--#

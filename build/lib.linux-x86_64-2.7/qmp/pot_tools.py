@@ -19,7 +19,8 @@ def create_potential(cell, name='free', **kwargs):
             'harmonic',
             'morse',
             'mexican_hat',
-            'gaussian')
+            'gaussian',
+	    'double_well')
         cell:    simulation box
         kwargs:  parameters of specific potential (see definitions)
 	"""
@@ -140,6 +141,17 @@ def create_potential(cell, name='free', **kwargs):
 	    return create_gaussian(x, sigma=gauss_s, x0=gauss_p)
 
 
+	## double well
+	dwell_h = kwargs.get('double_well_barrier', 2.)
+	dwell_w = kwargs.get('double_well_width', 2.)
+	dwell_c = kwargs.get('double_well_center', np.mean(cell))
+	dwell_a = kwargs.get('double_well_asymmetry', 0.)
+	    
+	def f_dwell(x):
+	    return dwell_h/(dwell_w**4)*((x-dwell_c)**2 - dwell_w**2)**2 + dwell_a*(x-dwell_c)**3
+	
+	
+
 	if name == 'free':
 	    return f_free
 	elif name == 'wall':
@@ -156,10 +168,12 @@ def create_potential(cell, name='free', **kwargs):
 	    return f_mexican
 	elif name == 'gaussian':
 	    return f_gauss
+	elif name == 'double_well':
+	    return f_dwell
 	else:
 	    raise NotImplementedError("Name '"+name+"' could not be resolved\n\
 Available potentials: 'free', 'box', 'double_box', \n\
-'harmonic', 'morse', 'mexican_hat', and 'gaussian'")
+'harmonic', 'morse', 'mexican_hat', 'gaussian', and 'double_well'")
 
 
 def create_potential2D(cell, name='free', **kwargs):

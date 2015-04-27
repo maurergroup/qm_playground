@@ -17,7 +17,12 @@ from qmp.visualizations import wave_slideshow1D
 cell = [[0, 20.0]]
 
 ### POTENTIAL ###
-pot = Potential(cell, f=create_potential(cell, name='mexican_hat') )
+pot = Potential(cell, f=create_potential(cell, 
+										 name='double_well', 
+										 double_well_barrier=5.,
+										 double_well_asymmetry=0.2,
+										 double_well_width=3.,
+										 ) )
 
 ### INITIALIZE MDOEL ###
 ## number of lowest eigenstates to be solved for
@@ -45,7 +50,7 @@ print tik1d
 tik1d.solve()
 
 psi = tik1d.data.wvfn.psi
-print psi.shape
 
 ### VISUALIZATION ###
 wave_slideshow1D(tik1d.basis.x, psi, tik1d.pot(tik1d.basis.x))
+

@@ -27,9 +27,8 @@ class bead_basis(basis):
             n_beads:    number of beads to represent particles (integer, default 2)
             T:          list of particle temperatures in K ([T1,T2, ...])
             pos_init:   set bead positions on around particle pos (boolean, default False)
-            vel_init:   draw vel from Maxwell-Boltzmann distribution, \
-                        set absolut bead velocities to vel, \
-                        set bead velocities equally spread away from particle pos
+            vel_init:   2D - same absolute velocity from Maxwell-Boltzmann distribution equally spread in plane
+            			1D - necklace divided into pairs, same absolute velocity with different sign for beads of pair
                         (boolean, default True, set to True if pos_init == False)
                         
         **COMMENTS**    - pos_init approximative!
@@ -106,19 +105,21 @@ class bead_basis(basis):
                     
         if vel_init == True:
             for i_par in xrange(self.npar):
-                v_abs = self.get_v_maxwell(self.masses[i_par],self.Temp[i_par])
                 if self.ndim == 1:
-                    i_iter = np.random.choice([-1.,1.])
-                    for i_bead in xrange(self.nb):
-                        self.v_beads[i_par,i_bead] = self.v[i_par] + v_abs*i_iter
-                        i_iter *= -1
-                    if self.nb%2 == 1:
-                        self.v_beads[i_par,0] = 0.
+                    i_start = self.nb%2    # for odd number of beads: (nb-1)/2 pairs, v=0 for last bead ~> start at i_start=1
+                    for i_bead in xrange(i_start,self.nb,2): 
+                        v_mb = self.get_v_maxwell(self.m_beads[i_par], self.Temp[i_par])
+                        # assign v_p + v_mb to bead1 of pair
+                        self.v_beads[i_par,i_bead] = self.v[i_par] + v_mb
+                        # assign v_p - v_mb to bead2 of pair
+                        self.v_beads[i_par,i_bead+1] = self.v[i_par] - v_mb
+                    print np.mean(self.v_beads)
                 else:
+                    v_abs = self.get_v_maxwell(self.m_beads[i_par],self.Temp[i_par])
                     v_vec = np.dot(np.array([0.,v_abs]),rM).T
                     for i_bead in xrange(self.nb):
-                        self.v_beads[i_par,i_bead] = self.v[i_par] + v_vec
-                        v_vec = np.dot(v_vec,rotMat)
+                         self.v_beads[i_par,i_bead] = self.v[i_par] + v_vec
+                         v_vec = np.dot(v_vec,rotMat)
         else:
             for i_par in xrange(self.npar):
                 for i_bead in xrange(self.nb):
@@ -126,10 +127,13 @@ class bead_basis(basis):
         
 
     def get_v_maxwell(self, m, T):
-        s = np.sqrt(kB*T/m)
-        l = -np.sqrt(8./np.pi)*s
-        x_rand = np.random.random(1)
-        return maxwell.ppf(x_rand,loc=l,scale=s)
+		"""
+		draw velocity from Maxwell-Boltzmann distribution with mean 0.
+		"""
+		s = np.sqrt(kB*T/m)
+		l = 0.#-np.sqrt(8./np.pi)*s
+		x_rand = np.random.random(1)
+		return maxwell.ppf(x_rand,loc=l,scale=s)
     
     def __eval__(self):
         return self.r, self.v

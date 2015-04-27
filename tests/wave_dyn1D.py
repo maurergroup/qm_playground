@@ -16,13 +16,10 @@ cell = [[0., 20.0]]
 
 ### POTENTIAL ### 
 pot = Potential( cell, f=create_potential(cell,
-                                          name='double_well1',
-                                          double_well_pos1=8.,
-                                          double_well_pos2=12.,
-                                          double_well_depth1=10.,
-                                          double_well_depth2=10.5,
-                                          double_well_width1=-1.,
-                                          double_well_width2=1.,
+                                          name='double_well',
+					  double_well_barrier=2.,
+					  double_well_asymmetry=0.,
+					  double_well_width=3.,
                                           ) )
 
 ### NUMBER OF BASIS STATES ### 
@@ -55,7 +52,7 @@ print ''
 
 ### INITIAL WAVE FUNCTION AND DYNAMICS PARAMETERS ###
 ## time step, number of steps
-dt =  .001
+dt =  .1
 steps = 1E3
 
 #tik1d.solve()
@@ -63,7 +60,7 @@ steps = 1E3
 ## initial wave functions
 #psi_0 = 1./2.*(tik1d.data.wvfn.psi[:,2]+tik1d.data.wvfn.psi[:,3]+tik1d.data.wvfn.psi[:,0]+tik1d.data.wvfn.psi[:,4])
 sigma = .2
-psi_0 = create_gaussian(tik1d.basis.x, x0=11., p0=0., sigma=sigma)
+psi_0 = create_gaussian(tik1d.basis.x, x0=7., p0=0., sigma=sigma)
 psi_0 /= np.sqrt(np.conjugate(psi_0).dot(psi_0))
 
 ### EVOLVE SYSTEM ###
@@ -94,8 +91,14 @@ V_x = tik1d.pot(tik1d.basis.x)
 ### VISUALIZATION ###
 
 import matplotlib.pyplot as plt
-plt.plot(tik1d.basis.x,rho_r_mean)
+fig = plt.figure()
+ax = plt.gca()
+ax0 = ax.twinx()
+ax.plot(tik1d.basis.x, rho_r_mean)
+ax0.plot(tik1d.basis.x, tik1d.pot(tik1d.basis.x), ls=':', c='r')
+ax0.set_ylim(min(tik1d.pot(tik1d.basis.x)), 11.)
 plt.show()
+
 #plt.plot(np.conjugate(c_t[:,1])*c_t[:,1], label=r'$\Vert c_1(t)\Vert^2$')
 #plt.plot(np.conjugate(c_t[:,2])*c_t[:,2], label=r'$\Vert c_2(t)\Vert^2$')
 #plt.plot(np.conjugate(c_t[:,3])*c_t[:,3], label=r'$\Vert c_3(t)\Vert^2$')

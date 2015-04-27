@@ -90,7 +90,7 @@ def wave_slideshow1D(basis, psi_arr, pot):
 	fig, ax = plt.subplots()
 	ax0 = ax.twinx()
 	plt.subplots_adjust(bottom=0.2)
-	l, = ax.plot(basis,psi_arr[0,:]*np.conjugate(psi_arr[0,:]))
+	l, = ax.plot(basis,psi_arr[:,0]*np.conjugate(psi_arr[:,0]))
 	ax.set_ylim(-0.025*max((psi_arr*np.conjugate(psi_arr)).flatten()), 0.9*max((psi_arr*np.conjugate(psi_arr)).flatten()))
 	k, = ax0.plot(basis,pot, c='r', ls=':')
 
@@ -99,16 +99,16 @@ def wave_slideshow1D(basis, psi_arr, pot):
 	    ind = 0
 	    def next(self, event):
 		self.ind += 1
-		if self.ind == psi_arr.shape[0]:
+		if self.ind == psi_arr.shape[1]:
 		    self.ind = 0
-		l.set_ydata(psi_arr[self.ind,:]*np.conjugate(psi_arr[self.ind,:]))
+		l.set_ydata(psi_arr[:,self.ind]*np.conjugate(psi_arr[:,self.ind]))
 		plt.draw()
 
 	    def prev(self, event):
 		self.ind -= 1
 		if self.ind == -1:
-		    self.ind = psi_arr.shape[0]-1
-		l.set_ydata(psi_arr[self.ind,:]*np.conjugate(psi_arr[self.ind,:]))
+		    self.ind = psi_arr.shape[1]-1
+		l.set_ydata(psi_arr[:,self.ind]*np.conjugate(psi_arr[:,self.ind]))
 		plt.draw()
 
 	callback = Index()
@@ -127,7 +127,7 @@ def wave_movie2D(xgrid, ygrid, psi_arr, pot=0.):
 	from matplotlib import cm
 	import matplotlib.animation as animation
 	from mpl_toolkits.mplot3d import Axes3D
-	theta = 25.
+
 	if not (np.any(pot) != 0.):
 		pot = np.ones_like(xgrid)
 		ls_pot = ''
@@ -168,7 +168,8 @@ def wave_slideshow2D(xgrid, ygrid, psi_arr, pot=0.):
 	from mpl_toolkits.mplot3d import Axes3D
 	from matplotlib import cm
 	from matplotlib.widgets import Slider, Button, RadioButtons
-
+	theta = 25.
+	
 	if not (np.any(pot) != 0.):
 		pot = np.ones_like(xgrid)
 		ls_pot = ''
