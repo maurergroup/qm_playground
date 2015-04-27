@@ -10,14 +10,14 @@ from qmp.utilities import kB               #
 ############################################
 
 ### SIMULATION CELL ### 
-cell = [[0., 20.0]]
+cell = [[0., 40.0]]
 
 ### POTENTIAL ### 
 f = create_potential(cell,
                      name='double_well',
-                     double_well_barrier=2.,
+                     double_well_barrier=.05,
 		     double_well_asymmetry=0.,
-		     double_well_width=3.,
+		     double_well_width=7.,
                      )
 pot = Potential( cell, f=f )
                                           
@@ -34,11 +34,11 @@ rpmd1d.set_potential(pot)
 
 
 ### INITIAL VALUES ###
-rs = [[7.]]#,[18.]]
-vs = [[7.8]]#,[.2]]
-masses = [1.]#, 2.]
-n_beads = 16
-Temp = [10.]#, 250.]
+rs = [[13.],[13.],[13.],[13.],[13.],[13.],[13.],[13.],[13.],[13.]]
+vs = [[0.313],[-0.313],[-0.313],[0.313],[0.313],[-0.313],[-0.313],[0.313],[0.313],[-0.313]]
+masses = [1., 1., 1., 1., 1., 1., 1., 1., 1., 1.]
+n_beads = 4
+Temp = [100., 100., 100., 100., 100., 100., 100., 100., 100., 100.]
 
 b = bead_basis(rs, vs, masses, n_beads, T=Temp)
 rpmd1d.set_basis(b)
@@ -47,7 +47,7 @@ print rpmd1d
 
 ### DYNAMICS PARAMETERS ###
 dt =  .1
-steps = 1E3
+steps = 1E5
 
 ### THERMOSTAT ###
 thermostat = {'name' : 'Andersen',
@@ -65,16 +65,17 @@ rb_t = rpmd1d.data.rpmd.rb_t
 v_t = rpmd1d.data.rpmd.v_t
 vb_t = rpmd1d.data.rpmd.vb_t
 E_t = rpmd1d.data.rpmd.E_t
-print np.mean(E_t)
 E_kin = rpmd1d.data.rpmd.E_kin_t
 E_pot = rpmd1d.data.rpmd.E_pot_t
 
-print np.mean(r_t[0])
+print np.mean(r_t)
 
 ### VISUALIZATION ###
-V_x = rpmd1d.pot(np.linspace(0.,20.,600))
+V_x = rpmd1d.pot(np.linspace(0.,cell[0][1],600))
 
 import matplotlib.pyplot as plt
+plt.plot(r_t[0])
+plt.show()
 import matplotlib.animation as animation
 
 fig = plt.figure()
@@ -86,7 +87,7 @@ wave_plot1, = ax.plot(r_t[0,0,0], rpmd1d.pot(r_t[0,0,0]), ls='',marker='o',mfc='
 
 
 def _init_():
-    ax.plot(np.linspace(0.,20.,600), V_x, c='b', ls=':', label='$V(x)$', zorder=3)
+    ax.plot(np.linspace(0.,cell[0][1],600), V_x, c='b', ls=':', label='$V(x)$', zorder=3)
     ax1.plot(np.linspace(0., len(E_t[0])*dt, len(E_t[0])), E_t[0], c='b', ls='-', label='$E_1(t)$')
     #ax1.plot(np.linspace(0., len(E_t[1])*dt, len(E_t[1])), E_t[1], c='r', ls='-', label='$E_2(t)$')
     if E_kin is not None:

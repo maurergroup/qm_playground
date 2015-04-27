@@ -99,7 +99,7 @@ def wave_slideshow1D(basis, psi_arr, pot):
 	    ind = 0
 	    def next(self, event):
 		self.ind += 1
-		if self.ind == psi_arr.shape[0]:
+		if self.ind == psi_arr.shape[1]:
 		    self.ind = 0
 		l.set_ydata(psi_arr[:,self.ind]*np.conjugate(psi_arr[:,self.ind]))
 		plt.draw()
@@ -107,7 +107,7 @@ def wave_slideshow1D(basis, psi_arr, pot):
 	    def prev(self, event):
 		self.ind -= 1
 		if self.ind == -1:
-		    self.ind = psi_arr.shape[0]-1
+		    self.ind = psi_arr.shape[1]-1
 		l.set_ydata(psi_arr[:,self.ind]*np.conjugate(psi_arr[:,self.ind]))
 		plt.draw()
 

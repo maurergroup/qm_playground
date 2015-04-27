@@ -27,9 +27,8 @@ class bead_basis(basis):
             n_beads:    number of beads to represent particles (integer, default 2)
             T:          list of particle temperatures in K ([T1,T2, ...])
             pos_init:   set bead positions on around particle pos (boolean, default False)
-            vel_init:   draw vel from Maxwell-Boltzmann distribution, \
-                        set absolut bead velocities to vel, \
-                        set bead velocities equally spread away from particle pos
+            vel_init:   2D - same absolute velocity from Maxwell-Boltzmann distribution equally spread in plane
+            			1D - necklace divided into pairs, same absolute velocity with different sign for beads of pair
                         (boolean, default True, set to True if pos_init == False)
                         
         **COMMENTS**    - pos_init approximative!
@@ -52,15 +51,13 @@ class bead_basis(basis):
         else:
             self.ndim = self.r.shape[1]
         self.v = np.array(vels)
-        self.masses = np.array(masses)
+        self.m = np.array(masses)
         if (n_beads == 0) or (type(n_beads) != int):
             print '0 and lists are not allowed for number of beads, using n_beads = 2 per default'
             self.nb = 2
         else:
             self.nb = n_beads
         
-        self.m_beads = self.masses/self.nb
-            
         if (T is None) or (len(T)!=self.npar):
             print "Dude, you gave me an inconsistent list of temperatures or none at all ~> using 293.15 K throughout"
             T = [293.15]*self.npar
@@ -77,9 +74,9 @@ class bead_basis(basis):
         self.r_beads = np.zeros((self.npar,self.nb,self.ndim))
         self.v_beads = np.zeros((self.npar,self.nb,self.ndim))
         
-        if self.masses.size != self.masses.shape[0]:
+        if self.m.size != self.m.shape[0]:
             raise ValueError('Masses must be given as List of integers')
-        elif (self.masses.size != self.npar) or \
+        elif (self.m.size != self.npar) or \
              (self.r.shape != self.v.shape):
             raise ValueError('Please provide consistent masses, coordinates, and velocities')
         elif self.ndim > 2:
@@ -87,8 +84,7 @@ class bead_basis(basis):
         
         if pos_init == True:
             for i_par in xrange(self.npar):
-                r_abs = (hbar/np.pi)*np.sqrt(self.nb/(2.*self.masses[i_par]*kB*self.Temp[i_par]))/400.
-                print r_abs
+                r_abs = (hbar/np.pi)*np.sqrt(self.nb/(2.*self.m[i_par]*kB*self.Temp[i_par]))/400.
                 if self.ndim == 1:
                     self.r_beads[i_par,0] = self.r[i_par] - r_abs
                     for i_bead in xrange(1,self.nb):
@@ -106,49 +102,56 @@ class bead_basis(basis):
                     
         if vel_init == True:
             for i_par in xrange(self.npar):
-                v_abs = self.get_v_maxwell(self.masses[i_par],self.Temp[i_par])
                 if self.ndim == 1:
-                    i_iter = np.random.choice([-1.,1.])
-                    for i_bead in xrange(self.nb):
-                        self.v_beads[i_par,i_bead] = self.v[i_par] + v_abs*i_iter
-                        i_iter *= -1
-                    if self.nb%2 == 1:
-                        self.v_beads[i_par,0] = 0.
+                    i_start = self.nb%2    # for odd number of beads: (nb-1)/2 pairs, v=0 for last bead ~> start at i_start=1
+                    for i_bead in xrange(i_start,self.nb,2): 
+                        v_mb = self.get_v_maxwell(self.m[i_par], self.Temp[i_par])
+                        # assign v_p + v_mb to bead1 of pair
+                        self.v_beads[i_par,i_bead] = self.v[i_par] + v_mb
+                        # assign v_p - v_mb to bead2 of pair
+                        self.v_beads[i_par,i_bead+1] = self.v[i_par] - v_mb
                 else:
+                    v_abs = self.get_v_maxwell(self.m[i_par],self.Temp[i_par])
                     v_vec = np.dot(np.array([0.,v_abs]),rM).T
                     for i_bead in xrange(self.nb):
-                        self.v_beads[i_par,i_bead] = self.v[i_par] + v_vec
-                        v_vec = np.dot(v_vec,rotMat)
+                         self.v_beads[i_par,i_bead] = self.v[i_par] + v_vec
+                         v_vec = np.dot(v_vec,rotMat)
         else:
             for i_par in xrange(self.npar):
                 for i_bead in xrange(self.nb):
                     self.v_beads[i_par,i_bead] = self.v[i_par]
-        
+
 
     def get_v_maxwell(self, m, T):
+        """
+        draw velocity from Maxwell-Boltzmann distribution with mean 0.
+        """
         s = np.sqrt(kB*T/m)
-        l = -np.sqrt(8./np.pi)*s
         x_rand = np.random.random(1)
-        return maxwell.ppf(x_rand,loc=l,scale=s)
+        return maxwell.ppf(x_rand,loc=0.,scale=s)
     
+
     def __eval__(self):
         return self.r, self.v
 
+
     def get_kinetic_energy(self, m, v):
         return m*np.sum(v*v,1)/2.
+
 
     def get_potential_energy_beads(self, r, pot, m, om):
         M = np.eye(self.nb) - np.diag(np.ones(self.nb-1),1)
         M[-1,0] = -1.
         return pot(*(r.T)).T + (1./2.)*m*om*om*np.sum(M.dot(r)*M.dot(r),1)
     
+
     def get_potential_energy(self, r, pot):
         return pot(*(r.T)).T
-            
+    
     
     def get_forces(self, r, pot, m, om):
-        M = np.eye(self.nb) - np.diag(np.ones(self.nb-1),1)
-        M[-1,0] = -1.
+        M = 2.*np.eye(self.nb) - np.diag(np.ones(self.nb-1),1) - np.diag(np.ones(self.nb-1),-1)
+        M[-1,0], M[0,-1] = -1., -1.
         if self.ndim == 1:
             return -1.*(np.array([num_deriv(pot, r)]).T + m*om*om*M.dot(r))
         elif self.ndim == 2:

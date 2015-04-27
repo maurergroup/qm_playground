@@ -30,8 +30,7 @@ class RPMD_VelocityVerlet(Integrator):
         Np = self.basis.npar
         Nb = self.basis.nb
         ndim = self.basis.ndim
-        m = self.basis.m_beads
-        mp = self.basis.masses
+        m = self.basis.m
         om = self.basis.om
         rb_t = np.zeros((Np,Nb,steps+1,ndim))
         rb_t[:,:,0,:] = np.array(self.basis.r_beads)
@@ -59,8 +58,8 @@ class RPMD_VelocityVerlet(Integrator):
                 F = self.basis.get_forces(rb_t[i_p,:,i_s], self.pot, m[i_p], om[i_p])
                 v1 = vb_t[i_p,:,i_s] + F/m[i_p]*dt/2.
                 rb_t[i_p,:,i_s+1] = rb_t[i_p,:,i_s]+v1*dt
-                F = ( F + self.basis.get_forces(rb_t[i_p,:,i_s+1], self.pot, m[i_p], om[i_p]) )/2.
-                vb_t[i_p,:,i_s+1] = vb_t[i_p,:,i_s]+F/m[i_p]*dt
+                F = self.basis.get_forces(rb_t[i_p,:,i_s+1], self.pot, m[i_p], om[i_p])
+                vb_t[i_p,:,i_s+1] = v1+F/m[i_p]*dt/2.
                 
                 ## thermostatting
                 dt_ts += dt

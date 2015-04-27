@@ -13,16 +13,16 @@ from qmp.pot_tools import create_potential
 from qmp.visualizations import wave_slideshow1D
 
 
-### SIMULATION CELL ###
-cell = [[0, 20.0]]
+### SIMULATION CELL ### 
+cell = [[0., 40.0]]
 
-### POTENTIAL ###
-pot = Potential(cell, f=create_potential(cell, 
-										 name='double_well', 
-										 double_well_barrier=5.,
-										 double_well_asymmetry=0.2,
-										 double_well_width=3.,
-										 ) )
+### POTENTIAL ### 
+pot = Potential( cell, f=create_potential(cell,
+                                          name='double_well',
+					  double_well_barrier=.05,
+					  double_well_asymmetry=0.,
+					  double_well_width=6.,
+                                          ) )
 
 ### INITIALIZE MDOEL ###
 ## number of lowest eigenstates to be solved for
@@ -42,7 +42,7 @@ tik1d.set_potential(pot)
 
 ### BASIS ###
 ## spatial discretization
-N = 256
+N = 512
 b = onedgrid(cell[0][0], cell[0][1],N)
 tik1d.set_basis(b)
 print tik1d
@@ -50,6 +50,7 @@ print tik1d
 tik1d.solve()
 
 psi = tik1d.data.wvfn.psi
+print tik1d.data.wvfn.E[:3]
 
 ### VISUALIZATION ###
 wave_slideshow1D(tik1d.basis.x, psi, tik1d.pot(tik1d.basis.x))

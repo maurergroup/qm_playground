@@ -12,7 +12,7 @@ from qmp.utilities import kB
 
 
 ### SIMULATION CELL ### 
-cell = [[0., 20.0]]
+cell = [[0., 40.0]]
 
 ### POTENTIAL ###
 #a = 0.5
@@ -24,12 +24,13 @@ cell = [[0., 20.0]]
 #T = 2000.
 #r_analyt = EOM_morse_analyt(a,D,m,t,pos, Temp=T)
 
-pot = Potential( cell, f=create_potential(cell,
-                                          name='double_well',
-                                          double_well_barrier = 2.,
-                                          double_well_width = 3.,
-                                          #morse_pos = pos,
-                                          ) )
+f = create_potential(cell,
+                     name='double_well',
+                     double_well_barrier=.05,
+		     double_well_asymmetry=0.,
+		     double_well_width=7.,
+                     )
+pot = Potential( cell, f=f )
 
 
 ### INITIALIZE MODEL ### 
@@ -44,9 +45,9 @@ traj1d = Model(
 traj1d.set_potential(pot)
 
 ### SET INITIAL VALUES ###
-rs = [[7.]]#,[18.]]
-vs = [[1.9929920799]]#,[.2]]
-masses = [1.]#, 2.]
+rs = [[13.],[13.]]
+vs = [[0.313], [-0.313]]
+masses = [1., 1.]
 
 b = phasespace(rs, vs, masses)
 traj1d.set_basis(b)
@@ -56,7 +57,7 @@ print traj1d
 
 ### DYNAMICS PARAMETERS ###
 dt =  .1
-steps = 1E3
+steps = 1E4
 
 
 ### EVOLVE SYSTEM ###
@@ -68,7 +69,6 @@ v_t = traj1d.data.traj.v_t.flatten()
 E_t = traj1d.data.traj.E_t.flatten()
 E_kin = traj1d.data.traj.E_kin_t.flatten()
 E_pot = traj1d.data.traj.E_pot_t.flatten()
-print np.mean(E_t)
 #print min(r_analyt)
 #print min(r_t)
 #print max(r_analyt)
@@ -76,7 +76,7 @@ print np.mean(E_t)
 #print np.mean(r_analyt)
 print np.mean(r_t)
 
-V_x = traj1d.pot(np.linspace(0.,20.,600))
+V_x = traj1d.pot(np.linspace(0.,cell[0][1],600))
 
 ### VISUALIZATION ###
 
@@ -92,7 +92,7 @@ wave_plot1, = ax.plot(r_t[0], traj1d.pot(r_t[0]), ls='',marker='o',mfc='r',mec='
 
 
 def _init_():
-    ax.plot(np.linspace(0.,20.,600), V_x, ls='-', c='b', label='$V(x)$', zorder=3)
+    ax.plot(np.linspace(0.,cell[0][1],600), V_x, ls='-', c='b', label='$V(x)$', zorder=3)
     ax1.plot(np.linspace(0., len(E_t)*dt, len(E_t)), E_t, c='b', ls='-', label='$E_1(t)$')
     if E_kin is not None:
         ax1.plot(np.linspace(0., len(E_t)*dt, len(E_t)), E_kin, c='g', label='$E^{kin}_1(t)$ $[a.u.]$')

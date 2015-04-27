@@ -12,19 +12,19 @@ from qmp.termcolors import *               #
 
 
 ### SIMULATION CELL ### 
-cell = [[0., 20.0]]
+cell = [[0., 40.0]]
 
 ### POTENTIAL ### 
 pot = Potential( cell, f=create_potential(cell,
                                           name='double_well',
-					  double_well_barrier=2.,
+					  double_well_barrier=.05,
 					  double_well_asymmetry=0.,
-					  double_well_width=3.,
+					  double_well_width=7.,
                                           ) )
 
 ### NUMBER OF BASIS STATES ### 
 ## for propagation in eigenbasis
-states = 512
+states = 128
 
 ### INITIALIZE MODEL ### 
 tik1d = Model(
@@ -42,7 +42,7 @@ tik1d.set_potential(pot)
 
 ### SET BASIS ### 
 ## number of grid points
-N=512
+N=256
 b = onedgrid(cell[0][0], cell[0][1],N)
 tik1d.set_basis(b)
 
@@ -52,25 +52,21 @@ print ''
 
 ### INITIAL WAVE FUNCTION AND DYNAMICS PARAMETERS ###
 ## time step, number of steps
-dt =  .1
-steps = 1E3
+dt =  .2
+steps = 1E5
 
 #tik1d.solve()
 
 ## initial wave functions
 #psi_0 = 1./2.*(tik1d.data.wvfn.psi[:,2]+tik1d.data.wvfn.psi[:,3]+tik1d.data.wvfn.psi[:,0]+tik1d.data.wvfn.psi[:,4])
-sigma = .2
-psi_0 = create_gaussian(tik1d.basis.x, x0=7., p0=0., sigma=sigma)
+sigma = 2.
+psi_0 = create_gaussian(tik1d.basis.x, x0=13., p0=0., sigma=sigma)
 psi_0 /= np.sqrt(np.conjugate(psi_0).dot(psi_0))
 
 ### EVOLVE SYSTEM ###
 tik1d.run(steps,dt, psi_0=psi_0)#, additional='coefficients')
 
 ## GATHER INFO ###
-## info eigenstates
-psi_basis = tik1d.data.wvfn.psi
-E_basis = tik1d.data.wvfn.E
-
 ## info time evolution
 psi_t = tik1d.data.wvfn.psi_t
 #c_t = tik1d.data.wvfn.c_t
@@ -85,6 +81,7 @@ else:
 rho_t = np.sum(psi_t*np.conjugate(psi_t),1)
 rho_r_mean = np.mean(psi_t*np.conjugate(psi_t), 0)
 r_mean = np.dot(tik1d.basis.x, rho_r_mean)
+print np.mean(E_t)
 print r_mean
 V_x = tik1d.pot(tik1d.basis.x)
 

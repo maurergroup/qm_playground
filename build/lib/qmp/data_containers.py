@@ -55,7 +55,7 @@ class rpmd(object):
         self.basis = basis
         self.r = basis.r
         self.v = basis.v
-        self.masses = basis.masses
+        self.m = basis.m
         self.n_beads = basis.nb
 
 
