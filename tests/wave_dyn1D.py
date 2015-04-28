@@ -17,9 +17,9 @@ cell = [[0., 40.0]]
 ### POTENTIAL ### 
 pot = Potential( cell, f=create_potential(cell,
                                           name='double_well',
-					  double_well_barrier=.05,
+					  double_well_barrier=.008,
 					  double_well_asymmetry=0.,
-					  double_well_width=7.,
+					  double_well_width=3.,
                                           ) )
 
 ### NUMBER OF BASIS STATES ### 
@@ -29,7 +29,7 @@ states = 128
 ### INITIALIZE MODEL ### 
 tik1d = Model(
         ndim=1,
-        mass=1.0,
+        mass=1850.0,
         mode='wave',
         basis='onedgrid',
         solver='scipy',
@@ -42,7 +42,7 @@ tik1d.set_potential(pot)
 
 ### SET BASIS ### 
 ## number of grid points
-N=256
+N=240
 b = onedgrid(cell[0][0], cell[0][1],N)
 tik1d.set_basis(b)
 
@@ -52,15 +52,14 @@ print ''
 
 ### INITIAL WAVE FUNCTION AND DYNAMICS PARAMETERS ###
 ## time step, number of steps
-dt =  .2
-steps = 1E5
+dt =  82.
+steps = 5E5
 
 #tik1d.solve()
 
 ## initial wave functions
-#psi_0 = 1./2.*(tik1d.data.wvfn.psi[:,2]+tik1d.data.wvfn.psi[:,3]+tik1d.data.wvfn.psi[:,0]+tik1d.data.wvfn.psi[:,4])
-sigma = 2.
-psi_0 = create_gaussian(tik1d.basis.x, x0=13., p0=0., sigma=sigma)
+sigma = 1./2.
+psi_0 = create_gaussian(tik1d.basis.x, x0=17., p0=4.735, sigma=sigma)
 psi_0 /= np.sqrt(np.conjugate(psi_0).dot(psi_0))
 
 ### EVOLVE SYSTEM ###
@@ -81,7 +80,7 @@ else:
 rho_t = np.sum(psi_t*np.conjugate(psi_t),1)
 rho_r_mean = np.mean(psi_t*np.conjugate(psi_t), 0)
 r_mean = np.dot(tik1d.basis.x, rho_r_mean)
-print np.mean(E_t)
+print np.real(np.mean(E_t))
 print r_mean
 V_x = tik1d.pot(tik1d.basis.x)
 

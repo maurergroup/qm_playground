@@ -65,6 +65,12 @@ class bead_basis(basis):
         self.Temp = np.array(T)
         self.om = self.Temp*self.nb*kB/hbar
         
+        print 'RPMD simulation using'
+        print 'Np = '+str(self.npar)+'   non-interacting particles in'
+        print 'Ndim = '+str(self.ndim)+'  dimensions using'
+        #print 'T [K] =   '+str(self.Temp)
+        print 'Nb = '+str(self.nb)+'  beads per particle\n'
+        
         if self.ndim == 2:
             xi = 2.*np.pi/self.nb
             rotMat = np.array([[np.cos(xi),np.sin(xi)],[-np.sin(xi),np.cos(xi)]])

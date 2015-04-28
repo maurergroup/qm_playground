@@ -14,14 +14,14 @@ from qmp.visualizations import wave_slideshow1D
 
 
 ### SIMULATION CELL ### 
-cell = [[0., 40.0]]
+cell = [[0., 120.0]]
 
 ### POTENTIAL ### 
 pot = Potential( cell, f=create_potential(cell,
                                           name='double_well',
-					  double_well_barrier=.05,
+					  double_well_barrier=.008,
 					  double_well_asymmetry=0.,
-					  double_well_width=6.,
+					  double_well_width=19.,
                                           ) )
 
 ### INITIALIZE MDOEL ###

@@ -26,9 +26,9 @@ cell = [[0., 40.0]]
 
 f = create_potential(cell,
                      name='double_well',
-                     double_well_barrier=.05,
+                     double_well_barrier=.008,
 		     double_well_asymmetry=0.,
-		     double_well_width=7.,
+		     double_well_width=3.,
                      )
 pot = Potential( cell, f=f )
 
@@ -45,9 +45,9 @@ traj1d = Model(
 traj1d.set_potential(pot)
 
 ### SET INITIAL VALUES ###
-rs = [[13.],[13.]]
-vs = [[0.313], [-0.313]]
-masses = [1., 1.]
+rs = [[17.],[17.],[18.],[18.],[16.],[16.],[17.5],[17.5],[16.5],[16.5]]
+vs = [[0.002797],[-0.002797],[0.002270],[-0.002270],[0.001610],[-0.001610],[0.002649],[-0.002649],[0.002588],[-0.002588]]
+masses = [1850.,]*10
 
 b = phasespace(rs, vs, masses)
 traj1d.set_basis(b)
@@ -56,8 +56,8 @@ print traj1d
 
 
 ### DYNAMICS PARAMETERS ###
-dt =  .1
-steps = 1E4
+dt =  4.
+steps = 1E5
 
 
 ### EVOLVE SYSTEM ###
@@ -75,12 +75,22 @@ E_pot = traj1d.data.traj.E_pot_t.flatten()
 #print max(r_t)
 #print np.mean(r_analyt)
 print np.mean(r_t)
+print np.mean(E_t)
 
 V_x = traj1d.pot(np.linspace(0.,cell[0][1],600))
 
 ### VISUALIZATION ###
 
 import matplotlib.pyplot as plt
+fig = plt.figure()
+ax = plt.gca()
+n, bins, bla = plt.hist(r_t.flatten(),200.,normed=1)
+ax.clear()
+ax.plot(np.linspace(min(bins)+(bins[1]-bins[0])/2.,max(bins)-(bins[1]-bins[0])/2.,len(n)), n)
+plt.show()
+raise SystemExit
+
+
 import matplotlib.animation as animation
 
 fig = plt.figure()
