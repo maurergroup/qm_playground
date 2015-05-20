@@ -156,16 +156,30 @@ class split_operator_propagator(Integrator):
         from numpy.fft import fft as FT
         from numpy.fft import ifft as iFT
         from numpy.fft import fftfreq as FTp
-
+        
         psi_0 = kwargs.get('psi_0')
         add_info = kwargs.get('additional', None)
         
         V = self.data.wvfn.basis.get_potential_flat(self.pot)
         N = V.size
-
+        
+        if type(psi_0)==str:
+            try:
+                restart_file = open(psi_0,'rb')
+                current_data = pick.load(restart_file)
+                psi = current_data['psi']
+                rho = current_data['rho']
+                i_start = current_data['i']
+            except:
+                raise ValueError('Given input does neither refer to wave function nor to an existing restart file.')
+        else:
+            psi = np.array(psi_0.flatten())
+            rho = np.conjugate(psi)*psi
+            i_start = 0
+        
         if (not psi_0.any() != 0.) or (len(psi_0.flatten()) != N):
             raise ValueError('Please provide initial wave function on appropriate grid')
-
+        
         if (add_info == 'coefficients'):
             psi_basis = self.data.wvfn.psi
             states = psi_basis.shape[1]
@@ -191,17 +205,20 @@ class split_operator_propagator(Integrator):
         
         expT = np.exp(-1j*(dt/hbar)*p/m)
         
-        psi = np.array([psi_0.flatten()])
+        psi = np.array([psi])
         E, E_kin, E_pot = [], [], []
-
+        
         self.counter = 0
-
+        
         print gray+'Integrating...'+endcolor
-        for i in xrange(steps):
+        for i in xrange(i_start+1, steps):
             self.counter += 1
+            #psi1 = iFT( expT*FT(psi) ) 
             psi1 = iFT( expT*FT(psi[i]) ) 
             psi2 = FT( expV*psi1 ) 
             psi3 = iFT( expT*psi2 )
+            #psi = iFT( expT*psi2 )
+            rho += np.conjugate(psi3)*psi3
             psi = (np.append(psi, psi3)).reshape(i+2,N)
             if add_info == 'coefficients':
                 c_t = np.append(c_t, project_wvfn(psi3, psi_basis)).reshape(i+2,states)
@@ -211,6 +228,12 @@ class split_operator_propagator(Integrator):
             E_kin.append(e_kin)
             E_pot.append(e_pot)
             E.append(e_kin+e_pot)
+            
+            if np.mod(i, 1000000)==0:
+                out = open('wave_dyn-restart.p', 'wb')
+                current_data = {'psi':psi, 'rho':rho, 'i':i}
+                pick.dump(current_data,out)
+            
             
         print gray+'INTEGRATED\n'+endcolor
         
@@ -226,6 +249,8 @@ class split_operator_propagator(Integrator):
         self.data.wvfn.E_t = np.array(E)
         self.data.wvfn.E_kin_t = np.array(E_kin)
         self.data.wvfn.E_pot_t = np.array(E_pot)
+        self.data.wvfn.rho_mean = rho/(steps+1)
         
+    
 
 #--EOF--#
