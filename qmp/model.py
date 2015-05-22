@@ -125,7 +125,9 @@ class Model(object):
             raise ValueError('Integrator can only run with \
                              initialized basis and potential')
         
-        if ((self.parameters['integrator'] == 'eigen') or (add_info=='coefficients')) and \
+        if ((self.parameters['integrator'] == 'eigenprop') or \
+            (self.parameters['integrator'] == 'eigen') or \
+            (add_info=='coefficients')) and \
            (self.data.solved == False):
             print gray+'Projection onto eigen basis requires solving eigenvalue problem...'+endcolor
             self.solve()

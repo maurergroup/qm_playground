@@ -3,7 +3,7 @@ contains predefined model potentials
 """
 
 import numpy as np
-from qmp.integrator.dyn_tools import *
+from qmp.integrator.dyn_tools import create_gaussian, create_gaussian2D
 
 def create_potential(cell, name='free', **kwargs):
 	"""

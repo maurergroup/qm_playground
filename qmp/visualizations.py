@@ -6,10 +6,14 @@ import numpy as np
 
 
 def wave_movie1D(basis, psi_arr, pot, dt=1., E_arr=None, rho_tot_arr=None, E_kin_arr=None, E_pot_arr=None):
+	import matplotlib
 	import matplotlib.pyplot as plt
 	import matplotlib.animation as animation
-
-	fig = plt.figure()
+	
+	Writer = animation.writers['ffmpeg']
+	writer = Writer(metadata=dict(title='wave scattering',artist='Me'), bitrate=128)
+	
+	fig = plt.figure(figsize=(18.5,10.5))
 	if E_arr is None:
 	    E_arr = np.zeros(psi_arr.shape[0])
 	    ls_E = ''
@@ -43,11 +47,11 @@ def wave_movie1D(basis, psi_arr, pot, dt=1., E_arr=None, rho_tot_arr=None, E_kin
 	    ax0.legend(loc=1)
 	    ax1.plot(np.linspace(0., len(E_arr)*dt, len(E_arr)), E_arr, c='b', ls=ls_E, label=lab_E)
 	    if E_kin_arr is not None:
-		ax1.plot(np.linspace(0., len(E_arr)*dt, len(E_arr)), E_kin_arr, c='g', label='$E_{kin}(t)$ $[a.u.]$')
-
-	    if E_pot_arr is not None:
-		ax1.plot(np.linspace(0., len(E_arr)*dt, len(E_arr)), E_pot_arr, c='r', label='$E_{pot}(t)$ $[a.u.]$')
-	
+	        ax1.plot(np.linspace(0., len(E_arr)*dt, len(E_arr)), E_kin_arr, c='g', label='$E_{kin}(t)$ $[a.u.]$')
+        
+            if E_pot_arr is not None:
+                ax1.plot(np.linspace(0., len(E_arr)*dt, len(E_arr)), E_pot_arr, c='r', label='$E_{pot}(t)$ $[a.u.]$')
+        
 	    ax1.legend(loc='best')
 	    ax1.set_xlim([0., len(E_arr)*dt])
 	    ax1.set_xlabel('$t$ $[a.u.]$')
@@ -78,6 +82,7 @@ def wave_movie1D(basis, psi_arr, pot, dt=1., E_arr=None, rho_tot_arr=None, E_kin
 	ani = animation.FuncAnimation(fig, animate, np.arange(0, len(psi_arr)), init_func=_init_, \
 		                      interval=50, blit=False)
 
+	ani.save('wave1D.mp4',writer=writer)
 	plt.show()
 
 

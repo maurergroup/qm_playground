@@ -27,9 +27,10 @@ cell = [[0., 40.0]]
 f = create_potential(cell,
                      name='double_well',
                      double_well_barrier=.008,
-		     double_well_asymmetry=0.,
-		     double_well_width=3.,
+                     double_well_asymmetry=0.,
+                     double_well_width=3.,
                      )
+
 pot = Potential( cell, f=f )
 
 
@@ -56,8 +57,8 @@ print traj1d
 
 
 ### DYNAMICS PARAMETERS ###
-dt =  4.
-steps = 1E5
+dt =  4.1
+steps = 1E6
 
 
 ### EVOLVE SYSTEM ###
@@ -77,6 +78,10 @@ E_pot = traj1d.data.traj.E_pot_t.flatten()
 print np.mean(r_t)
 print np.mean(E_t)
 
+h = np.histogram(r_t,bins=np.arange(traj1d.data.cell[0][0], traj1d.data.cell[0][1], 0.1), density=True)
+rbins = h[1]
+prop_dist = h[0]
+
 V_x = traj1d.pot(np.linspace(0.,cell[0][1],600))
 
 ### VISUALIZATION ###
@@ -84,10 +89,11 @@ V_x = traj1d.pot(np.linspace(0.,cell[0][1],600))
 import matplotlib.pyplot as plt
 fig = plt.figure()
 ax = plt.gca()
-n, bins, bla = plt.hist(r_t.flatten(),200.,normed=1)
-ax.clear()
-ax.plot(np.linspace(min(bins)+(bins[1]-bins[0])/2.,max(bins)-(bins[1]-bins[0])/2.,len(n)), n)
-plt.show()
+#n, bins, bla = plt.hist(r_t.flatten(),200.,normed=1)
+#ax.clear()
+#ax.plot(np.linspace(min(bins)+(bins[1]-bins[0])/2.,max(bins)-(bins[1]-bins[0])/2.,len(n)), n)
+ax.plot(np.linspace(min(rbins)+(rbins[1]-rbins[0])/2.,max(rbins)-(rbins[1]-rbins[0])/2.,len(prop_dist)), prop_dist)
+plt.savefig('prop_dist_classical_'+str(int(steps))+'steps.pdf')
 raise SystemExit
 
 
