@@ -40,7 +40,7 @@ def wave_movie1D(basis, psi_arr, pot, dt=1., E_arr=None, rho_tot_arr=None, E_kin
 	for tl in ax0.get_yticklabels():
 	    tl.set_color('r')
 	
-	wave_plot, = ax.plot(basis, psi_arr[0,:]*np.conjugate(psi_arr[0,:]), label=r'$\rho_t(x)$')
+	wave_plot, = ax.plot(basis, psi_arr[0,:], label=r'$\rho_t(x)$')
 
 	def _init_():
 	    ax0.plot(basis, pot, ls=':', c='r', label='$V(x)$')
@@ -71,12 +71,12 @@ def wave_movie1D(basis, psi_arr, pot, dt=1., E_arr=None, rho_tot_arr=None, E_kin
 	    ax2.xaxis.set_label_position('top')
 	    ax2.yaxis.tick_right()
 	    ax.set_xlabel('$x$ $[a.u.]$')
-	    ax.set_ylim(-0.025*max((psi_arr*np.conjugate(psi_arr)).flatten()), max((psi_arr*np.conjugate(psi_arr)).flatten()))
+	    ax.set_ylim(-0.025*max((psi_arr).flatten()), max((psi_arr).flatten()))
 	    ax.legend(loc=2)
 	    return wave_plot,
 
 	def animate(i):
-	    wave_plot.set_ydata(psi_arr[i,:]*np.conjugate(psi_arr[i,:]))  # update data
+	    wave_plot.set_ydata(psi_arr[i,:])  # update data
 	    return wave_plot,
 
 	ani = animation.FuncAnimation(fig, animate, np.arange(0, len(psi_arr)), init_func=_init_, \

@@ -477,7 +477,6 @@ class SOFT_scattering(Integrator):
                 restart_file = open(psi_0,'rb')
                 current_data = pick.load(restart_file)
                 psi = current_data['psi']
-                #rho_mean = current_data['rho_mean']/current_data['i']
                 E = current_data['E_tot']
                 E_kin = current_data['E_kin']
                 E_pot = current_data['E_pot']
@@ -486,7 +485,6 @@ class SOFT_scattering(Integrator):
                 raise ValueError('Given input does neither refer to wave function nor to an existing restart file.')
         else:
             psi = [np.array(psi_0.flatten())]
-            #rho_mean = np.conjugate(psi[0])*psi[0]
             E, E_kin, E_pot = [], [], []
             i_start = 0
         
@@ -529,7 +527,6 @@ class SOFT_scattering(Integrator):
             psi2 = FT( expV*psi1 ) 
             psi3 = iFT( expT*psi2 )
             rho_current = np.conjugate(psi3)*psi3
-            #rho_mean += rho_current
             psi.append(psi3)
             if add_info == 'coefficients':
                 c_t.append(project_wvfn(psi3, psi_basis))
@@ -545,7 +542,7 @@ class SOFT_scattering(Integrator):
             
             if (np.mod(i+1, 1000000)==0):
                 out = open('wave_scatter.rst', 'wb')
-                current_data = {'psi':psi, 'rho_mean':rho_mean/i, 'E_tot':E, 'E_kin':E_kin, \
+                current_data = {'psi':psi, 'E_tot':E, 'E_kin':E_kin, \
                                 'E_pot':E_pot, 'i':i}
                 pick.dump(current_data,out)
             
@@ -565,6 +562,7 @@ class SOFT_scattering(Integrator):
         
         psi = np.array(psi)
         self.data.wvfn.psi_t = psi
+        
         p_refl = np.sum(rho_current[:self.rb_idx])
         p_trans = np.sum(rho_current[self.rb_idx:])
         
@@ -583,7 +581,6 @@ class SOFT_scattering(Integrator):
         self.data.wvfn.p_refl = p_refl
         self.data.wvfn.p_trans = p_trans
         self.data.wvfn.status = status
-        #self.data.wvfn.rho_mean = rho_mean/i
         
         ## remove restart files
         remove_restart('wave_scatter.rst')
