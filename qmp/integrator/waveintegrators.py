@@ -450,8 +450,8 @@ class SOFT_scattering(Integrator):
         ## get borders, r_l and r_b, and dividing surface (1D: rb)
         ## TODO: 2D dividing surface?
         grid = self.data.wvfn.basis.x
-        Vmax = np.argmax(self.pot(grid))
-        rb = kwargs.get('div_surf', Vmax)
+        x_Vmax = grid[np.argmax(self.pot(grid))]
+        rb = kwargs.get('div_surf', x_Vmax)
         self.rb_idx = np.argmin(abs(grid-rb))
         
         
@@ -526,7 +526,7 @@ class SOFT_scattering(Integrator):
             psi1 = iFT( expT*FT(psi[i]) ) 
             psi2 = FT( expV*psi1 ) 
             psi3 = iFT( expT*psi2 )
-            rho_current = np.conjugate(psi3)*psi3
+            rho_current = np.real(np.conjugate(psi3)*psi3)
             psi.append(psi3)
             if add_info == 'coefficients':
                 c_t.append(project_wvfn(psi3, psi_basis))
@@ -536,7 +536,7 @@ class SOFT_scattering(Integrator):
             E_kin.append(e_kin)
             E_pot.append(e_pot)
             E.append(e_kin+e_pot)
-            if (rho_current[0]+rho_current[-1] > 1E-4):
+            if (rho_current[0]+rho_current[-1] > 5E-7):
                 status = 'Wave hit border(s). Simulation terminated.'
                 break
             
@@ -564,12 +564,12 @@ class SOFT_scattering(Integrator):
         self.data.wvfn.psi_t = psi
         
         p_refl = np.sum(rho_current[:self.rb_idx])
-        p_trans = np.sum(rho_current[self.rb_idx:])
+        p_trans = np.sum(rho_current[(self.rb_idx+1):])
         
         ## write psi, rho to binary output file
         out = open('wave_scatter.end', 'wb')
         wave_data = {'psi':psi, 'p_refl':p_refl, 'p_trans':p_trans, 'E_kin':E_kin, \
-                     'E_pot':E_pot, 'E_tot':E}
+                     'E_pot':E_pot, 'E_tot':E, 'rho_end':rho_current}
         pick.dump(wave_data,out)
         
         if add_info == 'coefficients':

@@ -1,7 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import cm
+
 
 def project_wvfn(wvfn, evecs):
     """
