@@ -259,8 +259,10 @@ class RPMD_scattering(Integrator):
         
         ## get dividing surface TODO: 2D?
         grid = np.linspace(grid_bounds[0], grid_bounds[1], 2000)
-        Vmax = np.argmax(self.pot(grid))
-        self.rb = kwargs.get('div_surf', Vmax)
+        r_Vmax = grid[np.argmax(self.pot(grid))]
+        self.data.rpmd.barrier = np.max(self.pot(grid))
+        self.data.rpmd.r_barrier = r_Vmax
+        self.rb = kwargs.get('div_surf', r_Vmax)
         
     def run(self, steps, dt, **kwargs):
         import cPickle as pick
@@ -279,6 +281,8 @@ class RPMD_scattering(Integrator):
         E_pot = np.zeros((Np,steps+1))
         E_kin = np.zeros((Np,steps+1))
         E_tot = np.zeros((Np,steps+1))
+        E_mean = np.zeros(Np)
+        dErel_max = np.zeros(Np)
         e_pot = np.zeros((Np,Nb,steps+1))
         e_kin = np.zeros((Np,Nb,steps+1))
         e_tot = np.zeros((Np,Nb,steps+1))
@@ -291,14 +295,16 @@ class RPMD_scattering(Integrator):
                 ## energy stuff
                 e_pot[i_p,:,i_s] = self.basis.get_potential_energy_beads(rb_t[i_p,:,i_s], self.pot, m[i_p], om[i_p])
                 e_kin[i_p,:,i_s] = self.basis.get_kinetic_energy(m[i_p], vb_t[i_p,:,i_s])
-                e_tot[i_p,:,i_s] = e_kin[i_p,:,i_s]+e_pot[i_p,:,i_s]
                 
                 ## check if particle has reached a border. If so freeze particle
                 r_t[i_p,i_s] = np.mean(rb_t[i_p,:,i_s],0)
                 if (r_t[i_p,i_s] <= self.lower_bound) or \
                    (r_t[i_p,i_s] >= self.upper_bound):
-                    r_t[i_p,i_s:] = r_t[i_p,i_s]
-                    rb_t[i_p,:,i_s:] = rb_t[i_p,:,i_s]
+                    r_t[i_p,i_s:] = np.array([r_t[i_p,i_s]]*(steps-i_s+1))
+                    rb_t[i_p,:,i_s:] = np.array([[rb_t[i_p,b,i_s]]*(steps-i_s+1) for b in xrange(rb_t.shape[1])])
+                    vb_t[i_p,:,i_s:] = np.array([[vb_t[i_p,b,i_s]]*(steps-i_s+1) for b in xrange(vb_t.shape[1])])
+                    e_pot[i_p,:,i_s:] = np.array([[e_pot[i_p,b,i_s]]*(steps-i_s+1) for b in xrange(e_pot.shape[1])])
+                    e_kin[i_p,:,i_s:] = np.array([[e_kin[i_p,b,i_s]]*(steps-i_s+1) for b in xrange(e_kin.shape[1])])
                     unfreezed -= 1
                     break
                 
@@ -315,19 +321,23 @@ class RPMD_scattering(Integrator):
                 
             e_pot[i_p,:,steps] = self.basis.get_potential_energy_beads(rb_t[i_p,:,steps], self.pot, m[i_p], om[i_p])
             e_kin[i_p,:,steps] = self.basis.get_kinetic_energy(m[i_p], vb_t[i_p,:,steps])
-            e_tot[i_p,:,steps] = e_kin[i_p,:,i_s]+e_pot[i_p,:,i_s]
-            v_t[i_p] = np.mean(vb_t[i_p],0)
+            e_tot = e_kin+e_pot
             E_pot[i_p] = np.mean(e_pot[i_p],0)
             E_kin[i_p] = np.mean(e_kin[i_p],0)
             E_tot[i_p] = np.mean(e_tot[i_p],0)
+            E_mean[i_p] = np.mean(E_tot[i_p])
+            dErel_max[i_p] = max(  abs( (E_tot[i_p]-E_mean[i_p]) / E_mean[i_p] )  )
+            v_t[i_p] = np.mean(vb_t[i_p],0)
             
         print gray+'INTEGRATED'
         print str(unfreezed)+' particles did not reach a border\n'+endcolor
         
+        
+
         ## count reflected/transmitted particles, in general:
         ## count particles that have and those that have not crossed the barrier
-        p_refl = np.count_nonzero(r_t[:,-1]<self.rb)/Np
-        p_trans = np.count_nonzero(r_t[:,-1]>self.rb)/Np
+        p_refl = float(np.count_nonzero(r_t[:,-1]<self.rb))/Np
+        p_trans = float(np.count_nonzero(r_t[:,-1]>self.rb))/Np
         
         if (p_refl+p_trans-1.) > 1E-3:
             print red+'Congratulations, my friend!'
@@ -345,15 +355,19 @@ class RPMD_scattering(Integrator):
         self.data.rpmd.vb_t = vb_t
         self.data.rpmd.r_t = r_t
         self.data.rpmd.v_t = v_t
+        
         self.data.rpmd.Eb_kin_t = e_kin
         self.data.rpmd.Eb_pot_t = e_pot
         self.data.rpmd.Eb_t = e_tot
         self.data.rpmd.E_kin_t = E_kin
         self.data.rpmd.E_pot_t = E_pot
         self.data.rpmd.E_t = E_tot
+        self.data.rpmd.E_mean = E_mean
+        self.data.rpmd.dErel_max = dErel_max
+        
         self.data.rpmd.p_refl = p_refl
         self.data.rpmd.p_trans = p_trans
         
-        
-        
+    
+
 #--EOF--#

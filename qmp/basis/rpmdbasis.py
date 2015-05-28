@@ -2,9 +2,9 @@
 initialization arrays for rpmd simulations
 """
 
-
 from qmp.basis.basis import basis
 from qmp.utilities import num_deriv_2D, num_deriv, hbar, kB
+from qmp.termcolors import *
 import numpy as np
 from scipy.stats import maxwell
 import scipy.linalg as la
@@ -15,7 +15,7 @@ class bead_basis(basis):
     initialization array for rpmd in extented phase space
     """
 
-    def __init__(self, coords, vels, masses, n_beads=2, T=None,pos_init=False,vel_init=True):
+    def __init__(self, coords, vels, masses, n_beads=4,T=None,pos_init=False,vel_init=True):
         """
         Initializes bead positions and velocities and stores parameters for propagation
         
@@ -24,21 +24,19 @@ class bead_basis(basis):
             coords:     list of list of coordinates of particle 1,2,... in au ([[x1,y1],[x2,y2], ...])
             vels:       list of list of velocities of particle 1,2,... in au ([[v1x,v1y],[v2x,v2y], ...])
             masses:     list of particle masses in au ([m1,m2, ...])
-            n_beads:    number of beads to represent particles (integer, default 2)
+            n_beads:    number of beads to represent particles (integer, default 4)
             T:          list of particle temperatures in K ([T1,T2, ...])
             pos_init:   set bead positions on around particle pos (boolean, default False)
             vel_init:   2D - same absolute velocity from Maxwell-Boltzmann distribution equally spread in plane
-            			1D - necklace divided into pairs, same absolute velocity with different sign for beads of pair
+                        1D - necklace divided into pairs, same absolute velocity with different sign for beads of pair
                         (boolean, default True, set to True if pos_init == False)
-                        
-        **COMMENTS**    - pos_init approximative!
-                        - Only pos_init or vel_init will be set to True, otherwise double counting
-                          (default: vel_init = True)
         
+        **COMMENTS**    - pos_init approximative!
+                        - Only pos_init or vel_init will be set to True, to prevent double counting
+                          (default: vel_init = True)
         """
 
         basis.__init__(self)
-        
         if vel_init == True:
             pos_init = False
         else:
@@ -50,16 +48,24 @@ class bead_basis(basis):
             self.ndim = 1
         else:
             self.ndim = self.r.shape[1]
-        self.v = np.array(vels)
+        
         self.m = np.array(masses)
+        if self.m.size != self.m.shape[0]:
+            raise ValueError('Masses must be given as List of integers')
+        elif self.ndim > 2:
+            raise NotImplementedError('Only 1D and 2D dynamics implemented yet')
+        
+        self.v = np.array(vels)
+        assert (self.v.shape == self.r.shape)
+        
         if (n_beads == 0) or (type(n_beads) != int):
-            print '0 and lists are not allowed for number of beads, using n_beads = 2 per default'
-            self.nb = 2
+            print grey+'0 and lists are not allowed for number of beads, using n_beads = 4 per default'+endcolor
+            self.nb = 4
         else:
             self.nb = n_beads
         
         if (T is None) or (len(T)!=self.npar):
-            print "Dude, you gave me an inconsistent list of temperatures or none at all ~> using 293.15 K throughout"
+            print grey+"Dude, you gave me an inconsistent list of temperatures or none at all ~> using 293.15 K throughout"+endcolor
             T = [293.15]*self.npar
         
         self.Temp = np.array(T)
@@ -79,14 +85,6 @@ class bead_basis(basis):
             
         self.r_beads = np.zeros((self.npar,self.nb,self.ndim))
         self.v_beads = np.zeros((self.npar,self.nb,self.ndim))
-        
-        if self.m.size != self.m.shape[0]:
-            raise ValueError('Masses must be given as List of integers')
-        elif (self.m.size != self.npar) or \
-             (self.r.shape != self.v.shape):
-            raise ValueError('Please provide consistent masses, coordinates, and velocities')
-        elif self.ndim > 2:
-            raise NotImplementedError('Only 1D and 2D dynamics implemented yet')
         
         if pos_init == True:
             for i_par in xrange(self.npar):

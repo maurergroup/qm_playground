@@ -3,7 +3,7 @@ contains predefined model potentials
 """
 
 import numpy as np
-from qmp.integrator.dyn_tools import create_gaussian, create_gaussian2D
+from qmp.integrator.dyn_tools import create_real_gaussian, create_real_gaussian2D
 
 def create_potential(cell, name='free', **kwargs):
 	"""
@@ -138,7 +138,7 @@ def create_potential(cell, name='free', **kwargs):
 	   (gauss_p > cell[0][1]):
 	    raise ValueError('Adjust potential maximum!')
 	def f_gauss(x):
-	    return create_gaussian(x, sigma=gauss_s, x0=gauss_p)
+	    return create_real_gaussian(x, sigma=gauss_s, x0=gauss_p)
 
 
 	## double well

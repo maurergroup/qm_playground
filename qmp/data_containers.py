@@ -118,7 +118,7 @@ class data_container(dict):
     
     def rpmd_preparation(self, basis):
         """
-        Initializes special arrays for wvfn calculations
+        Initializes arrays for RPMD simulations
         """
 
         self.rpmd = rpmd(basis)

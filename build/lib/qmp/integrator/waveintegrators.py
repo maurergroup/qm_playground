@@ -467,11 +467,10 @@ class SOFT_scattering(Integrator):
         import cPickle as pick
         
         psi_0 = kwargs.get('psi_0')
-        add_info = kwargs.get('additional', None)
-        
         V = self.data.wvfn.basis.get_potential_flat(self.pot)
         N = V.size
         
+        ## load restart file (filename given as psi_0)
         if type(psi_0)==str:
             try:
                 restart_file = open(psi_0,'rb')
@@ -484,20 +483,22 @@ class SOFT_scattering(Integrator):
             except:
                 raise ValueError('Given input does neither refer to wave function nor to an existing restart file.')
         else:
+            if (not psi_0.any() != 0.) or (len(psi_0.flatten()) != N):
+                raise ValueError('Please provide initial wave function on appropriate grid')
+            
             psi = [np.array(psi_0.flatten())]
             E, E_kin, E_pot = [], [], []
             i_start = 0
         
-        if (not psi_0.any() != 0.) or (len(psi_0.flatten()) != N):
-            raise ValueError('Please provide initial wave function on appropriate grid')
-        
+        add_info = kwargs.get('additional', None)
         if (add_info == 'coefficients'):
             psi_basis = self.data.wvfn.psi
             states = psi_basis.shape[1]
-            print gray+'Projecting wavefunction onto basis of '+str(states)+' eigenstates'+endcolor
+            print gray+'Projecting wavefunction onto basis of '+str(states)+' eigenstates...'+endcolor
             if psi_basis.shape[0] != states:
                 print gray+'**WARNING: This basis is incomplete, coefficients might contain errors**'+endcolor
-            c_t = [project_wvfn(psi_0, psi_basis)]
+            
+            c_t = [project_wvfn(psi, psi_basis)]
             
         
         status = 'Wave did not hit border(s). Scattering process might be incomplete.'
@@ -506,6 +507,7 @@ class SOFT_scattering(Integrator):
         nx = self.data.wvfn.basis.N
         nDim = self.data.ndim
         
+        ## get exponential operators
         expV = np.exp(-1j*V*dt/hbar)
         if nDim == 1:
             p = np.pi*FTp(N, dx)
@@ -526,16 +528,17 @@ class SOFT_scattering(Integrator):
             psi1 = iFT( expT*FT(psi[i]) ) 
             psi2 = FT( expV*psi1 ) 
             psi3 = iFT( expT*psi2 )
-            rho_current = np.real(np.conjugate(psi3)*psi3)
             psi.append(psi3)
             if add_info == 'coefficients':
                 c_t.append(project_wvfn(psi3, psi_basis))
             
             e_kin = (np.conjugate(psi3).dot( iFT(2.*p/m * FT(psi3)) ))
             e_pot = np.conjugate(psi3).dot(V*psi3)
-            E_kin.append(e_kin)
-            E_pot.append(e_pot)
-            E.append(e_kin+e_pot)
+            E_kin.append(np.real(e_kin))
+            E_pot.append(np.real(e_pot))
+            E.append(np.real(e_kin+e_pot))
+            
+            rho_current = np.real(np.conjugate(psi3)*psi3)
             if (rho_current[0]+rho_current[-1] > 5E-7):
                 status = 'Wave hit border(s). Simulation terminated.'
                 break
@@ -550,42 +553,43 @@ class SOFT_scattering(Integrator):
         print gray+'INTEGRATED'
         print status+'\n'+endcolor
         
-        psi_ft = FT(psi[-1])
-        e_kin = np.dot(np.conjugate(psi[-1]), iFT( 2.*p/m*psi_ft))
+        e_kin = np.dot(np.conjugate(psi[-1]), iFT( 2.*p/m*FT(psi[-1])))
         e_pot = np.conjugate(psi[-1]).dot(V*psi[-1])
-        E_kin.append(e_kin)
+        E_kin.append(np.real(e_kin))
         E_kin = np.array(E_kin)
-        E_pot.append(e_pot)
+        E_pot.append(np.real(e_pot))
         E_pot = np.array(E_pot)
-        E.append(e_kin+e_pot)
+        E.append(np.real(e_kin+e_pot))
         E = np.array(E)
+        E_mean = np.mean(E)
         
         psi = np.array(psi)
-        self.data.wvfn.psi_t = psi
-        
         p_refl = np.sum(rho_current[:self.rb_idx])
         p_trans = np.sum(rho_current[(self.rb_idx+1):])
         
-        ## write psi, rho to binary output file
-        out = open('wave_scatter.end', 'wb')
-        wave_data = {'psi':psi, 'p_refl':p_refl, 'p_trans':p_trans, 'E_kin':E_kin, \
-                     'E_pot':E_pot, 'E_tot':E, 'rho_end':rho_current}
-        pick.dump(wave_data,out)
+        ## write psi, rho, energies to binary output file
+        if (status == 'Wave hit border(s). Simulation terminated.'):
+            out = open('wave_scatter.end', 'wb')
+            wave_data = {'psi':psi, 'p_refl':p_refl, 'p_trans':p_trans, 'E_kin':E_kin, \
+                         'E_pot':E_pot, 'E_tot':E, 'rho_end':rho_current}
+            pick.dump(wave_data,out)
         
-        if add_info == 'coefficients':
-            self.data.wvfn.c_t = np.array(c_t)
+            ## remove restart files
+            remove_restart('wave_scatter.rst')
         
+        ## write data to model.data.wvfn
+        self.data.wvfn.psi_t = psi
         self.data.wvfn.E_t = E
+        self.data.wvfn.E_mean = E_mean
+        self.data.wvfn.dErel_max = abs(max(abs(E-E_mean))/E_mean)
         self.data.wvfn.E_kin_t = E_kin
         self.data.wvfn.E_pot_t = E_pot
         self.data.wvfn.p_refl = p_refl
         self.data.wvfn.p_trans = p_trans
         self.data.wvfn.status = status
+        if add_info == 'coefficients':
+            self.data.wvfn.c_t = np.array(c_t)
         
-        ## remove restart files
-        remove_restart('wave_scatter.rst')
-
-
-
+    
 
 #--EOF--#
