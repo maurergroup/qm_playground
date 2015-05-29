@@ -3,7 +3,7 @@ initialization arrays for rpmd simulations
 """
 
 from qmp.basis.basis import basis
-from qmp.utilities import num_deriv_2D, num_deriv, hbar, kB
+from qmp.utilities import *
 from qmp.termcolors import *
 import numpy as np
 from scipy.stats import maxwell
@@ -149,15 +149,46 @@ class bead_basis(basis):
         return pot(*(r.T)).T + (1./2.)*m*om*om*np.sum(M.dot(r)*M.dot(r),1)
     
 
-    def get_potential_energy(self, r, pot):
+    def get_potential_energy_atom(self, r, pot):
         return pot(*(r.T)).T
     
     
-    def get_forces(self, r, pot, m, om):
+    def get_forces_beads(self, r, pot, m, om):
         M = 2.*np.eye(self.nb) - np.diag(np.ones(self.nb-1),1) - np.diag(np.ones(self.nb-1),-1)
         M[-1,0], M[0,-1] = -1., -1.
         if self.ndim == 1:
             return -1.*(np.array([num_deriv(pot, r)]).T + m*om*om*M.dot(r))
         elif self.ndim == 2:
             return -1.*(num_deriv_2D(pot, *(r.T)).T + m*om*om*M.dot(r))
+        
+        
+    def get_forces_atom(self, r, pot):
+        if self.ndim == 1:
+            return -1.*num_deriv(pot, r)
+        elif self.ndim == 2:
+            return -1.*num_deriv_2D(pot, *(r.T)).T
+        
     
+    def get_hessian_atom(self, r, pot):
+        if self.ndim == 1:
+            return num_deriv2(pot, r)
+        elif self.ndim == 2:
+            return num_deriv2_2D(pot, *(r.T)).T
+        
+    
+    def get_omega_Rugh(self, r, pot, v, m):
+        """
+        return omega(t) = (nb/hbar)*kB*T = (nb/hbar)*( (|V'(r)|^2 + |v|^2) / (V"(r) + ndim/m) )
+        (definition of dynamical temperature according to Rugh)
+        
+        parameters:
+        ===========
+            r:  the PARTICLE's position
+            v:  the PARTICLE's velocity
+            m:  the PARTICLE's mass
+        """
+        A = la.norm(self.get_forces_atom(r, pot))
+        a = self.get_hessian_atom(r, pot)
+        v = la.norm(v)
+        
+        return (self.nb/hbar)*( (A**2 + v**2) / (a + (self.ndim/m)) )

@@ -232,8 +232,7 @@ class RPMD_equilibrium_properties(Integrator):
         self.data.rpmd.r_mean = r_mean
         self.data.rpmd.r_mean_tot = r_mean_tot
         
-
-
+    
 
 class RPMD_scattering(Integrator):
     """
@@ -263,15 +262,19 @@ class RPMD_scattering(Integrator):
         self.data.rpmd.barrier = np.max(self.pot(grid))
         self.data.rpmd.r_barrier = r_Vmax
         self.rb = kwargs.get('div_surf', r_Vmax)
+        self.mobile = self.basis.npar
         
     def run(self, steps, dt, **kwargs):
         import cPickle as pick
         
+        ## get general information
         Np = self.basis.npar
         Nb = self.basis.nb
         ndim = self.basis.ndim
         m = self.basis.m
-        om = self.basis.om
+        dyn_T = kwargs.get('dyn_T', False)
+        
+        ## initialize arrays for dynamical properties
         rb_t = np.zeros((Np,Nb,steps+1,ndim))
         rb_t[:,:,0,:] = np.array(self.basis.r_beads)
         vb_t = np.zeros((Np,Nb,steps+1,ndim))
@@ -286,17 +289,27 @@ class RPMD_scattering(Integrator):
         e_pot = np.zeros((Np,Nb,steps+1))
         e_kin = np.zeros((Np,Nb,steps+1))
         e_tot = np.zeros((Np,Nb,steps+1))
-        unfreezed = Np
+        omega_t = np.zeros((Np,steps+1))
         
         print gray+'Integrating...'+endcolor
-        for i_p in xrange(Np):     ## loop over beads rewritten in vector-matrix-formalism
+        for i_p in xrange(Np): 
             dt_ts = np.zeros(Nb)
             for i_s in xrange(steps):
+                ## get omega according to dyn_T
+                if not dyn_T:
+                    om = self.basis.om[i_p]
+                elif dyn_T == 'Rugh':    
+                    om = self.basis.get_omega_Rugh(r_t[i_p,i_s], self.pot, v_t[i_p,i_s], m[i_p])
+                else:
+                    raise ValueError("Scheme for dynamical Temperature '"+dyn_T+"' not known. Use False or 'Rugh'.")
+                omega_t[i_p,i_s] = om
+                
                 ## energy stuff
-                e_pot[i_p,:,i_s] = self.basis.get_potential_energy_beads(rb_t[i_p,:,i_s], self.pot, m[i_p], om[i_p])
+                e_pot[i_p,:,i_s] = self.basis.get_potential_energy_beads(rb_t[i_p,:,i_s], self.pot, m[i_p], om)
                 e_kin[i_p,:,i_s] = self.basis.get_kinetic_energy(m[i_p], vb_t[i_p,:,i_s])
                 
                 ## check if particle has reached a border. If so freeze particle
+                v_t[i_p,i_s] = np.mean(vb_t[i_p,:,i_s],0)
                 r_t[i_p,i_s] = np.mean(rb_t[i_p,:,i_s],0)
                 if (r_t[i_p,i_s] <= self.lower_bound) or \
                    (r_t[i_p,i_s] >= self.upper_bound):
@@ -305,21 +318,22 @@ class RPMD_scattering(Integrator):
                     vb_t[i_p,:,i_s:] = np.array([[vb_t[i_p,b,i_s]]*(steps-i_s+1) for b in xrange(vb_t.shape[1])])
                     e_pot[i_p,:,i_s:] = np.array([[e_pot[i_p,b,i_s]]*(steps-i_s+1) for b in xrange(e_pot.shape[1])])
                     e_kin[i_p,:,i_s:] = np.array([[e_kin[i_p,b,i_s]]*(steps-i_s+1) for b in xrange(e_kin.shape[1])])
-                    unfreezed -= 1
+                    omega_t[i_p,i_s:] = np.array([om,]*(steps-i_s+1)).flatten()
+                    self.mobile -= 1
                     break
                 
                 ## propagation
-                F = self.basis.get_forces(rb_t[i_p,:,i_s], self.pot, m[i_p], om[i_p])
+                F = self.basis.get_forces_beads(rb_t[i_p,:,i_s], self.pot, m[i_p], om)
                 v1 = vb_t[i_p,:,i_s] + F/m[i_p]*dt/2.
                 rb_t[i_p,:,i_s+1] = rb_t[i_p,:,i_s]+v1*dt
-                F = self.basis.get_forces(rb_t[i_p,:,i_s+1], self.pot, m[i_p], om[i_p])
+                F = self.basis.get_forces_beads(rb_t[i_p,:,i_s+1], self.pot, m[i_p], om)
                 vb_t[i_p,:,i_s+1] = v1+F/m[i_p]*dt/2.
                 
                 ## thermostatting
                 dt_ts += dt
                 vb_t[i_p,:,i_s+1], dt_ts = self.thermo(vb_t[i_p,:,i_s+1], m[i_p], dt_ts, ndim)
                 
-            e_pot[i_p,:,steps] = self.basis.get_potential_energy_beads(rb_t[i_p,:,steps], self.pot, m[i_p], om[i_p])
+            e_pot[i_p,:,steps] = self.basis.get_potential_energy_beads(rb_t[i_p,:,steps], self.pot, m[i_p], om)
             e_kin[i_p,:,steps] = self.basis.get_kinetic_energy(m[i_p], vb_t[i_p,:,steps])
             e_tot = e_kin+e_pot
             E_pot[i_p] = np.mean(e_pot[i_p],0)
@@ -327,10 +341,10 @@ class RPMD_scattering(Integrator):
             E_tot[i_p] = np.mean(e_tot[i_p],0)
             E_mean[i_p] = np.mean(E_tot[i_p])
             dErel_max[i_p] = max(  abs( (E_tot[i_p]-E_mean[i_p]) / E_mean[i_p] )  )
-            v_t[i_p] = np.mean(vb_t[i_p],0)
+            
             
         print gray+'INTEGRATED'
-        print str(unfreezed)+' particles did not reach a border\n'+endcolor
+        print str(self.mobile)+' particles did not reach a border\n'+endcolor
         
         
 
