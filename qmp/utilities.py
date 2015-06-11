@@ -1,7 +1,7 @@
 """
 utilities including
 constants
-functions for numerical derivatives
+functions for numerical derivatives (1D: order incr^4)
 """
 
 hbar = 1.
@@ -16,15 +16,29 @@ def num_deriv(f,x,incr=0.001):
     calculates first numerical derivative
     of f on point x
     """
-    return (f(x+incr) - f(x-incr))/(2.*incr)
+    return (-f(x+2.*incr) + 8.*f(x+incr) - 8.*f(x-incr) + f(x-2.*incr))/(12.*incr)
 
 def num_deriv2(f,x,incr=0.001):
     """
     calculates second numerical derivative
     of f on point x
     """
-    hess = f(x+incr) - 2*f(x) + f(x-incr)
-    return hess/(incr*incr)
+    hess = -f(x+2.*incr) + 16.*f(x+incr) - 30.*f(x) + 16.*f(x-incr) - f(x-2.*incr)
+    return hess/(12.*incr**2)
+
+
+def num_deriv3(f,x,incr=0.001):
+    """
+    return third derivative of f at x
+    """
+    return (-f(x+3.*incr)+8.*f(x+2.*incr)-13.*f(x+incr)+13.*f(x-incr)-8.*f(x-2.*incr)+f(x-3.*incr))/(8.*incr**3)
+
+
+def num_deriv4(f,x,incr=0.001):
+    """
+    return fourth derivative of f at x
+    """
+    return (-f(x+3.*incr)+12.*f(x+2.*incr)-39.*f(x+incr)+56.*f(x)-39.*f(x-incr)+12.*f(x-2.*incr)-f(x-3.*incr))/(6.*incr**4)
 
 
 def num_deriv_2D(f, x,y, incr_x=0.001,incr_y=0.001):
