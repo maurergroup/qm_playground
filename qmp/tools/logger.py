@@ -14,6 +14,7 @@ class logger(object):
         """
 
         """
+        pass
 
     def set_data(self, data):
-        
+        pass        

@@ -3,6 +3,10 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+.. image:: playground_logo.png
+   :align: center
+   :width: 85%
+
 Welcome to qm_playground's documentation!
 =========================================
 
@@ -13,7 +17,11 @@ Contents:
 
    Introduction <intro>
    Features <features>
+   Theory and Methods <methods>
+   Examples <examples>
    qmp Modules <qmp>
+
+
 
 Indices and tables
 ==================

@@ -2,9 +2,9 @@
 eigensolvers.py
 """
 
-from qmp.utilities import *
+from qmp.tools.utilities import *
 from qmp.solver.solver import solver
-from qmp.termcolors import *
+from qmp.tools.termcolors import *
 import numpy as np
 
 

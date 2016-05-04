@@ -4,7 +4,7 @@ Different solvers for time-independent
 problems
 """
 
-from qmp.utilities import *
+from qmp.tools.utilities import *
 import numpy as np
 import scipy as sp
 

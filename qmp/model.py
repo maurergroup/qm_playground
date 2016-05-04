@@ -2,11 +2,11 @@
 model class
 """
 
-from qmp.utilities import *
+from qmp.tools.utilities import *
 from qmp.integrator import integrator_init
 from qmp.solver import solver_init
 from qmp.data_containers import data_container
-from qmp.termcolors import *
+from qmp.tools.termcolors import *
 
 
 class Model(object):

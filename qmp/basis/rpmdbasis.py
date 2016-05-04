@@ -3,8 +3,8 @@ initialization arrays for rpmd simulations
 """
 
 from qmp.basis.basis import basis
-from qmp.utilities import *
-from qmp.termcolors import *
+from qmp.tools.utilities import *
+from qmp.tools.termcolors import *
 import numpy as np
 from scipy.stats import maxwell
 import scipy.linalg as la

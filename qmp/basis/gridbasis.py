@@ -4,7 +4,7 @@ gridbasis.py
 all grid-based basis functions
 """
 
-from qmp.utilities import *
+from qmp.tools.utilities import *
 from qmp.basis.basis import basis
 import numpy as np
 import scipy.sparse as sparse

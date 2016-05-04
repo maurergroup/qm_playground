@@ -3,7 +3,7 @@ trajintegrators.py
 """
 
 from qmp.integrator.integrator import Integrator
-from qmp.termcolors import *
+from qmp.tools.termcolors import *
 import numpy as np
 
 

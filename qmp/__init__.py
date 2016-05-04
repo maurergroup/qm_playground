@@ -2,12 +2,10 @@
 qm_playground package
 """
 
-#import matplotlib
-#matplotlib.use("Agg")
 from qmp.model import Model
-from qmp.potential import Potential, Potential2D
+from qmp.potential.potential import Potential, Potential2D
 from qmp.basis import *
-from qmp.utilities import *
+from qmp.tools.utilities import *
 
 import numpy as np
 

@@ -4,7 +4,7 @@ initialization arrays for classical dynamics
 
 
 from qmp.basis.basis import basis
-from qmp.utilities import *
+from qmp.tools.utilities import *
 import numpy as np
 
 

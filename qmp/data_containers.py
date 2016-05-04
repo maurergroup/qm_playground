@@ -1,12 +1,12 @@
 """
 data_containers.py
+
 collection of different data containers for different 
-jobs such as wavefunction, particle, RPMD necklace
+job classes such as wavefunction, particle, and RPMD necklace
 """
 
 import numpy as np
 
-#wave data object
 
 class wave(object):
     """
@@ -34,7 +34,7 @@ class wave(object):
 
 class traj(object):
     """
-    initializes point(s) in phase space given in basis
+    initializes positions and momenta for particle in phase space
     """
     
     def __init__(self, basis):
@@ -47,7 +47,7 @@ class traj(object):
         
 class rpmd(object):
     """
-    initializes beads in phase space according to basis
+    initializes positions and momenta for beads in phase space
     """
     
     def __init__(self, basis):

@@ -2,10 +2,10 @@
 waveintegrators.py
 """
 
-from qmp.utilities import *
+from qmp.tools.utilities import *
 from qmp.integrator.integrator import Integrator
 from qmp.integrator.dyn_tools import project_wvfn
-from qmp.termcolors import *
+from qmp.tools.termcolors import *
 import numpy as np
 import os
 

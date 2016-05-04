@@ -4,7 +4,7 @@ rpmd integrators.py
 
 from qmp.integrator.integrator import Integrator
 from qmp.integrator.dyn_tools import create_thermostat
-from qmp.termcolors import *
+from qmp.tools.termcolors import *
 import numpy as np
 
 

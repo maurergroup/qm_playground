@@ -4,22 +4,6 @@ qmp.tools package
 Submodules
 ----------
 
-qmp.tools.buttons module
-------------------------
-
-.. automodule:: qmp.tools.buttons
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-qmp.tools.cursor module
------------------------
-
-.. automodule:: qmp.tools.cursor
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 qmp.tools.logger module
 -----------------------
 
@@ -56,14 +40,6 @@ qmp.tools.visualizations module
 -------------------------------
 
 .. automodule:: qmp.tools.visualizations
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-qmp.tools.wxcursor_demo module
-------------------------------
-
-.. automodule:: qmp.tools.wxcursor_demo
     :members:
     :undoc-members:
     :show-inheritance:
