@@ -15,6 +15,8 @@ packages = ['qmp',
             'qmp.basis',
             'qmp.integrator',
             'qmp.solver',
+            'qmp.tools',
+            'qmp.potential',
             ]
 
 config = {
