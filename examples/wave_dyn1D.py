@@ -5,9 +5,9 @@ sys.path.append('..')                      #
 from qmp import *                          #
 from qmp.basis.gridbasis import onedgrid   #
 from qmp.integrator.dyn_tools import *     #
-from qmp.pot_tools import *                #
-from qmp.visualizations import *           #
-from qmp.termcolors import *               #
+from qmp.potential.pot_tools import *      #
+from qmp.tools.visualizations import *     #
+from qmp.tools.termcolors import *         #
 ############################################
 
 
@@ -53,7 +53,7 @@ print ''
 ### INITIAL WAVE FUNCTION AND DYNAMICS PARAMETERS ###
 ## time step, number of steps
 dt =  82.
-steps = 2E5
+steps = 2E2
 
 #tik1d.solve()
 
@@ -80,11 +80,11 @@ else:
 rho_t = np.sum(psi_t*np.conjugate(psi_t),1)
 rho_r_mean = np.mean(psi_t*np.conjugate(psi_t), 0)
 r_mean = np.dot(tik1d.basis.x, rho_r_mean)
-f = open('wave_dyn_'+str(N)+'gridpts_'+str(int(steps))+'steps.log', 'w')
-f.write('wave simulation in {0:d} by {1:d} cell\n\n'.format(int(cell[0][0]), int(cell[0][1])))
-f.write('E_mean = {0:f} Ha\n'.format(np.real(np.mean(E_t))))
-f.write('r_mean = {0:f} a_0\n'.format(r_mean))
-f.close()
+#f = open('wave_dyn_'+str(N)+'gridpts_'+str(int(steps))+'steps.log', 'w')
+#f.write('wave simulation in {0:d} by {1:d} cell\n\n'.format(int(cell[0][0]), int(cell[0][1])))
+#f.write('E_mean = {0:f} Ha\n'.format(np.real(np.mean(E_t))))
+#f.write('r_mean = {0:f} a_0\n'.format(r_mean))
+#f.close()
 V_x = tik1d.pot(tik1d.basis.x)
 
 ### VISUALIZATION ###
@@ -96,7 +96,7 @@ ax0 = ax.twinx()
 ax.plot(tik1d.basis.x, rho_r_mean)
 ax0.plot(tik1d.basis.x, tik1d.pot(tik1d.basis.x), ls=':', c='r')
 ax0.set_ylim(min(tik1d.pot(tik1d.basis.x)), 11.)
-plt.save('wave_dyn_'+str(N)+'gridpts_'+str(int(steps))+'steps.pdf')
+#plt.save('wave_dyn_'+str(N)+'gridpts_'+str(int(steps))+'steps.pdf')
 
 #plt.plot(np.conjugate(c_t[:,1])*c_t[:,1], label=r'$\Vert c_1(t)\Vert^2$')
 #plt.plot(np.conjugate(c_t[:,2])*c_t[:,2], label=r'$\Vert c_2(t)\Vert^2$')
@@ -106,7 +106,7 @@ plt.save('wave_dyn_'+str(N)+'gridpts_'+str(int(steps))+'steps.pdf')
 
 
 ## view animation
-#wave_movie1D(tik1d.basis.x, psi_t, V_x, dt=dt, E_arr=E_t, rho_tot_arr=rho_t, E_kin_arr=E_kin_t, E_pot_arr=E_pot_t)
+wave_movie1D(tik1d.basis.x, psi_t*np.conjugate(psi_t), V_x, dt=dt, E_arr=E_t, rho_tot_arr=rho_t, E_kin_arr=E_kin_t, E_pot_arr=E_pot_t)
 
 
 #--EOF--#

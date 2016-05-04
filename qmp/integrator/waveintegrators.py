@@ -256,7 +256,7 @@ class SOFT_propagation(Integrator):
         E_pot = np.array(E_pot)
         E.append(e_kin+e_pot)
         E = np.array(E)
-        c_t = np.array(c_t)
+        #c_t = np.array(c_t)
         self.data.wvfn.psi_t = np.array(psi)
         if add_info == 'coefficients':
             self.data.wvfn.c_t = c_t

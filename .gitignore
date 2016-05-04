@@ -1,3 +1,5 @@
+*.end
+*.log
 *.out
 build
 *.pyc
