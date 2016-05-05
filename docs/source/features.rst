@@ -4,8 +4,14 @@ Features
 Current Version 0.1
 ^^^^^^^^^^^^^^^^^^^^
 
+
+    * Analytical potentials in 1D and 2D
     * Wavepacket propagation 
-    * feature...
+    * Classical molecular dynamics
+    * Ring Polymer molecular dynamics
+    * Nonadiabatic wavepacket propagation
+    * Interactive visualization
+
 
 Planned for next versions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^

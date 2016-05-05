@@ -1,4 +1,5 @@
 import numpy as np
+from qmp.tools.utilities import kB
 
 
 def project_wvfn(wvfn, evecs):
@@ -82,7 +83,6 @@ def create_thermostat(name='no_thermostat', **kwargs):
     """
     returns thermostat as defined by **kwargs
     """
-    from qmp.utilities import kB
     from scipy.stats import norm
     
     def andersen_ts(v, m, dt, ndim):
@@ -115,7 +115,6 @@ def create_thermostat(name='no_thermostat', **kwargs):
     
     
 def EOM_morse_analyt(a, D, m, t, pos, Temp=293.15):
-    from qmp.utilities import kB
 
     if kB*Temp >= D:
         raise ValueError('System not bound at given Temperature')

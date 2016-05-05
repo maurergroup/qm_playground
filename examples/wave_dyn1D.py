@@ -33,7 +33,7 @@ tik1d = Model(
         mode='wave',
         basis='onedgrid',
         solver='scipy',
-        integrator='SOFT',
+        integrator='primprop',
         states=states,
         )
 

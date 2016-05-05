@@ -10,8 +10,8 @@ sys.path.append('..')
 from qmp import *
 from qmp.basis.gridbasis import twodgrid
 from qmp.potential import Potential2D
-from qmp.pot_tools import create_potential2D
-from qmp.visualizations import wave_slideshow2D
+from qmp.potential.pot_tools import create_potential2D
+from qmp.tools.visualizations import wave_slideshow2D
 
 
 ### SIMULATION CELL ###

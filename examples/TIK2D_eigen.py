@@ -10,7 +10,7 @@ sys.path.append('..')
 from qmp import *
 from qmp.basis.gridbasis import twodgrid
 from qmp.potential import Potential2D
-from qmp.visualizations import slideshow2D
+from qmp.tools.visualizations import wave_slideshow2D
 
 
 ## 2D harmonic potential
@@ -60,4 +60,4 @@ V_xy = tik2d.pot(tik2d.basis.xgrid, tik2d.basis.ygrid)
 
 ####VISUALIZATION
 
-slideshow2D(tik2d.basis.xgrid, tik2d.basis.ygrid, psi, pot=V_xy)
+wave_slideshow2D(tik2d.basis.xgrid, tik2d.basis.ygrid, psi, pot=V_xy)

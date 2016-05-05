@@ -244,7 +244,7 @@ def create_potential2D(cell, name='free', **kwargs):
 	    elbow_si2 = kwargs.get('elbow_sigma2', [3./2.,11./2.])
 	    
 	    z2 = np.exp( -(1./2.)*(((x-y-0.1)/2.)**2 + ((x-y-0.1)/2.)**2))
-	    z = 100.*(-create_gaussian2D(x,y,x0=elbow_p1,sigma=elbow_si1)-create_gaussian2D(x,y,x0=elbow_p2,sigma=elbow_si2))+(50./3.)*z2
+	    z = 100.*(-create_real_gaussian2D(x,y,x0=elbow_p1,sigma=elbow_si1)-create_real_gaussian2D(x,y,x0=elbow_p2,sigma=elbow_si2))+(50./3.)*z2
 	    return np.real(elbow_sc*z)
 	
 
@@ -312,7 +312,7 @@ def create_potential2D(cell, name='free', **kwargs):
 	       (gauss_p[1] > cell[1][1]):
 		raise ValueError('Please define positions within cell')
 	    
-	    return np.real(create_gaussian2D(x, y, sigma=gauss_s, x0=gauss_p))
+	    return np.real(create_real_gaussian2D(x, y, sigma=gauss_s, x0=gauss_p))
 	
 	    
 

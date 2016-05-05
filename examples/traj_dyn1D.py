@@ -4,10 +4,10 @@ import sys                                 #
 sys.path.append('..')                      #
 from qmp import *                          #
 from qmp.basis.phasespace_basis import *   #
-from qmp.pot_tools import *                #
-from qmp.visualizations import *           #
+from qmp.potential.pot_tools import *      #
+from qmp.tools.visualizations import *     #
 from qmp.integrator.dyn_tools import EOM_morse_analyt
-from qmp.utilities import kB
+from qmp.tools.utilities import kB
 ############################################
 
 
@@ -57,8 +57,8 @@ print traj1d
 
 
 ### DYNAMICS PARAMETERS ###
-dt =  4.1
-steps = 1E6
+dt =  8.1
+steps = 1E3
 
 
 ### EVOLVE SYSTEM ###
@@ -94,7 +94,7 @@ ax = plt.gca()
 #ax.plot(np.linspace(min(bins)+(bins[1]-bins[0])/2.,max(bins)-(bins[1]-bins[0])/2.,len(n)), n)
 ax.plot(np.linspace(min(rbins)+(rbins[1]-rbins[0])/2.,max(rbins)-(rbins[1]-rbins[0])/2.,len(prop_dist)), prop_dist)
 plt.savefig('prop_dist_classical_'+str(int(steps))+'steps.pdf')
-raise SystemExit
+#raise SystemExit
 
 
 import matplotlib.animation as animation

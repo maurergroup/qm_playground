@@ -12,7 +12,7 @@ from qmp import *
 from qmp.basis.gridbasis import twodgrid
 from qmp.potential import Potential2D
 from qmp.integrator.dyn_tools import create_gaussian2D
-from qmp.visualizations import movie2D
+from qmp.tools.visualizations import wave_movie2D
 
 
 ## 2D harmonic potential
@@ -83,4 +83,4 @@ plt.plot(E_pot_t)
 plt.plot(rho_t)
 plt.show()
 
-movie2D(tik2d.basis.xgrid, tik2d.basis.ygrid, psi_t, pot=V_xy)
+wave_movie2D(tik2d.basis.xgrid, tik2d.basis.ygrid, psi_t, pot=V_xy)

@@ -4,7 +4,7 @@ sys.path.append('..')
 from qmp import *
 from qmp.basis.gridbasis import onedgrid
 from qmp.integrator.dyn_tools import *
-from qmp.pot_tools import *
+from qmp.potential.pot_tools import *
 
 cell = [[0., 30.0]]
 

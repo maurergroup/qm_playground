@@ -108,7 +108,8 @@ def wave_slideshow1D(basis, psi_arr, pot):
     
     ## buttons
     class Index:
-        ind = 0
+        def __init__(self):
+            self.ind = 0
         def next(self, event):
             self.ind += 1
             if self.ind == psi_arr.shape[1]:
@@ -205,30 +206,34 @@ def wave_slideshow2D(xgrid, ygrid, psi_arr, pot=0.):
     
     ## buttons
     class Index:
-        ind = 0
+        def __init__(self):
+
+            self.ind = 0
+        
         def next(self, event):
             self.ind += 1
             if self.ind == psi_arr.shape[1]:
                 self.ind = 0
-        ax.clear()
-        l = ax.plot_surface(xgrid, ygrid, np.reshape(psi_arr[:,self.ind], (N,N)), lw=0., cmap=cm.coolwarm)
-        ax.set_zlim([psi_min-0.1*psi_min, psi_max+0.1*psi_max])
-        ax.contour(xgrid, ygrid, pot, zdir='z', offset=ax.get_zlim()[0], ls=ls_pot, cmap=cm.spectral)
-        ax.contour(xgrid, ygrid, pot/pot_max*psi_max, zdir='x', offset=min(xgrid.flatten()), ls=ls_pot, cmap=cm.spectral)
-        ax.contour(xgrid, ygrid, pot/pot_max*psi_max, zdir='y', offset=max(ygrid.flatten()), ls=ls_pot, cmap=cm.spectral)
-        plt.draw()
+            ax.clear()
+            l = ax.plot_surface(xgrid, ygrid, np.reshape(psi_arr[:,self.ind], (N,N)), lw=0., cmap=cm.coolwarm)
+            ax.set_zlim([psi_min-0.1*psi_min, psi_max+0.1*psi_max])
+            ax.contour(xgrid, ygrid, pot, zdir='z', offset=ax.get_zlim()[0], ls=ls_pot, cmap=cm.spectral)
+            ax.contour(xgrid, ygrid, pot/pot_max*psi_max, zdir='x', offset=min(xgrid.flatten()), ls=ls_pot, cmap=cm.spectral)
+            ax.contour(xgrid, ygrid, pot/pot_max*psi_max, zdir='y', offset=max(ygrid.flatten()), ls=ls_pot, cmap=cm.spectral)
+            plt.draw()
+        
         
         def prev(self, event):
             self.ind -= 1
             if self.ind == -1:
                 self.ind = psi_arr.shape[1]-1
-        ax.clear()
-        l = ax.plot_surface(xgrid, ygrid, np.reshape(psi_arr[:,self.ind], (N,N)), lw=0., cmap=cm.coolwarm)
-        ax.set_zlim([psi_min-0.1*psi_min, psi_max+0.1*psi_max])
-        ax.contour(xgrid, ygrid, pot, zdir='z', offset=ax.get_zlim()[0], ls=ls_pot, cmap=cm.spectral)
-        ax.contour(xgrid, ygrid, pot/pot_max*psi_max, zdir='x', offset=min(xgrid.flatten()), ls=ls_pot, cmap=cm.spectral)
-        ax.contour(xgrid, ygrid, pot/pot_max*psi_max, zdir='y', offset=max(ygrid.flatten()), ls=ls_pot, cmap=cm.spectral)
-        plt.draw()
+            ax.clear()
+            l = ax.plot_surface(xgrid, ygrid, np.reshape(psi_arr[:,self.ind], (N,N)), lw=0., cmap=cm.coolwarm)
+            ax.set_zlim([psi_min-0.1*psi_min, psi_max+0.1*psi_max])
+            ax.contour(xgrid, ygrid, pot, zdir='z', offset=ax.get_zlim()[0], ls=ls_pot, cmap=cm.spectral)
+            ax.contour(xgrid, ygrid, pot/pot_max*psi_max, zdir='x', offset=min(xgrid.flatten()), ls=ls_pot, cmap=cm.spectral)
+            ax.contour(xgrid, ygrid, pot/pot_max*psi_max, zdir='y', offset=max(ygrid.flatten()), ls=ls_pot, cmap=cm.spectral)
+            plt.draw()
     
     callback = Index()
     pos_prev_button = plt.axes([0.7,0.05,0.1,0.075])

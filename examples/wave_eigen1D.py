@@ -9,8 +9,8 @@ import sys
 sys.path.append('..')
 from qmp import *
 from qmp.basis.gridbasis import onedgrid
-from qmp.pot_tools import create_potential
-from qmp.visualizations import wave_slideshow1D
+from qmp.potential.pot_tools import create_potential
+from qmp.tools.visualizations import wave_slideshow1D
 
 
 ### SIMULATION CELL ### 

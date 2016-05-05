@@ -6,7 +6,7 @@ from qmp import *                          #
 from qmp.basis.rpmdbasis import *          #
 from qmp.potential import Potential2D      #
 from qmp.pot_tools import *                #
-from qmp.visualizations import *           #
+from qmp.tools.visualizations import *     #
 ############################################
 
 import scipy.linalg as la

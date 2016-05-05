@@ -5,8 +5,8 @@ sys.path.append('..')                      #
 from qmp import *                          #
 from qmp.basis.gridbasis import onedgrid   #
 from qmp.integrator.dyn_tools import *     #
-from qmp.pot_tools import *                #
-from qmp.visualizations import *           #
+from qmp.potential.pot_tools import *      #
+from qmp.tools.visualizations import *     #
 ############################################
 
 
@@ -79,7 +79,7 @@ V_x = tik1d.pot(tik1d.basis.x)
 ### VISUALIZATION ###
 
 ## view animation
-movie1D(tik1d.basis.x, psi_t, V_x, dt=dt, E_arr=E_t, rho_tot_arr=rho_t, E_kin_arr=E_kin_t, E_pot_arr=E_pot_t)
+wave_movie1D(tik1d.basis.x, psi_t, V_x, dt=dt, E_arr=E_t, rho_tot_arr=rho_t, E_kin_arr=E_kin_t, E_pot_arr=E_pot_t)
 
 ## view slideshow
 #slideshow1D(tik1d.basis.x, psi_t, V_x)

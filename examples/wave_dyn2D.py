@@ -12,8 +12,8 @@ from qmp import *
 from qmp.basis.gridbasis import twodgrid
 from qmp.potential import Potential2D
 from qmp.integrator.dyn_tools import create_gaussian2D
-from qmp.visualizations import wave_movie2D
-from qmp.pot_tools import create_potential2D
+from qmp.tools.visualizations import wave_movie2D
+from qmp.potential.pot_tools import create_potential2D
 
 
 cell = [[0, 0.], [20., 20.]]
