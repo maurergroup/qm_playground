@@ -168,7 +168,10 @@ class SOFT_propagation(Integrator):
         from numpy.fft import fftfreq as FTp
         import cPickle as pick
         
+        #try:
         psi_0 = kwargs.get('psi_0')
+        #except:
+        #	psi_0 = self.data.wave.psi
         add_info = kwargs.get('additional', None)
         
         V = self.data.wvfn.basis.get_potential_flat(self.pot)
@@ -192,8 +195,9 @@ class SOFT_propagation(Integrator):
             E, E_kin, E_pot = [], [], []
             i_start = 0
         
-        if (not psi_0.any() != 0.) or (len(psi_0.flatten()) != N):
-            raise ValueError('Please provide initial wave function on appropriate grid')
+        #TODO reconsider this bypassing of data_container
+        #if (not psi_0.any() != 0.) or (len(psi_0.flatten()) != N):
+        #    raise ValueError('Please provide initial wave function on appropriate grid')
         
         if (add_info == 'coefficients'):
             psi_basis = self.data.wvfn.psi
@@ -201,7 +205,9 @@ class SOFT_propagation(Integrator):
             print gray+'Projecting wavefunction onto basis of '+str(states)+' eigenstates'+endcolor
             if psi_basis.shape[0] != states:
                 print gray+'**WARNING: This basis is incomplete, coefficients might contain errors**'+endcolor
-            c_t = [project_wvfn(psi_0, psi_basis)]
+        #else:
+        	c_t = [project_wvfn(psi_0, psi_basis)]
+            
             
         m = self.data.mass
         dx = self.data.wvfn.basis.dx
@@ -256,7 +262,9 @@ class SOFT_propagation(Integrator):
         E_pot = np.array(E_pot)
         E.append(e_kin+e_pot)
         E = np.array(E)
-        #c_t = np.array(c_t)
+        #TODO RETHINK c_t
+        if add_info =='coefficients':
+           c_t = np.array(c_t)
         self.data.wvfn.psi_t = np.array(psi)
         if add_info == 'coefficients':
             self.data.wvfn.c_t = c_t
