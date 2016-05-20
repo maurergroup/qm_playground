@@ -24,11 +24,11 @@ import numpy as np
 
 class Potential2D(object):
 
-    def __init__(self, cell=None, f=None, firstd=None, secondd=None):
+    def __init__(self, domain=None, f=None, firstd=None, secondd=None):
 
-        if cell is None:
-            cell = [[0.,1.],[0.,1.]]
-        self.cell = cell
+        if domain is None:
+            domain = [[0.,1.],[0.,1.]]
+        self.domain = domain
         self.f = f
         self.firstd = firstd
         self.secondd = secondd

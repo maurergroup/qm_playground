@@ -21,81 +21,55 @@
 model class
 """
 
+from qmp.model import Model
 from qmp.tools.utilities import *
 from qmp.integrator import integrator_init
 from qmp.solver import solver_init
 from qmp.tools.termcolors import *
 from qmp.data_containers import data_container
 
-class Model(object):
+class Wave(Model):
     """
-    The model class is an overaarching base class for 
-    the model classes wave, particle, and necklace and 
-    guides the workflow of dynamics calculations
+    The Wave class derives from the model class and guides the workflow 
+    for quantum dynamics with wavepackets.
 
-    It guids the three workflow steps:
-    - System Preparation
-      We attach a potential to the model and make some general 
-      definitions, this is done by __init__, set_potential, and 
-      set_initial_conditions
-
-    - Calculate things
-      This either means solving the eigensystem with .solve or 
-      running dynamics with .run
-
-    - Analyze results
-      This refers to visualization and data analysis. This is 
-      taken care of by subroutines .analyze and .visualize
-
-    Every model needs to be initialized with a potential and 
-    with a mass.
-
-    There are two basic tasks associated with the 
-    solver subclass (time-independent problems) and the 
-    dyn subclass (time  propagation)
 
     """
 
-    def __init__(self, mass=1.0, potential=None):
+    def __init__(self, mass=1.0, potential=None,**kwargs):
         """
-        Initializes the calculation model using mass and potential.
-        """
-    
-        self.pot = potential 
-        self.dyn = None
-        self.solver = None
-        self.model_type = 'Base Model'
-        self.data = data_container()
-        setattr(self.data,'mass',mass)
+        Initializes the calculation model 
         
+        mass:
+          float
+        potential:
+          class Potential
+
+        """
+        Model.__init__(self,mass,potential)
+        
+        #TODO
+        #wave specific stuff goes here
 
     def __repr__(self):
-
-        string = 'Model Summary:\n'
-        string += '--------------\n'
-        string += 'Potential : {0}\n'.format(str(self.pot))
+        string = Model.__repr__(self)
+        
+        string += str(self.data)
         string += '\n'
 
         return string
 
-    def set_potential(self,pot):
-        """
-        set or reset the potential if not set by __init__
-        """
-        self.pot = pot
-        setattr(self.data,'domain',self.pot.domain)
-        setattr(self.data,'ndim',self.pot.ndim)
-        setattr(self.data,'is_nonadiabatic',self.pot.is_nonadiabatic)
-        setattr(self.data,'nstates',self.pot.nstates)
-   
     def set_initial_conditions(self):
         """
         Sets initial position and momentum. The rest pretty 
         much depends if quantum or classical.
         """
 
+        #TODO
+        #wave specific stuff goes here
         raise NotImplementedError('This is not implemented at the base class level')
 
+    #TODO this is still the Model duplicate
     def solve(self):
         """
         Wrapper for solver.solve
@@ -112,12 +86,13 @@ class Model(object):
             self.solver = solver_init(self.data, self.pot)
             self.solver.solve()
 
-
+    
+    #TODO this is still the Model duplicate
+    # adapt
     def run(self, steps, dt, **kwargs):
         """
         Wrapper for dyn.run
         """
-
         if (self.pot is None):
             raise ValueError('Integrator can only run with \
                              initialized potential')

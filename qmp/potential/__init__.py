@@ -25,5 +25,5 @@ a potential on which the dynamics run. It also contains a set of
 predefined analytical potentials.
 """
 from potential import Potential
-from potential import Potential2D
+from potential2D import Potential2D
 

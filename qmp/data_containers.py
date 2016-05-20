@@ -86,26 +86,7 @@ class data_container(dict):
     """
 
     def __init__(self):
-
-        #dimensions
-
-        self.ndim = None
-        self.mass = None
-        self.cell = None
-
-    def prep(self, mode, basis):
-
-        #individual preparation
-        if mode is 'wave':
-            self.wvfn_preparation(basis)
-
-        elif mode is 'traj':
-            self.traj_preparation(basis)
-
-        elif mode is 'rpmd':
-            self.rpmd_preparation(basis)
-        else:
-            pass
+        pass
 
     def __getattr__(self, key):
         if key not in self:
@@ -115,31 +96,9 @@ class data_container(dict):
     def __setattr__(self, key, value):
         self[key] = value
 
+    def __repr__(self):
+        string = ''
+        for key in self:
+            string += '{0}  {1}\n'.format(key, self[key])
 
-    def wvfn_preparation(self,basis):
-        """
-        Initializes wvfn object for wvfn calculations
-        """
-    
-        #stationary eigenvalues and eigenfunctions
-        self.wvfn = wave(basis)
-        #self.wvfn.normalize()
-        
-        #
-
-
-    def traj_preparation(self, basis):
-        """
-        Initializes arrays for traj dynamics
-        """
-   
-        ##error handling?
-        self.traj = traj(basis)
-    
-    def rpmd_preparation(self, basis):
-        """
-        Initializes arrays for RPMD simulations
-        """
-
-        self.rpmd = rpmd(basis)
-
+        return string

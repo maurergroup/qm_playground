@@ -24,8 +24,9 @@ qm_playground package
 """
 
 from qmp.model import Model
-from qmp.potential.potential import Potential, Potential2D
-from qmp.basis import *
+from qmp.wave import Wave
+from qmp.potential.potential import Potential
+from qmp.potential.potential2D import Potential2D
 from qmp.tools.utilities import *
 
 import numpy as np
