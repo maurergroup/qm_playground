@@ -1,0 +1,44 @@
+change workflow in following way
+
+
+Potential, ndimensions
+contains all PES information
+number of electronic states, domain, 
+completely indepedent of dynamics and theory
+
+
+Model - universal for wave particle necklace in the 
+fact that it contains mass, and asks for potential
+
+wave
+   gets a potential
+   (the potential helps wave to figure out stuff)
+   mass
+   DVR, ngrid, etc
+   solver
+   integrator 
+
+
+   -solve
+   -run
+   -visualize
+
+
+particle
+    gets a potential
+    mass
+   mass momentum
+   particle has function set_thermostat(pass it a thermostat)
+
+necklace
+    inherit particle
+    mass, list of masses, momentum
+    p = N
+
+
+
+
+thermostats
+   indepdentn of everything else
+
+
