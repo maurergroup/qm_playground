@@ -12,15 +12,22 @@ from qmp.tools.termcolors import *         #
 
 
 ### SIMULATION CELL ### 
-cell = [[0., 40.0]]
+cell = [[-20., 20.0]]
+
+def create_harm(x0,k):
+
+    def f_harm(x):
+        return 0.5*k*k*(x-x0)**2
+        
+    return f_harm
 
 ### POTENTIAL ### 
-pot = Potential( cell, f=create_potential(cell,
-                                          name='double_well',
-					  double_well_barrier=.008,
-					  double_well_asymmetry=0.,
-					  double_well_width=3.,
-                                          ) )
+pot = Potential( cell, f=create_harm(0.,0.1))
+#create_potential(cell,
+#                                          name='harmonic',
+#                     harmonic_pos=0.00,
+#                     harmonic_omega=10.,
+#                                          ) )
 
 ### NUMBER OF BASIS STATES ### 
 ## for propagation in eigenbasis
@@ -31,9 +38,9 @@ tik1d = Model(
         ndim=1,
         mass=1850.0,
         mode='wave',
-        basis='onedgrid',
         solver='scipy',
-        integrator='primprop',
+        integrator='SOFT',
+        #TODO instead of states which is eigenstate specific, use nonadiabatic yes or no
         states=states,
         )
 
@@ -59,7 +66,7 @@ steps = 2E2
 
 ## initial wave functions
 sigma = 1./2.
-psi_0 = create_gaussian(tik1d.basis.x, x0=17., p0=4.735, sigma=sigma)
+psi_0 = create_gaussian(tik1d.basis.x, x0=0., p0=1.0, sigma=sigma)
 psi_0 /= np.sqrt(np.conjugate(psi_0).dot(psi_0))
 
 ### EVOLVE SYSTEM ###
@@ -80,11 +87,12 @@ else:
 rho_t = np.sum(psi_t*np.conjugate(psi_t),1)
 rho_r_mean = np.mean(psi_t*np.conjugate(psi_t), 0)
 r_mean = np.dot(tik1d.basis.x, rho_r_mean)
-#f = open('wave_dyn_'+str(N)+'gridpts_'+str(int(steps))+'steps.log', 'w')
-#f.write('wave simulation in {0:d} by {1:d} cell\n\n'.format(int(cell[0][0]), int(cell[0][1])))
-#f.write('E_mean = {0:f} Ha\n'.format(np.real(np.mean(E_t))))
-#f.write('r_mean = {0:f} a_0\n'.format(r_mean))
-#f.close()
+f = open('wave_dyn_'+str(N)+'gridpts_'+str(int(steps))+'steps.log', 'w')
+f.write('wave simulation in {0:d} by {1:d} cell\n\n'.format(int(cell[0][0]), int(cell[0][1])))
+print np.real(np.mean(E_t))
+f.write("E_mean = {0} Ha\n".format(np.real(np.mean(E_t))))
+f.write('r_mean = {0:16.8f} a_0\n'.format(r_mean))
+f.close()
 V_x = tik1d.pot(tik1d.basis.x)
 
 ### VISUALIZATION ###
@@ -96,7 +104,7 @@ ax0 = ax.twinx()
 ax.plot(tik1d.basis.x, rho_r_mean)
 ax0.plot(tik1d.basis.x, tik1d.pot(tik1d.basis.x), ls=':', c='r')
 ax0.set_ylim(min(tik1d.pot(tik1d.basis.x)), 11.)
-#plt.save('wave_dyn_'+str(N)+'gridpts_'+str(int(steps))+'steps.pdf')
+#plt.savefig('wave_dyn_'+str(N)+'gridpts_'+str(int(steps))+'steps.pdf')
 
 #plt.plot(np.conjugate(c_t[:,1])*c_t[:,1], label=r'$\Vert c_1(t)\Vert^2$')
 #plt.plot(np.conjugate(c_t[:,2])*c_t[:,2], label=r'$\Vert c_2(t)\Vert^2$')
