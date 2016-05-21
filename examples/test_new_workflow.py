@@ -10,7 +10,7 @@ from qmp import Model, Wave
 from qmp.potential import Potential
 from qmp.integrator.dyn_tools import create_gaussian 
 
-domain = [-10.,10.]
+domain = [-5.,5.]
 mass = 1850.0
 
 ###DEFINE POTENTIAL
@@ -45,7 +45,7 @@ w.set_initial_conditions(psi_0)
 #...and automatic gaussian with position, momentum and width
 w.set_initial_conditions(x0=0.,p0=1.0, sigma=1./2.)
 
-w.run(steps=200, dt=82.)
+w.run(steps=500, dt=50.)
 
 ### VISUALIZATION ###
 

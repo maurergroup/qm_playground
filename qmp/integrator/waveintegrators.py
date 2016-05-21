@@ -27,7 +27,7 @@ from qmp.integrator.dyn_tools import project_wvfn
 from qmp.tools.termcolors import *
 import numpy as np
 import os
-
+import sys
 
 def remove_restart(filename):
     """
@@ -261,6 +261,9 @@ class SOFT_propagation(Integrator):
             E_pot.append(e_pot)
             E.append(e_kin+e_pot)
             
+            #sys.stdout.write('.')
+            #sys.stdout.flush()
+
             if (np.mod(i+1, 1000000)==0):
                 out = open('wave_dyn.rst', 'wb')
                 wave_data = {'psi':psi, 'rho':rho, 'E_kin':E_kin, 'E_pot':E_pot, 'E_tot':E, 'i':i}
