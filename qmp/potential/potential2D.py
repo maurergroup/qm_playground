@@ -27,7 +27,7 @@ class Potential2D(object):
     def __init__(self, domain=None, f=None, firstd=None, secondd=None):
 
         if domain is None:
-            domain = [[0.,1.],[0.,1.]]
+            domain = [[0.,0.],[1.,1.]]
         self.domain = domain
         self.f = f
         self.firstd = firstd

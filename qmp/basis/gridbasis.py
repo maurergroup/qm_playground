@@ -43,9 +43,6 @@ class onedgrid(basis):
         self.x, self.dx = np.linspace(start, end, N, retstep=True)
         self.N = N
         
-        #wavefunction vector initialised with zeros
-        self.psi = np.zeros_like(self.x)
-
         #define derivative matrix with symm. finite difference
         D = sparse.lil_matrix(np.diag(np.ones(N-1),1) - np.diag(np.ones(N-1),-1) )
         #pbc
@@ -68,7 +65,9 @@ class onedgrid(basis):
         L[-1,0] = 1.
 
         self.L = sparse.lil_matrix(L/(self.dx*self.dx))
-        
+       
+    def __repr(self):
+        return 'onedgrid, N: {0}'.format(N)
 
     def __eval__(self):
         return self.psi
@@ -98,15 +97,16 @@ class  twodgrid(basis):
     wavefunction on equidistant 2D grid
     """
 
-    def __init__(self, start=[0.,0.], end=[1.,1.], N=100.):
+    def __init__(self, start=[0.,0.], end=[1.,1.], N=100.,N2=100.):
         """
         Equidistant 2D grid
         """
 
         basis.__init__(self)
-
+        N2 = N
         self.x, self.dx = np.linspace(start[0], end[0], N, retstep=True)
         self.N = N
+        self.N2 = N2
         self.y, self.dy = np.linspace(start[1], end[1], N, retstep=True)
 
         self.xgrid, self.ygrid = np.meshgrid(self.x, self.y)
@@ -146,10 +146,9 @@ class  twodgrid(basis):
         L[0,-1] = 1.
         L[-1,0] = 1.
         self.L = sparse.lil_matrix(L/(self.dx**2*self.dy**2))
-
-
-    def __eval__(self):
-        return self.psi
+    
+    def __repr(self):
+        return 'twodgrid'
 
     def deriv_psi(self):
         """

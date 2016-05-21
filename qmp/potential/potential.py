@@ -54,6 +54,7 @@ class Potential(object):
             self.n = 1
         else:
             self.n = n
+        self.nstates = n
         if isinstance(f,list):
             self.f = f
         else:

@@ -132,8 +132,8 @@ class prim_propagator(Integrator):
         psi_0 = kwargs.get('psi_0')
         
         #construct H
-        T=self.data.wvfn.basis.construct_Tmatrix()
-        V=self.data.wvfn.basis.construct_Vmatrix(self.pot)
+        T=self.data.basis.construct_Tmatrix()
+        V=self.data.basis.construct_Vmatrix(self.pot)
         
         if (not psi_0.any() != 0.) or (len(psi_0.flatten()) != T.shape[1]):
             raise ValueError('Please provide initial wave function on appropriate grid')
@@ -187,13 +187,10 @@ class SOFT_propagation(Integrator):
         from numpy.fft import fftfreq as FTp
         import cPickle as pick
         
-        #try:
-        psi_0 = kwargs.get('psi_0')
-        #except:
-        #	psi_0 = self.data.wave.psi
+        psi_0 = self.data['psi']
         add_info = kwargs.get('additional', None)
         
-        V = self.data.wvfn.basis.get_potential_flat(self.pot)
+        V = self.data.basis.get_potential_flat(self.pot)
         N = V.size
         
         if type(psi_0)==str:
@@ -229,8 +226,8 @@ class SOFT_propagation(Integrator):
             
             
         m = self.data.mass
-        dx = self.data.wvfn.basis.dx
-        nx = self.data.wvfn.basis.N
+        dx = self.data.basis.dx
+        nx = self.data.basis.N
         nDim = self.data.ndim
         
         expV = np.exp(-1j*V*dt/hbar)
@@ -284,16 +281,16 @@ class SOFT_propagation(Integrator):
         #TODO RETHINK c_t
         if add_info =='coefficients':
            c_t = np.array(c_t)
-        self.data.wvfn.psi_t = np.array(psi)
+        self.data.psi_t = np.array(psi)
         if add_info == 'coefficients':
             self.data.wvfn.c_t = c_t
-        self.data.wvfn.E_t = E
-        self.data.wvfn.E_kin_t = np.array(E_kin)
-        self.data.wvfn.E_pot_t = np.array(E_pot)
-        self.data.wvfn.E_mean = np.sum(E)/i
-        self.data.wvfn.E_k_mean = np.sum(E_kin)/i
-        self.data.wvfn.E_p_mean = np.sum(E_pot)/i
-        self.data.wvfn.rho_mean = rho/i
+        self.data.E_t = E
+        self.data.E_kin_t = np.array(E_kin)
+        self.data.E_pot_t = np.array(E_pot)
+        self.data.E_mean = np.sum(E)/i
+        self.data.E_k_mean = np.sum(E_kin)/i
+        self.data.E_p_mean = np.sum(E_pot)/i
+        self.data.rho_mean = rho/i
 
         ## write psi, rho to binary output file
         out = open('wave_dyn.end', 'wb')

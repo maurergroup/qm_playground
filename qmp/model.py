@@ -66,8 +66,8 @@ class Model(object):
         self.solver = None
         self.model_type = 'Base Model'
         self.data = data_container()
-        setattr(self.data,'mass',mass)
-        
+        setattr(self.data, 'mass',mass) 
+        self.set_potential(potential) 
 
     def __repr__(self):
 
@@ -85,9 +85,8 @@ class Model(object):
         self.pot = pot
         setattr(self.data,'domain',self.pot.domain)
         setattr(self.data,'ndim',self.pot.ndim)
-        setattr(self.data,'is_nonadiabatic',self.pot.is_nonadiabatic)
         setattr(self.data,'nstates',self.pot.nstates)
-   
+
     def set_initial_conditions(self):
         """
         Sets initial position and momentum. The rest pretty 
