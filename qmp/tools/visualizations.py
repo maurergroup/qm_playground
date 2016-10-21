@@ -22,7 +22,7 @@
 """
 
 import numpy as np
-
+from copy import copy
 def wave_movie1D(basis, psi_arr, pot, dt=1., E_arr=None, rho_tot_arr=None, E_kin_arr=None, E_pot_arr=None,save=False,filename='wave_dyn1D',pot_lims=None):
     if save:
         import matplotlib
@@ -265,19 +265,22 @@ def wave_slideshow2D(xgrid, ygrid, psi_arr, pot=0.):
     plt.show()
 
 
-def contour_movie2D(xgrid, ygrid, pot, pos_arr, steps, npar=1, trace=False):
+def contour_movie2D(xgrid, ygrid, pot, pos_arr, steps, npar=1, interval = 50, trace=False):
 
 	import matplotlib.pyplot as plt
 	import matplotlib.animation as animation
 	from matplotlib import cm
-
-	fig = plt.figure()
+	markers = ['o','v','^','<','>','8','s','p','*','h','H','+','D','d']
+        ml = len(markers)
+        
+        fig = plt.figure()
 	ax0 = plt.gca()
 	dummy = ax0.contourf(xgrid, ygrid, pot, 48)
 	lvl = dummy.levels
 	lvl = np.sort(np.append(np.array(lvl[2:]),np.linspace(lvl[0],lvl[1],4)))
 
 	if trace == False:
+
 	    if npar == 1:
 		pos_plot, = ax0.plot(pos_arr[0,0], pos_arr[0,1], label=r'$\vec{x}(t)$', \
 				     ls='', marker='o', mec='k',mfc='k', ms=9)
@@ -293,64 +296,33 @@ def contour_movie2D(xgrid, ygrid, pot, pos_arr, steps, npar=1, trace=False):
 		    return pos_plot,
     
 		def animate(i):
-		    pos_plot.set_data(pos_arr[i,0], pos_arr[i,0])
+		    pos_plot.set_data(pos_arr[i,0], pos_arr[i,1])
 		    return pos_plot,
     
 		ani = animation.FuncAnimation(fig, animate, np.arange(0, steps), init_func=_init_, \
-					      interval=50, blit=False)
+					      interval=interval, blit=False)
     
 		plt.show()
-	    elif npar == 2:
-		pos_plot1, = ax0.plot(pos_arr[0,0,0], pos_arr[0,0,1], label=r'$\vec{x}_1(t)$', \
-				     ls='', marker='o', mec='k',mfc='k', ms=9)
-		pos_plot2, = ax0.plot(pos_arr[1,0,0], pos_arr[1,0,1], label=r'$\vec{x}_2(t)$', \
-				     ls='', marker='s', mec='k',mfc='k', ms=9)
-    
+            else:
+                plots = []
+                for p in range(npar):
+                    plots.append(ax0.plot(pos_arr[p,0,0], pos_arr[p,0,1], \
+                            label='r{0:03d}(t)'.format(p), \
+                            ls='', marker=markers[i%ml], mec='k',mfc='k', ms=9)[0])
 		def _init_():
-		    pot_plot = ax0.contourf(xgrid, ygrid, pot, lvl, ls=None,alpha=.75,cmap=cm.jet)
-		    pot_plot = ax0.contourf(xgrid, ygrid, pot, lvl, ls=None,alpha=.75,cmap=cm.jet)
-		    pot_plot = ax0.contourf(xgrid, ygrid, pot, lvl, ls=None,alpha=.75,cmap=cm.jet)
-		    pot_plot = ax0.contourf(xgrid, ygrid, pot, lvl, ls=None,alpha=.75,cmap=cm.jet)
 		    pot_plot = ax0.contourf(xgrid, ygrid, pot, lvl, ls=None,alpha=.75,cmap=cm.jet)
 		    cbar = plt.colorbar(pot_plot)
 		    cbar.ax.set_ylabel('$potential$ $energy$ $[a.u.]$')
-		    return pos_plot1, pos_plot2,
+		    return tuple(plots),
     
 		def animate(i):
-		    pos_plot1.set_data(pos_arr[0,i,0], pos_arr[0,i,0])
-		    pos_plot2.set_data(pos_arr[1,i,0], pos_arr[1,i,0])
-		    return pos_plot1, pos_plot2,
+                    result = []
+                    for p in range(npar):
+                        plots[p].set_data(pos_arr[p,i,0],pos_arr[p,i,1])
+		    return tuple(plots),
     
 		ani = animation.FuncAnimation(fig, animate, np.arange(0, steps), init_func=_init_, \
-					      interval=50, blit=False)
-    
-		plt.show()
-	    elif npar == 3:
-		pos_plot1, = ax0.plot(pos_arr[0,0,0], pos_arr[0,0,1], label=r'$\vec{x}_1(t)$', \
-				     ls='', marker='o', mec='k',mfc='k', ms=9)
-		pos_plot2, = ax0.plot(pos_arr[1,0,0], pos_arr[1,0,1], label=r'$\vec{x}_2(t)$', \
-				     ls='', marker='s', mec='k',mfc='k', ms=9)
-		pos_plot3, = ax0.plot(pos_arr[2,0,0], pos_arr[2,0,1], label=r'$\vec{x}_3(t)$', \
-				     ls='', marker='x', mew=2., mec='k',mfc='k', ms=9)
-    
-		def _init_():
-		    pot_plot = ax0.contourf(xgrid, ygrid, pot, lvl, ls=None,alpha=.75,cmap=cm.jet)
-		    pot_plot = ax0.contourf(xgrid, ygrid, pot, lvl, ls=None,alpha=.75,cmap=cm.jet)
-		    pot_plot = ax0.contourf(xgrid, ygrid, pot, lvl, ls=None,alpha=.75,cmap=cm.jet)
-		    pot_plot = ax0.contourf(xgrid, ygrid, pot, lvl, ls=None,alpha=.75,cmap=cm.jet)
-		    pot_plot = ax0.contourf(xgrid, ygrid, pot, lvl, ls=None,alpha=.75,cmap=cm.jet)
-		    cbar = plt.colorbar(pot_plot)
-		    cbar.ax.set_ylabel('$potential$ $energy$ $[a.u.]$')
-		    return pos_plot1, pos_plot2, pos_plot3,
-    
-		def animate(i):
-		    pos_plot1.set_data(pos_arr[0,i,0], pos_arr[0,i,0])
-		    pos_plot2.set_data(pos_arr[1,i,0], pos_arr[1,i,0])
-		    pos_plot3.set_data(pos_arr[2,i,0], pos_arr[2,i,0])
-		    return pos_plot1, pos_plot2, pos_plot3,
-    
-		ani = animation.FuncAnimation(fig, animate, np.arange(0, steps), init_func=_init_, \
-					      interval=50, blit=False)
+					      interval=interval, blit=False)
     
 		plt.show()
 	else:
@@ -375,69 +347,30 @@ def contour_movie2D(xgrid, ygrid, pot, pos_arr, steps, npar=1, trace=False):
 		    return pos_plot, trace_plot,
     
 		ani = animation.FuncAnimation(fig, animate, np.arange(0, steps), init_func=_init_, \
-					      interval=20, blit=False)
+					      interval=interval, blit=False)
     
 		plt.show()
-	    elif npar == 2:
-		pos_plot1, = ax0.plot(pos_arr[0,0,0], pos_arr[0,0,1], label=r'$\vec{x}_1(t)$', \
-				     ls='', marker='o', mec='k',mfc='k', ms=9,zorder=10)
-		pos_plot2, = ax0.plot(pos_arr[1,0,0], pos_arr[1,0,1], label=r'$\vec{x}_2(t)$', \
-				     ls='', marker='s', mec='k',mfc='k', ms=9, zorder=9)
-		trace_plot1, = ax0.plot(pos_arr[0,0,0], pos_arr[0,0,1], ls=':',lw=2,c='0.9',zorder=2)
-		trace_plot2, = ax0.plot(pos_arr[1,0,0], pos_arr[1,0,1], ls=':',lw=2,c='0.7',zorder=1)
-    
+            else:
+                plots = []
+                traces = []
+                for p in range(npar):
+                    plots.append(ax0.plot(pos_arr[p,0,0], pos_arr[p,0,1], \
+                            label='r{0:03d}(t)'.format(p), \
+                            ls='', marker=markers[p%ml], mec='k',mfc='k', ms=9)[0])
+		    traces.append(ax0.plot(pos_arr[p,0,0], pos_arr[p,0,1], ls=':',lw=2,c='0.9',zorder=1)[0])
 		def _init_():
-		    pot_plot = ax0.contourf(xgrid, ygrid, pot, lvl, ls=None,alpha=.75,cmap=cm.jet)
-		    pot_plot = ax0.contourf(xgrid, ygrid, pot, lvl, ls=None,alpha=.75,cmap=cm.jet)
-		    pot_plot = ax0.contourf(xgrid, ygrid, pot, lvl, ls=None,alpha=.75,cmap=cm.jet)
-		    pot_plot = ax0.contourf(xgrid, ygrid, pot, lvl, ls=None,alpha=.75,cmap=cm.jet)
 		    pot_plot = ax0.contourf(xgrid, ygrid, pot, lvl, ls=None,alpha=.75,cmap=cm.jet)
 		    cbar = plt.colorbar(pot_plot)
 		    cbar.ax.set_ylabel('$potential$ $energy$ $[a.u.]$')
-		    return pos_plot1, pos_plot2, trace_plot1, trace_plot2,
+		    return tuple(plots), tuple(traces),
     
 		def animate(i):
-		    pos_plot1.set_data(pos_arr[0,i,0], pos_arr[0,i,1])
-		    pos_plot2.set_data(pos_arr[1,i,0], pos_arr[1,i,1])
-		    trace_plot1.set_data(pos_arr[0,:i+1,0], pos_arr[0,:i+1,1])
-		    trace_plot2.set_data(pos_arr[1,:i+1,0], pos_arr[1,:i+1,1])
-		    return pos_plot1, pos_plot2, trace_plot1, trace_plot2,
-    
+                    result = []
+                    for p in range(npar):
+                        plots[p].set_data(pos_arr[p,i,0],pos_arr[p,i,1])
+                        traces[p].set_data(pos_arr[p,:i+1,0],pos_arr[p,:i+1,1])
+		    return tuple(plots), tuple(traces),
 		ani = animation.FuncAnimation(fig, animate, np.arange(0, steps), init_func=_init_, \
-					      interval=50, blit=False)
-    
-		plt.show()
-	    elif npar == 3:
-		pos_plot1, = ax0.plot(pos_arr[0,0,0], pos_arr[0,0,1], label=r'$\vec{x}_1(t)$', \
-				     ls='', marker='o', mec='k',mfc='k', ms=9,zorder=10)
-		pos_plot2, = ax0.plot(pos_arr[1,0,0], pos_arr[1,0,1], label=r'$\vec{x}_2(t)$', \
-				     ls='', marker='s', mec='k',mfc='k', ms=9,zorder=9)
-		pos_plot3, = ax0.plot(pos_arr[2,0,0], pos_arr[2,0,1], label=r'$\vec{x}_3(t)$', \
-				     ls='', marker='x', mew=2., mec='k',mfc='k', ms=9,zorder=8)
-		trace_plot1, = ax0.plot(pos_arr[0,0,0], pos_arr[0,0,1], ls=':',lw=2,c='0.9',zorder=3)
-		trace_plot2, = ax0.plot(pos_arr[1,0,0], pos_arr[1,0,1], ls=':',lw=2,c='0.7',zorder=2)
-		trace_plot3, = ax0.plot(pos_arr[2,0,0], pos_arr[2,0,1], ls=':',lw=2,c='0.5',zorder=1)
-    
-		def _init_():
-		    pot_plot = ax0.contourf(xgrid, ygrid, pot, lvl, ls=None,alpha=.75,cmap=cm.jet)
-		    pot_plot = ax0.contourf(xgrid, ygrid, pot, lvl, ls=None,alpha=.75,cmap=cm.jet)
-		    pot_plot = ax0.contourf(xgrid, ygrid, pot, lvl, ls=None,alpha=.75,cmap=cm.jet)
-		    pot_plot = ax0.contourf(xgrid, ygrid, pot, lvl, ls=None,alpha=.75,cmap=cm.jet)
-		    pot_plot = ax0.contourf(xgrid, ygrid, pot, lvl, ls=None,alpha=.75,cmap=cm.jet)
-		    cbar = plt.colorbar(pot_plot)
-		    cbar.ax.set_ylabel('$potential$ $energy$ $[a.u.]$')
-		    return pos_plot1, pos_plot2, pos_plot3, trace_plot1, trace_plot2, trace_plot3,
-    
-		def animate(i):
-		    pos_plot1.set_data(pos_arr[0,i,0], pos_arr[0,i,1])
-		    pos_plot2.set_data(pos_arr[1,i,0], pos_arr[1,i,1])
-		    pos_plot3.set_data(pos_arr[2,i,0], pos_arr[2,i,1])
-		    trace_plot1.set_data(pos_arr[0,:i+1,0], pos_arr[0,:i+1,1])
-		    trace_plot2.set_data(pos_arr[1,:i+1,0], pos_arr[1,:i+1,1])
-		    trace_plot3.set_data(pos_arr[2,:i+1,0], pos_arr[2,:i+1,1])
-		    return pos_plot1, pos_plot2, pos_plot3, trace_plot1, trace_plot2, trace_plot3, 
-    
-		ani = animation.FuncAnimation(fig, animate, np.arange(0, steps), init_func=_init_, \
-					      interval=50, blit=False)
+					      interval=interval, blit=False)
     
 		plt.show()
