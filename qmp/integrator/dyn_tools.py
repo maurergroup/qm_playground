@@ -20,7 +20,6 @@
 import numpy as np
 from qmp.tools.utilities import kB
 
-
 def project_wvfn(wvfn, evecs):
     """
     project wave packet onto eigenvectors, return vector of coefficients
@@ -96,6 +95,24 @@ def create_real_gaussian2D(xgrid, ygrid, x0=[0.,0.], sigma=[1.,1.]):
     
     wave = np.exp( -(1/2.)*(((xgrid-x0[0])/sigma[0])**2 + ((ygrid-x0[1])/sigma[1])**2) )
     return wave
+
+def create_2D_NVEdistribution(e,m,n):
+    """
+    creates an initial phase space distribution with n points 
+    at a given energy e for particles with mass m according to a 
+    potential energy function f.
+    """
+    from numpy.random import normal, random
+    r0 = np.zeros([n,2])
+    v0 = np.zeros([n,2])
+    v2 = 2.*m/e
+    for i in range(n):
+        vx,vy = random(2)*2.0-1.0 #random numbers between -1 and 1
+        v2tmp = vx**2+vy**2
+        vx = vx*np.sqrt(v2/v2tmp)
+        vy = vy*np.sqrt(v2/v2tmp)
+        v0[i,:] = [vx,vy]
+    return r0, v0 
 
 
 def create_thermostat(name='no_thermostat', **kwargs):
