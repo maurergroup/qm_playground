@@ -105,7 +105,7 @@ def create_2D_NVEdistribution(e,m,n):
     from numpy.random import normal, random
     r0 = np.zeros([n,2])
     v0 = np.zeros([n,2])
-    v2 = 2.*m/e
+    v2 = 2.*e/m
     for i in range(n):
         vx,vy = random(2)*2.0-1.0 #random numbers between -1 and 1
         v2tmp = vx**2+vy**2

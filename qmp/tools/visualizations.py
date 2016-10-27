@@ -308,18 +308,21 @@ def contour_movie2D(xgrid, ygrid, pot, pos_arr, steps, npar=1, interval = 50, tr
                 for p in range(npar):
                     plots.append(ax0.plot(pos_arr[p,0,0], pos_arr[p,0,1], \
                             label='r{0:03d}(t)'.format(p), \
-                            ls='', marker=markers[i%ml], mec='k',mfc='k', ms=9)[0])
+                            ls='', marker=markers[p%ml], mec='k',mfc='k', ms=9)[0])
+                    ttl = ax0.text(0.5,1.005,'', transform=ax0.transAxes)
 		def _init_():
 		    pot_plot = ax0.contourf(xgrid, ygrid, pot, lvl, ls=None,alpha=.75,cmap=cm.jet)
 		    cbar = plt.colorbar(pot_plot)
 		    cbar.ax.set_ylabel('$potential$ $energy$ $[a.u.]$')
-		    return tuple(plots),
+                    ttl.set_text('step=0')
+		    return tuple(plots), ttl
     
 		def animate(i):
                     result = []
                     for p in range(npar):
                         plots[p].set_data(pos_arr[p,i,0],pos_arr[p,i,1])
-		    return tuple(plots),
+                    ttl.set_text('step='+str(i))
+		    return tuple(plots), ttl
     
 		ani = animation.FuncAnimation(fig, animate, np.arange(0, steps), init_func=_init_, \
 					      interval=interval, blit=False)
@@ -358,18 +361,21 @@ def contour_movie2D(xgrid, ygrid, pot, pos_arr, steps, npar=1, interval = 50, tr
                             label='r{0:03d}(t)'.format(p), \
                             ls='', marker=markers[p%ml], mec='k',mfc='k', ms=9)[0])
 		    traces.append(ax0.plot(pos_arr[p,0,0], pos_arr[p,0,1], ls=':',lw=2,c='0.9',zorder=1)[0])
+                    ttl = ax0.text(0.5,1.005,'', transform=ax0.transAxes)
 		def _init_():
 		    pot_plot = ax0.contourf(xgrid, ygrid, pot, lvl, ls=None,alpha=.75,cmap=cm.jet)
 		    cbar = plt.colorbar(pot_plot)
 		    cbar.ax.set_ylabel('$potential$ $energy$ $[a.u.]$')
-		    return tuple(plots), tuple(traces),
+                    ttl.set_text('step=0')
+		    return tuple(plots), tuple(traces),ttl,
     
 		def animate(i):
                     result = []
                     for p in range(npar):
                         plots[p].set_data(pos_arr[p,i,0],pos_arr[p,i,1])
                         traces[p].set_data(pos_arr[p,:i+1,0],pos_arr[p,:i+1,1])
-		    return tuple(plots), tuple(traces),
+                        ttl.set_text('step='+str(i))
+		    return tuple(plots), tuple(traces),ttl,
 		ani = animation.FuncAnimation(fig, animate, np.arange(0, steps), init_func=_init_, \
 					      interval=interval, blit=False)
     
