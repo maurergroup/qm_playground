@@ -27,6 +27,9 @@ from qmp.solver import solver_init
 from qmp.data_containers import data_container
 from qmp.tools.termcolors import *
 
+#TODO change model. integrators and solvers should be 
+#initialized outside and model should only wrap run and solve routines
+
 
 class Model(object):
     """
@@ -152,7 +155,7 @@ class Model(object):
             self.solve()
         
         try:
-            self.dyn.run(int(steps),dt,**kwargs)
+            self.dyn.run(steps=int(steps),dt=dt,**kwargs)
         except (AttributeError, TypeError):
             print gray+'Initializing Integrator'+endcolor
             self.dyn = integrator_init(self.data, self.pot)

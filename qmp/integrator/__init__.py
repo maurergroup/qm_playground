@@ -39,6 +39,7 @@ integrator_type = {
     'SOFT_avg_props' : SOFT_average_properties,
     'velocity_verlet' : velocity_verlet_integrator,
     'vel_verlet' : velocity_verlet_integrator,
+    'langevin' : langevin_integrator,
     'VelocityVerlet_RPMD' : RPMD_VelocityVerlet,
     'RPMD_VelocityVerlet' : RPMD_VelocityVerlet,
     'RPMD_averages' : RPMD_equilibrium_properties,

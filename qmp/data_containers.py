@@ -27,6 +27,8 @@ job classes such as wavefunction, particle, and RPMD necklace
 
 import numpy as np
 
+#TODO fix data handling. 
+#make three distinctively different data container objects
 
 class wave(object):
     """
