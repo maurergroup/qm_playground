@@ -6,7 +6,6 @@ from qmp import *                          #
 from qmp.basis.rpmdbasis import *          #
 from qmp.potential import Potential        #
 from qmp.potential.pot_tools import *      #
-from qmp.tools.utilities import kB         #
 ############################################
 
 ### SIMULATION CELL ### 

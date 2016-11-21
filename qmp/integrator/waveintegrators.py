@@ -224,8 +224,8 @@ class SOFT_propagation(Integrator):
             print gray+'Projecting wavefunction onto basis of '+str(states)+' eigenstates'+endcolor
             if psi_basis.shape[0] != states:
                 print gray+'**WARNING: This basis is incomplete, coefficients might contain errors**'+endcolor
-        #else:
-        	c_t = [project_wvfn(psi_0, psi_basis)]
+        
+            c_t = [project_wvfn(psi_0, psi_basis)]
             
             
         m = self.data.mass
@@ -236,10 +236,10 @@ class SOFT_propagation(Integrator):
         expV = np.exp(-1j*V*dt/hbar)
         if nDim == 1:
             p = np.pi*FTp(N, dx)
-            p = p**2
+            p = p*p
         elif nDim == 2:
             p = FTp(nx,dx).conj()*FTp(nx,dx)
-            p = np.pi**2*(np.kron(np.ones(nx), p) + np.kron(p, np.ones(nx)))
+            p = np.pi*np.pi*(np.kron(np.ones(nx), p) + np.kron(p, np.ones(nx)))
         else:
             raise NotImplementedError('Only evolving 1D and 2D systems implemented')
         
@@ -281,12 +281,12 @@ class SOFT_propagation(Integrator):
         E_pot = np.array(E_pot)
         E.append(e_kin+e_pot)
         E = np.array(E)
-        #TODO RETHINK c_t
+        #TODO RETHINK c_t -- Why? (MS)
         if add_info =='coefficients':
-           c_t = np.array(c_t)
-        self.data.wvfn.psi_t = np.array(psi)
-        if add_info == 'coefficients':
+            c_t = np.array(c_t)
             self.data.wvfn.c_t = c_t
+        
+        self.data.wvfn.psi_t = np.array(psi)
         self.data.wvfn.E_t = E
         self.data.wvfn.E_kin_t = np.array(E_kin)
         self.data.wvfn.E_pot_t = np.array(E_pot)
@@ -316,8 +316,6 @@ class SOFT_average_properties(Integrator):
         E_tot:  average total energy, \sum_{steps} E_tot/steps (should be constant)
         E_kin:  average kinetic energy, \sum_{steps} E_kin/steps
         E_pot:  average potential energy, \sum+{steps} E_pot/steps
-        (TODO: optionally output average coefficients of basis functions
-               => propability distribution)
     """
     
     def __init__(self, **kwargs):
@@ -373,6 +371,7 @@ class SOFT_average_properties(Integrator):
             print gray+'Projecting wavefunction onto basis of '+str(states)+' eigenstates'+endcolor
             if psi_basis.shape[0] != states:
                 print gray+'**WARNING: This basis is incomplete, coefficients might contain errors**'+endcolor
+            
             c_mean = project_wvfn(psi_0, psi_basis)
             
         m = self.data.mass
@@ -383,10 +382,10 @@ class SOFT_average_properties(Integrator):
         expV = np.exp(-1j*V*dt/hbar)
         if nDim == 1:
             p = np.pi*FTp(N, dx)
-            p = p**2
+            p = p*p
         elif nDim == 2:
             p = FTp(nx,dx).conj()*FTp(nx,dx)
-            p = np.pi**2*(np.kron(np.ones(nx), p) + np.kron(p, np.ones(nx)))
+            p = np.pi*np.pi*(np.kron(np.ones(nx), p) + np.kron(p, np.ones(nx)))
         else:
             raise NotImplementedError('Only evolving 1D and 2D systems implemented')
         
@@ -402,7 +401,7 @@ class SOFT_average_properties(Integrator):
             psi = iFT( expT*psi2 )
             rho += np.conjugate(psi)*psi
             if add_info == 'coefficients':
-                c_mean+=project_wvfn(psi, psi_basis)
+                c_mean += project_wvfn(psi, psi_basis)
             
             e_kin = (np.conjugate(psi3).dot( iFT(2.*p/m * FT(psi3)) ))
             e_pot = np.conjugate(psi3).dot(V*psi3)
@@ -422,7 +421,7 @@ class SOFT_average_properties(Integrator):
         e_pot = np.conjugate(psi).dot(V*psi)
         E_kin+=e_kin
         E_pot+=e_pot
-        E+=(e_kin+e_pot)
+        E += (e_kin+e_pot)
         if add_info == 'coefficients':
             self.data.wvfn.c_mean = c_mean/i
         
@@ -538,10 +537,10 @@ class SOFT_scattering(Integrator):
         expV = np.exp(-1j*V*dt/hbar)
         if nDim == 1:
             p = np.pi*FTp(N, dx)
-            p = p**2
+            p = p*p
         elif nDim == 2:
             p = FTp(nx,dx).conj()*FTp(nx,dx)
-            p = np.pi**2*(np.kron(np.ones(nx), p) + np.kron(p, np.ones(nx)))
+            p = np.pi*np.pi*(np.kron(np.ones(nx), p) + np.kron(p, np.ones(nx)))
         else:
             raise NotImplementedError('Only evolving 1D and 2D systems implemented')
         

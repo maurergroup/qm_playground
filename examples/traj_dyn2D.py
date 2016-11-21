@@ -4,10 +4,10 @@ import sys                                 #
 sys.path.append('..')                      #
 from qmp import *                          #
 from qmp.basis.phasespace_basis import *   #
-from qmp.potential.pot_tools import *                #
-from qmp.tools.visualizations import *           #
+from qmp.potential.pot_tools import *      #
+from qmp.tools.visualizations import *     #
 from qmp.potential import Potential2D      #
-from qmp.tools.utilities import *
+from qmp.tools.utilities import *          #
 ############################################
 
 

@@ -51,8 +51,7 @@ integrator_type = {
 def integrator_init(data, potential):
 
     param = data.parameters
-    integrator = integrator_type[param['integrator']](\
-            data=data, potential=potential)
+    integrator = integrator_type[param['integrator']](data=data, potential=potential)
 
     return integrator
 

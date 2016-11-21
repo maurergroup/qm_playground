@@ -154,21 +154,22 @@ class velocity_verlet_integrator(Integrator):
     Velocity verlet integrator for classical dynamics
     """
     
-    def __init__(self, dt, **kwargs):
+    def __init__(self, **kwargs):
         Integrator.__init__(self, **kwargs)
         
-        self.lt = self.friction * dt
         self.N = self.data.traj.basis.npar
         self.ndim = self.data.traj.basis.ndim
         self.m = self.data.traj.basis.masses
         
-    def run(self, steps, **kwargs):
+    def run(self, steps, dt, **kwargs):
         
-        lt = self.lt
+        ## We don't need this in this class?!?
+        #self.dt = dt
+        #lt = self.friction*self.dt
         N = self.N
         ndim = self.ndim
         m = self.m
-
+        
         r_t = np.zeros((N,steps+1,ndim))
         r_t[:,0,:] = np.array(self.data.traj.basis.r)
         v_t = np.zeros((N,steps+1,ndim))
