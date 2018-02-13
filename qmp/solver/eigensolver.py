@@ -48,13 +48,13 @@ class scipy_solver(solver):
 
         states = self.data.parameters['states']
         if states >= H.shape[1]:
-        	print gray+'Scipy solver only capable of solving for (grid points - 1) eigen vectors.'
-        	print 'Adjusting number of states to '+str(H.shape[1]-1)+endcolor
+        	print( gray+'Scipy solver only capable of solving for (grid points - 1) eigen vectors.')
+        	print( 'Adjusting number of states to '+str(H.shape[1]-1)+endcolor)
         	states = H.shape[1]-1
 
-        print gray+'Solving...'+endcolor
+        print (gray+'Solving...'+endcolor)
         evals, evecs = eigsh(H, states, sigma=0., which='LM')
-        print gray+'SOLVED\n'+endcolor
+        print (gray+'SOLVED\n'+endcolor)
 
         self.data.wvfn.E = np.array(evals)
         self.data.wvfn.psi = np.array(evecs)
@@ -74,7 +74,7 @@ class alglib_solver(solver):
         try: 
             import xalglib as xa
         except:
-            print red+'Cannot import alglib'+endcolor
+            print( red+'Cannot import alglib'+endcolor)
             pass
 
         from scipy.sparse import issparse
@@ -86,9 +86,9 @@ class alglib_solver(solver):
         if issparse(H):
             H = H.todense()
         
-        print gray+'Solving...'+endcolor
+        print( gray+'Solving...'+endcolor)
         result, E, psi = xa.smatrixevd(H.tolist(), H.shape[0], 1, 1)
-        print gray+'SOLVED\n'+endcolor
+        print( gray+'SOLVED\n'+endcolor)
 
         self.data.wvfn.E = np.array(E)
         self.data.wvfn.psi = np.array(psi)

@@ -62,7 +62,7 @@ class Model(object):
         }
         
         self.parameters = default_parameters
-        for key, value in kwargs.iteritems():
+        for key, value in kwargs.items():
             self.parameters[key]=value
 
         #exclusions ~> needed??
@@ -129,7 +129,7 @@ class Model(object):
         try:
             self.solver.solve()
         except (AttributeError, TypeError):
-            print gray+'Initializing Solver'+endcolor
+            print(gray+'Initializing Solver'+endcolor)
             self.solver = solver_init(self.data, self.pot)
             self.solver.solve()
 
@@ -151,13 +151,13 @@ class Model(object):
             (self.parameters['integrator'] == 'eigen') or \
             (add_info=='coefficients')) and \
            (self.data.solved == False):
-            print gray+'Projection onto eigen basis requires solving eigenvalue problem...'+endcolor
+            print(gray+'Projection onto eigen basis requires solving eigenvalue problem...'+endcolor)
             self.solve()
         
         try:
             self.dyn.run(steps=int(steps),dt=dt,**kwargs)
         except (AttributeError, TypeError):
-            print gray+'Initializing Integrator'+endcolor
+            print(gray+'Initializing Integrator'+endcolor)
             self.dyn = integrator_init(self.data, self.pot)
             self.dyn.run(int(steps),dt,**kwargs)
  

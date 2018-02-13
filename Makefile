@@ -22,6 +22,9 @@
 default: 
 	python setup.py build
 
+python3:
+	python3 setup.py build
+
 clean: 
 	rm -r build
 

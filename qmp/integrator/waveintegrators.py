@@ -81,9 +81,9 @@ or initial wave function to propagate system!')
 same grid as system was solved on!')
         else:
             states = psi_basis.shape[1]
-            print gray+'Projecting wavefunction onto basis of '+str(states)+' eigenstates'+endcolor
+            print(gray+'Projecting wavefunction onto basis of '+str(states)+' eigenstates'+endcolor)
             if psi_basis.shape[0] != states:
-                print gray+'**WARNING: This basis is incomplete, coefficients and wavefunction might contain errors**'+endcolor
+                print(gray+'**WARNING: This basis is incomplete, coefficients and wavefunction might contain errors**'+endcolor)
             c = np.array([project_wvfn(psi_0, psi_basis)])
         
         prop = np.diag(np.exp(-1j*self.data.wvfn.E*dt/hbar))    #(states,states)
@@ -91,14 +91,14 @@ same grid as system was solved on!')
         E = [np.dot(np.conjugate(c[0]), (c[0]*self.data.wvfn.E))]
         
         self.counter = 0
-        print gray+'Integrating...'+endcolor
+        print(gray+'Integrating...'+endcolor)
         for i in xrange(1,steps+1):
             self.counter += 1 
             c = np.append(c, np.dot(prop,c[i-1])).reshape(i+1, states)
             psi = np.append(psi, np.dot(psi_basis,c[i])).reshape(i+1,psi_basis.shape[0])
             E.append(np.dot(np.conjugate(c[i]), (c[i]*self.data.wvfn.E)))
             
-        print gray+'INTEGRATED\n'+endcolor
+        print(gray+'INTEGRATED\n'+endcolor)
             
         self.data.wvfn.psi_t = np.array(psi)
         self.data.wvfn.c_t = np.array(c)
@@ -144,14 +144,14 @@ class prim_propagator(Integrator):
         E = [np.dot(np.conjugate(psi_0.flatten()), np.dot(H,psi_0.flatten()))]
         self.counter = 0
         
-        print gray+'Integrating...'+endcolor
+        print(gray+'Integrating...'+endcolor)
         for i in xrange(steps):
             self.counter +=1 
             psi = np.append(psi, np.dot(prop,psi[i]))
             psi = np.reshape(psi, (i+2,T.shape[0]))
             E.append(np.dot(psi[i+1].conjugate(), np.dot(H,psi[i+1])))
             
-        print gray+'INTEGRATED\n'+endcolor
+        print(gray+'INTEGRATED\n'+endcolor)
             
         self.data.wvfn.psi_t = np.array(psi)
         self.data.wvfn.E_t = np.array(E)
@@ -221,9 +221,9 @@ class SOFT_propagation(Integrator):
         if (add_info == 'coefficients'):
             psi_basis = self.data.wvfn.psi
             states = psi_basis.shape[1]
-            print gray+'Projecting wavefunction onto basis of '+str(states)+' eigenstates'+endcolor
+            print(gray+'Projecting wavefunction onto basis of '+str(states)+' eigenstates'+endcolor)
             if psi_basis.shape[0] != states:
-                print gray+'**WARNING: This basis is incomplete, coefficients might contain errors**'+endcolor
+                print(gray+'**WARNING: This basis is incomplete, coefficients might contain errors**'+endcolor)
         
             c_t = [project_wvfn(psi_0, psi_basis)]
             
@@ -247,7 +247,7 @@ class SOFT_propagation(Integrator):
         
         self.counter = 0
         
-        print gray+'Integrating...'+endcolor
+        print(gray+'Integrating...'+endcolor)
         for i in xrange(i_start, steps):
             self.counter += 1
             psi1 = iFT( expT*FT(psi[i]) ) 
@@ -270,7 +270,7 @@ class SOFT_propagation(Integrator):
                 pick.dump(wave_data,out)
             
             
-        print gray+'INTEGRATED\n'+endcolor
+        print(gray+'INTEGRATED\n'+endcolor)
         
         psi_ft = FT(psi[-1])
         e_kin = np.dot(np.conjugate(psi[-1]), iFT( 2.*p/m*psi_ft))
@@ -368,9 +368,9 @@ class SOFT_average_properties(Integrator):
         if (add_info == 'coefficients'):
             psi_basis = self.data.wvfn.psi
             states = psi_basis.shape[1]
-            print gray+'Projecting wavefunction onto basis of '+str(states)+' eigenstates'+endcolor
+            print(gray+'Projecting wavefunction onto basis of '+str(states)+' eigenstates'+endcolor)
             if psi_basis.shape[0] != states:
-                print gray+'**WARNING: This basis is incomplete, coefficients might contain errors**'+endcolor
+                print(gray+'**WARNING: This basis is incomplete, coefficients might contain errors**'+endcolor)
             
             c_mean = project_wvfn(psi_0, psi_basis)
             
@@ -393,7 +393,7 @@ class SOFT_average_properties(Integrator):
         
         self.counter = 0
         
-        print gray+'Integrating...'+endcolor
+        print(gray+'Integrating...'+endcolor)
         for i in xrange(i_start, steps):
             self.counter += 1
             psi1 = iFT( expT*FT(psi) ) 
@@ -415,7 +415,7 @@ class SOFT_average_properties(Integrator):
                 pick.dump(current_data,out)
             
             
-        print gray+'INTEGRATED\n'+endcolor
+        print(gray+'INTEGRATED\n'+endcolor)
         
         e_kin = np.dot(np.conjugate(psi), iFT( 2.*p/m*FT(psi)))
         e_pot = np.conjugate(psi).dot(V*psi)
@@ -520,9 +520,9 @@ class SOFT_scattering(Integrator):
         if (add_info == 'coefficients'):
             psi_basis = self.data.wvfn.psi
             states = psi_basis.shape[1]
-            print gray+'Projecting wavefunction onto basis of '+str(states)+' eigenstates...'+endcolor
+            print(gray+'Projecting wavefunction onto basis of '+str(states)+' eigenstates...'+endcolor)
             if psi_basis.shape[0] != states:
-                print gray+'**WARNING: This basis is incomplete, coefficients might contain errors**'+endcolor
+                print(gray+'**WARNING: This basis is incomplete, coefficients might contain errors**'+endcolor)
             
             c_t = [project_wvfn(psi, psi_basis)]
             
@@ -548,7 +548,7 @@ class SOFT_scattering(Integrator):
         
         self.counter = 0
         
-        print gray+'Integrating...'+endcolor
+        print(gray+'Integrating...'+endcolor)
         for i in xrange(i_start, steps):
             self.counter += 1
             psi1 = iFT( expT*FT(psi[i]) ) 
@@ -576,8 +576,8 @@ class SOFT_scattering(Integrator):
                 pick.dump(current_data,out)
             
         
-        print gray+'INTEGRATED'
-        print status+'\n'+endcolor
+        print(gray+'INTEGRATED')
+        print(status+'\n'+endcolor)
         
         e_kin = np.dot(np.conjugate(psi[-1]), iFT( 2.*p/m*FT(psi[-1])))
         e_pot = np.conjugate(psi[-1]).dot(V*psi[-1])

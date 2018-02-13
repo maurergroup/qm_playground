@@ -134,7 +134,7 @@ class RPMD_VelocityVerlet(Integrator):
         dyn_T = kwargs.get('dyn_T', False)
         omega_t = self.omega_t
         
-        print gray+'Integrating...'+endcolor
+        print(gray+'Integrating...'+endcolor)
         for i_p in xrange(Np):
             dt_ts = np.zeros(Nb)
             for i_s in xrange(steps):
@@ -189,7 +189,7 @@ class RPMD_VelocityVerlet(Integrator):
             E_tot[i_p] = np.mean(e_tot[i_p],0)
             
         vals_tot = np.mean(vals,0)
-        print gray+'INTEGRATED'+endcolor
+        print(gray+'INTEGRATED'+endcolor)
         
         
         ## write rb_t, r_t, energies, propabilities to binary output file
@@ -296,7 +296,7 @@ class RPMD_equilibrium_properties(Integrator):
         vals = self.vals
         rbins = self.rbins
         
-        print gray+'Integrating...'+endcolor
+        print(gray+'Integrating...'+endcolor)
         for i_p in xrange(self.p_start, Np):     ## loop over beads rewritten in vector-matrix-formalism
             dt_ts = np.zeros(Nb)
             for i_s in xrange(self.s_start, steps):
@@ -354,7 +354,7 @@ class RPMD_equilibrium_properties(Integrator):
             
         vals_tot = np.mean(vals,0)
         r_mean_tot = np.mean(r_mean)
-        print gray+'INTEGRATED'+endcolor
+        print(gray+'INTEGRATED'+endcolor)
         
         ## write rb_t, r_t, energies, propabilities to binary output file
         out = open('rpmd_avgs.end', 'wb')
@@ -435,7 +435,7 @@ class RPMD_scattering(Integrator):
         e_tot = np.zeros((Np,Nb,steps+1))
         omega_t = np.zeros((Np,steps+1))
         
-        print gray+'Integrating...'+endcolor
+        print(gray+'Integrating...'+endcolor)
         for i_p in xrange(Np): 
             dt_ts = np.zeros(Nb)
             for i_s in xrange(steps):
@@ -486,8 +486,8 @@ class RPMD_scattering(Integrator):
             E_mean[i_p] = np.mean(E_tot[i_p])
             dErel_max[i_p] = max(  abs( (E_tot[i_p]-E_mean[i_p]) / E_mean[i_p] )  )
             
-        print gray+'INTEGRATED'
-        print str(self.mobile)+' particles did not reach a border\n'+endcolor
+        print(gray+'INTEGRATED')
+        print(str(self.mobile)+' particles did not reach a border\n'+endcolor)
         
         ## count reflected/transmitted particles, in general:
         ## count particles that have and those that have not crossed the barrier
@@ -495,9 +495,9 @@ class RPMD_scattering(Integrator):
         p_trans = float(np.count_nonzero(r_t[:,-1]>self.rb))/Np
         
         if (p_refl+p_trans-1.) > 1E-4:
-            print red+'Congratulations, my friend!'
-            print 'You have just been elected the Most Outstanding Lucky Loser Of the Week (MOLLOW)'
-            print 'It seems like one or more particles are located exactly at the dividing surface.'+endcolor
+            print(red+'Congratulations, my friend!')
+            print('You have just been elected the Most Outstanding Lucky Loser Of the Week (MOLLOW)')
+            print('It seems like one or more particles are located exactly at the dividing surface.'+endcolor)
         
         ## write rb_t, r_t, energies, propabilities to binary output file
         out = open('rpmd_scatter.end', 'wb')
