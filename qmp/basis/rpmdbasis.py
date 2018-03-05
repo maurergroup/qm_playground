@@ -78,23 +78,23 @@ class bead_basis(basis):
         assert (self.v.shape == self.r.shape)
         
         if (n_beads == 0) or (type(n_beads) != int):
-            print grey+'0 and lists are not allowed for number of beads, using n_beads = 4 per default'+endcolor
+            print( grey+'0 and lists are not allowed for number of beads, using n_beads = 4 per default'+endcolor)
             self.nb = 4
         else:
             self.nb = n_beads
         
         if (T is None) or (len(T)!=self.npar):
-            print grey+"Dude, you gave me an inconsistent list of temperatures or none at all ~> using 293.15 K throughout"+endcolor
+            print(grey+"Dude, you gave me an inconsistent list of temperatures or none at all ~> using 293.15 K throughout"+endcolor)
             T = [293.15]*self.npar
         
         self.Temp = np.array(T)
         self.om = self.Temp*self.nb*kB/hbar
         
-        print 'RPMD simulation using'
-        print 'Np = '+str(self.npar)+'   non-interacting particles in'
-        print 'Ndim = '+str(self.ndim)+'  dimensions using'
+        print('RPMD simulation using')
+        print('Np = '+str(self.npar)+'   non-interacting particles in')
+        print('Ndim = '+str(self.ndim)+'  dimensions using')
         #print 'T [K] =   '+str(self.Temp)
-        print 'Nb = '+str(self.nb)+'  beads per particle\n'
+        print('Nb = '+str(self.nb)+'  beads per particle\n')
         
         if self.ndim == 2:
             xi = 2.*np.pi/self.nb
