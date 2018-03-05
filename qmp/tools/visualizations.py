@@ -314,7 +314,7 @@ def contour_movie2D(xgrid, ygrid, pot, pos_arr, steps, npar=1, interval = 50, tr
                 pot_plot = ax0.contourf(xgrid, ygrid, pot, lvl, ls=None,alpha=.75,cmap=cm.jet)
                 cbar = plt.colorbar(pot_plot)
                 cbar.ax.set_ylabel('$potential$ $energy$ $[a.u.]$')
-                      ttl.set_text('step=0')
+                ttl.set_text('step=0')
                 return tuple(plots), ttl
     
             def animate(i):
@@ -366,7 +366,7 @@ def contour_movie2D(xgrid, ygrid, pot, pos_arr, steps, npar=1, interval = 50, tr
                 pot_plot = ax0.contourf(xgrid, ygrid, pot, lvl, ls=None,alpha=.75,cmap=cm.jet)
                 cbar = plt.colorbar(pot_plot)
                 cbar.ax.set_ylabel('$potential$ $energy$ $[a.u.]$')
-                    ttl.set_text('step=0')
+                ttl.set_text('step=0')
                 return tuple(plots), tuple(traces),ttl,
     
             def animate(i):
@@ -374,7 +374,7 @@ def contour_movie2D(xgrid, ygrid, pot, pos_arr, steps, npar=1, interval = 50, tr
                 for p in range(npar):
                     plots[p].set_data(pos_arr[p,i,0],pos_arr[p,i,1])
                     traces[p].set_data(pos_arr[p,:i+1,0],pos_arr[p,:i+1,1])
-                    ttl.set_text('step='+str(i))
+                ttl.set_text('step='+str(i))
                 return tuple(plots), tuple(traces),ttl,
             ani = animation.FuncAnimation(fig, animate, np.arange(0, steps), init_func=_init_, \
                                interval=interval, blit=False)
