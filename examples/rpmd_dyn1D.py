@@ -6,6 +6,7 @@ from qmp import *                          #
 from qmp.basis.rpmdbasis import *          #
 from qmp.potential import Potential        #
 from qmp.potential.pot_tools import *      #
+from qmp.tools.visualizations import *     #
 ############################################
 
 ### SIMULATION CELL ### 
@@ -33,20 +34,19 @@ rpmd1d.set_potential(pot)
 
 
 ### INITIAL VALUES ###
-rs = [[17.],[17.],[18.],[18.],[16.],[16.],[17.5],[17.5],[16.5],[16.5]]*5
-vs = [[0.002797],[-0.002797],[0.002270],[-0.002270],[0.001610],[-0.001610],[0.002649],[-0.002649],[0.002588],[-0.002588]]*5
-masses = [1850.,]*50
+rs = [[17.],[17.],[18.],[18.],[16.],[16.],[17.5],[17.5],[16.5],[16.5]]#*5
+vs = [[0.002797],[-0.002797],[0.002270],[-0.002270],[0.001610],[-0.001610],[0.002649],[-0.002649],[0.002588],[-0.002588]]#*5
+masses = [1850.,]*10#*5
 n_beads = 8
-Temp = [50.,]*50
+Temp = [50.,]*10#*5
 
 b = bead_basis(rs, vs, masses, n_beads, T=Temp)
 rpmd1d.set_basis(b)
 print rpmd1d
 
-
 ### DYNAMICS PARAMETERS ###
-dt =  5.
-steps = 1E6
+dt =  1.
+steps = 1E4
 
 ### THERMOSTAT ###
 thermostat = {'name' : 'Andersen',
@@ -67,6 +67,10 @@ E_t = rpmd1d.data.rpmd.E_t
 E_kin = rpmd1d.data.rpmd.E_kin_t
 E_pot = rpmd1d.data.rpmd.E_pot_t
 Eb_kin = rpmd1d.data.rpmd.Eb_kin_t
+Ptot = rpmd1d.data.rpmd.prop_tot
+Pind = rpmd1d.data.rpmd.prop_vals
+bins = rpmd1d.data.rpmd.prop_bins[0]
+
 
 f = open('rpmd_'+str(n_beads)+'beads_'+str(int(steps))+'steps.log', 'w')
 f.write('RPMD simulation in {0:d} by {1:d} cell at\n'.format(int(cell[0][0]), int(cell[0][1])))
@@ -76,15 +80,9 @@ f.write('r_mean = {0:f} a_0\n'.format(np.mean(r_t)))
 f.close()
 
 ### VISUALIZATION ###
-V_x = rpmd1d.pot(np.linspace(0.,cell[0][1],600))
+propability_distribution1D(rpmd1d, plot_pot=True, show_all_particles=True, show_plot=True, scale_potential=0.2)
 
-import matplotlib.pyplot as plt
-fig = plt.figure()
-ax = plt.gca()
-n, bins, bla = plt.hist(r_t.flatten(),200.,normed=1)
-ax.clear()
-ax.plot(np.linspace(min(bins)+(bins[1]-bins[0])/2.,max(bins)-(bins[1]-bins[0])/2.,len(n)), n)
-plt.save('prop_distr_'+str(n_beads)+'beads_'+str(int(steps))+'steps.pdf')
+
 raise SystemExit
 import matplotlib.animation as animation
 

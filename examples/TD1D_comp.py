@@ -41,7 +41,6 @@ psi_0 = create_gaussian(tik1d.basis.x, x0=17., p0=0., sigma=sigma)
 psi_0 = psi_0/np.sqrt(np.conjugate(psi_0).dot(psi_0))
 
 tik1d.run(steps,dt, psi_0=psi_0)
-print 'INTEGRATED'
 psi_t = tik1d.data.wvfn.psi_t
 
 E_t_SOFT = tik1d.data.wvfn.E_t
@@ -70,7 +69,6 @@ print tik1d_eigen
 
 tik1d_eigen.run(0, dt, psi_0 = psi_0)
 tik1d_eigen.run(steps,dt, psi_0=psi_0)
-print 'INTEGRATED'
 psi_t_eigen = tik1d_eigen.data.wvfn.psi_t
 
 E_t_eigen = tik1d_eigen.data.wvfn.E_t
@@ -98,7 +96,6 @@ tik1d_prim.set_basis(b)
 print tik1d_prim
 
 tik1d_prim.run(steps,dt, psi_0=psi_0)
-print 'INTEGRATED'
 psi_t_prim = tik1d_prim.data.wvfn.psi_t
 
 E_t_prim = tik1d_prim.data.wvfn.E_t
@@ -108,9 +105,6 @@ if tik1d_prim.parameters['integrator'] == 'SOFT':
 
 rho_t_prim = np.sum(psi_t_prim*np.conjugate(psi_t_prim),1)
 
-print E_t_SOFT[:10]
-print E_t_eigen[:10]
-print E_t_prim[:10]
 
 #####VISUALIZATION
 

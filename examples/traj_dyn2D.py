@@ -12,7 +12,7 @@ from qmp.tools.utilities import *          #
 
 
 ### SIMULATION CELL ### 
-cell = [[0.,0.], [20.,20.]]
+cell = [[0.,20.], [0.,20.]]
 
 ### POTENTIAL ###
 pot = Potential2D( cell, f=create_potential2D(cell, name='elbow') )
@@ -46,7 +46,6 @@ steps = 300
 
 ### EVOLVE SYSTEM ###
 traj2d.run(steps,dt)
-print 'INTEGRATED'
 
 ## gather information
 r_t = traj2d.data.traj.r_t

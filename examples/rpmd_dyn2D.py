@@ -12,7 +12,7 @@ from qmp.tools.visualizations import *     #
 import scipy.linalg as la
 
 ### SIMULATION CELL ### 
-cell = [[0.,0.], [20.,20.0]]
+cell = [[0.,20.], [0.,20.]]
 
 ### POTENTIAL ###
 f=create_potential2D(cell,
@@ -39,8 +39,8 @@ rpmd2d.set_potential(pot)
 ### SET INITIAL VALUES ###
 rs = [[15.,4.5]]#,[15.,3.5], [2.5,8.]]
 vs = [[0.,0.]]#,[0.,0.],[1.,-2.]]
-masses = [200.]#, 1., 1.]
-n_beads = 4
+masses = [1860.]#, 1., 1.]
+n_beads = 8
 Temp = [300.]#, 393., 1000.]
 
 b = bead_basis(rs, vs, masses, n_beads, T=Temp)
@@ -50,18 +50,17 @@ print rpmd2d
 
 ### DYNAMICS PARAMETERS ###
 dt =  2.
-steps = 1E3
+steps = 1E4
 
 ### THERMOSTAT ###
 thermo = {
          'name':  'Andersen',
          'cfreq': 1E-4,
-         'T_set': 10000.,
+         'T_set': 100.,
          }
 
 ### EVOLVE SYSTEM ###
 rpmd2d.run(steps,dt,thermostat=thermo)
-print 'INTEGRATED'
 
 ## gather information
 r_t = rpmd2d.data.rpmd.r_t
@@ -75,13 +74,15 @@ vb_t = rpmd2d.data.rpmd.vb_t
 Eb_t = rpmd2d.data.rpmd.Eb_t
 Eb_kin = rpmd2d.data.rpmd.Eb_kin_t
 Eb_pot = rpmd2d.data.rpmd.Eb_pot_t
+bins = rpmd2d.data.rpmd.prop_bins
 
-x = np.linspace(0., 20., 200)
-y = np.linspace(0., 20., 200)
-xg, yg = np.meshgrid(x,y)
+xax = np.arange(bins[0][0], bins[0][-1]+0.1, 0.1)
+yax = np.arange(bins[1][0], bins[1][-1]+0.1, 0.1)
+xg, yg, = np.meshgrid(xax, yax)
 V_xy = rpmd2d.pot(xg, yg)
 
 ### VISUALIZATION ###
+propability_distribution2D(rpmd2d, show_plot=True, nlines_pot=6, add_contour_labels=True)
 
 contour_movie2D(xg, yg, V_xy, r_t, steps+1, npar=1, trace=True)
 

@@ -50,7 +50,6 @@ print tik1d
 tik1d.solve()
 
 psi = tik1d.data.wvfn.psi
-print tik1d.data.wvfn.E[:3]
 
 ### VISUALIZATION ###
 wave_slideshow1D(tik1d.basis.x, psi, tik1d.pot(tik1d.basis.x))

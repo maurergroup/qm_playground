@@ -3,6 +3,9 @@
 *.log
 *.out
 build
+lib
+qm_playground.egg-info
 *.pyc
 .DS_Store
+record.txt
 .*

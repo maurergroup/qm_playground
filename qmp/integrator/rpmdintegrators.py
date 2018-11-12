@@ -32,7 +32,9 @@ def remove_restart(filename):
     Removes filename from current directory, if existing
     """
     try:
-        os.remove(filename)
+        from os import remove
+        remove(filename)
+        del remove
     except OSError:
         pass
 
@@ -55,8 +57,21 @@ class RPMD_VelocityVerlet(Integrator):
         self.thermo = create_thermostat(name=ts_name, cfreq=ts_cfreq, T_set=ts_Tset)
         
         Np = self.basis.npar
-        restart = kwargs.get('restart_file', False)
-        if not restart:
+        Nb = self.basis.nb
+        self.restart = kwargs.get('restart_file', False)
+        
+        
+    def run(self, steps, dt, **kwargs):
+        import cPickle as pick
+        ## general information
+        Np = self.basis.npar
+        Nb = self.basis.nb
+        ndim = self.basis.ndim
+        m = self.basis.m
+        
+        Np = self.basis.npar
+        Nb = self.basis.nb
+        if not self.restart:
             ## initialize zero arrays
             self.rb_t = np.zeros((Np,Nb,steps+1,ndim))
             self.rb_t[:,:,0,:] = np.array(self.basis.r_beads)
@@ -73,20 +88,27 @@ class RPMD_VelocityVerlet(Integrator):
             self.e_pot = np.zeros((Np,Nb,steps+1))
             self.e_kin = np.zeros((Np,Nb,steps+1))
             self.e_tot = np.zeros((Np,Nb,steps+1))
+            
+            bins = [np.arange(self.data.cell[0][0], self.data.cell[0][1], 0.1)]
+            if ndim == 2:
+                bins.append(np.arange(self.data.cell[1][0], self.data.cell[1][1], 0.1))
+            
+            H, self.rbins = np.histogramdd(self.r_t[0,:,:], bins=bins)
+            self.vals = np.zeros(np.shape([H,]*Np))
 
-            h = np.histogram(self.rb_t[:,0,:],bins=np.arange(self.data.cell[0][0], self.data.cell[0][1], 0.1))
-            self.vals = np.zeros((Np,len(h[0])))
-            self.rbins = h[1]
-            
+#            h = np.histogram(self.rb_t[:,0,:],bins=np.arange(self.data.cell[0][0], self.data.cell[0][1], 0.1))
+#            self.vals = np.zeros((Np,len(h[0])))
+#            self.rbins = h[1]
+
             self.omega_t = np.zeros((Np,steps+1))
-            
+
             self.p_start = 0
             self.s_start = 0
         else:
             ## try to load arrays from restart file
             try:
                 import cPickle as pick
-                restart_file = open(restart,'rb')
+                restart_file = open(self.restart,'rb')
                 current_data = pick.load(restart_file)
                 self.rb_t = current_data['rb_t']
                 self.r_t = current_data['r_t']
@@ -104,32 +126,15 @@ class RPMD_VelocityVerlet(Integrator):
                 self.p_start = current_data['i_p']
                 self.s_start = current_data['i_s']+1
             except:
-                raise ValueError("Could not load restart file '"+str(restart)+"'.")
-        
-        
-    def run(self, steps, dt, **kwargs):
-        import cPickle as pick
-        ## general information
-        Np = self.basis.npar
-        Nb = self.basis.nb
-        ndim = self.basis.ndim
-        m = self.basis.m
-        
+                raise ValueError("Could not load restart file '"+str(self.restart)+"'.")
+            
         ## positions, velocities, energies, etc.
-        rb_t = self.rb_t
-        vb_t = self.vb_t
-        r_t = self.r_t
-        v_t = self.v_t
+        rb_t, vb_t, r_t, v_t = self.rb_t, self.vb_t, self.r_t, self.v_t
         
-        E_pot = self.E_pot
-        E_kin = self.E_kin
-        E_tot = self.E_tot
-        e_pot = self.e_pot
-        e_kin = self.e_kin
-        e_tot = self.e_tot
+        E_pot, E_kin, E_tot = self.E_pot, self.E_kin, self.E_tot
+        e_pot, e_kin, e_tot = self.e_pot, self.e_kin, self.e_tot
         
-        vals = self.vals
-        rbins = self.rbins
+        vals, rbins = self.vals, self.rbins
         
         dyn_T = kwargs.get('dyn_T', False)
         omega_t = self.omega_t
@@ -148,20 +153,20 @@ class RPMD_VelocityVerlet(Integrator):
                 omega_t[i_p,i_s] = om
                 
                 ## energy stuff
-                e_pot[i_p,:,i_s] = self.basis.get_potential_energy_beads(rb_t[i_p,:,i_s], self.pot, m[i_p], om[i_p])
+                e_pot[i_p,:,i_s] = self.basis.get_potential_energy_beads(rb_t[i_p,:,i_s], self.pot, m[i_p], om)
                 e_kin[i_p,:,i_s] = self.basis.get_kinetic_energy(m[i_p], vb_t[i_p,:,i_s])
                 e_tot[i_p,:,i_s] = e_kin[i_p,:,i_s]+e_pot[i_p,:,i_s]
                 
                 v_t[i_p,i_s] = np.mean(vb_t[i_p,:,i_s],0)
                 r_t[i_p,i_s] = np.mean(rb_t[i_p,:,i_s],0)
-                if i_s > 10000:
-                    vals[i_p] += np.histogram(r_t[i_p,i_s],bins=rbins,density=True)[0]
+#                if i_s > 10000:
+#                    vals[i_p] += np.histogram(r_t[i_p,i_s],bins=rbins,density=True)[0]
                
                 ## propagation
-                F = self.basis.get_forces(rb_t[i_p,:,i_s], self.pot, m[i_p], om[i_p])
+                F = self.basis.get_forces_beads(rb_t[i_p,:,i_s], self.pot, m[i_p], om)
                 v1 = vb_t[i_p,:,i_s] + F/m[i_p]*dt/2.
                 rb_t[i_p,:,i_s+1] = rb_t[i_p,:,i_s]+v1*dt
-                F = self.basis.get_forces(rb_t[i_p,:,i_s+1], self.pot, m[i_p], om[i_p])
+                F = self.basis.get_forces_beads(rb_t[i_p,:,i_s+1], self.pot, m[i_p], om)
                 vb_t[i_p,:,i_s+1] = v1+F/m[i_p]*dt/2.
                 
                 ## thermostatting
@@ -178,9 +183,10 @@ class RPMD_VelocityVerlet(Integrator):
                                  'i_p':i_p, 'i_s':i_s}
                     pick.dump(rpmd_data,out)
                 
-            vals[i_p] /= i_s
+            vals[i_p] = np.histogramdd(r_t[i_p,:,:],bins=rbins,normed=True)[0]
+#            vals[i_p] /= i_s
             
-            e_pot[i_p,:,steps] = self.basis.get_potential_energy_beads(rb_t[i_p,:,steps], self.pot, m[i_p], om[i_p])
+            e_pot[i_p,:,steps] = self.basis.get_potential_energy_beads(rb_t[i_p,:,steps], self.pot, m[i_p], om)
             e_kin[i_p,:,steps] = self.basis.get_kinetic_energy(m[i_p], vb_t[i_p,:,steps])
             e_tot[i_p,:,steps] = e_kin[i_p,:,i_s]+e_pot[i_p,:,i_s]
             
@@ -322,10 +328,10 @@ class RPMD_equilibrium_properties(Integrator):
                     r_mean[i_p] += np.mean(rb_t[i_p],0)
                 
                 ## propagation
-                F = self.basis.get_forces(rb_t[i_p], self.pot, m[i_p], om)
+                F = self.basis.get_forces_beads(rb_t[i_p], self.pot, m[i_p], om)
                 v1 = vb_t[i_p] + F/m[i_p]*dt/2.
                 rb_t[i_p] = rb_t[i_p]+v1*dt
-                F = self.basis.get_forces(rb_t[i_p], self.pot, m[i_p], om)
+                F = self.basis.get_forces_beads(rb_t[i_p], self.pot, m[i_p], om)
                 vb_t[i_p] = v1+F/m[i_p]*dt/2.
                 
                 ## thermostatting

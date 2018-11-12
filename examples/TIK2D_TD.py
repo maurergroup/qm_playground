@@ -63,7 +63,6 @@ psi_0 = create_gaussian2D(tik2d.basis.xgrid, tik2d.basis.ygrid, x0=[8.,7.], p0=[
 psi_0 /= np.sqrt(np.conjugate(psi_0.flatten()).dot(psi_0.flatten()))
 
 tik2d.run(steps,dt, psi_0=psi_0)
-print 'INTEGRATED'
 
 # number steps: initial + propagated = steps + 1
 psi_t = tik2d.data.wvfn.psi_t     #(steps+1, x**ndim)

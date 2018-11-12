@@ -53,7 +53,6 @@ tik2d.set_basis(b)
 print tik2d
 
 tik2d.solve()
-print 'SOLVED'
 
 psi = tik2d.data.wvfn.psi
 V_xy = tik2d.pot(tik2d.basis.xgrid, tik2d.basis.ygrid)

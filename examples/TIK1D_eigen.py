@@ -109,8 +109,6 @@ print tik1d
 
 tik1d.solve()
 
-print 'SOLVED'
-
 
 
 ####VISUALIZATION

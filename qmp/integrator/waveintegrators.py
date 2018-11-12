@@ -26,7 +26,6 @@ from qmp.integrator.integrator import Integrator
 from qmp.integrator.dyn_tools import project_wvfn
 from qmp.tools.termcolors import *
 import numpy as np
-import os
 
 
 def remove_restart(filename):
@@ -34,7 +33,9 @@ def remove_restart(filename):
     Removes filename from current directory, if existing
     """
     try:
-        os.remove(filename)
+        from os import remove
+        remove(filename)
+        del remove
     except OSError:
         pass
 

@@ -361,7 +361,7 @@ def contour_movie2D(xgrid, ygrid, pot, pos_arr, steps, npar=1, interval = 50, tr
                             label='r{0:03d}(t)'.format(p), \
                             ls='', marker=markers[p%ml], mec='k',mfc='k', ms=9)[0])
                 traces.append(ax0.plot(pos_arr[p,0,0], pos_arr[p,0,1], ls=':',lw=2,c='0.9',zorder=1)[0])
-                    ttl = ax0.text(0.5,1.005,'', transform=ax0.transAxes)
+                ttl = ax0.text(0.5,1.005,'', transform=ax0.transAxes)
             def _init_():
                 pot_plot = ax0.contourf(xgrid, ygrid, pot, lvl, ls=None,alpha=.75,cmap=cm.jet)
                 cbar = plt.colorbar(pot_plot)
@@ -380,3 +380,134 @@ def contour_movie2D(xgrid, ygrid, pot, pos_arr, steps, npar=1, interval = 50, tr
                                interval=interval, blit=False)
     
             plt.show()
+    
+def propability_distribution1D(model, plot_pot=True, show_all_particles=False, show_plot=False, \
+                               scale_potential=1., figname="propability_distribution1d.pdf"):
+    import matplotlib.pyplot as plt
+    from qmp.model import Model as mod_ref
+    from matplotlib.lines import Line2D
+    
+    
+    assert type(model) == mod_ref, "Please, provide qmp model."
+    sim_mode = model.parameters['mode']
+    dummy_str = "hasattr(model.data."+sim_mode+", 'prop_tot')"
+    has_prop_tot =  eval(dummy_str)
+    err_msg = "Please, specify a model that provides propability distribution"
+    assert has_prop_tot, err_msg
+    if show_all_particles:
+        dummy_str = "hasattr(model.data."+sim_mode+", 'prop_vals')"
+        has_prop_vals =  eval(dummy_str)
+        err_msg = "Please, specify a model that provides propability distributions"
+        assert has_prop_vals, err_msg
+    
+    Ptot = eval("model.data."+sim_mode+".prop_tot")
+    bins = eval("model.data."+sim_mode+".prop_bins")
+    assert len(bins) == 1, "Is this one-dimensional?"
+    bins = bins[0]
+    if plot_pot:
+        xgrid = np.arange(bins[0], bins[-1]+0.1, 0.1)
+        pot = model.pot(xgrid)
+    
+    if show_all_particles: Pvals = eval("model.data."+sim_mode+".prop_vals")
+    fig = plt.figure()
+    ax = fig.gca()
+    labs, lines = [], []
+    if plot_pot:
+        ax2 = ax.twinx()
+        pot_label = 'potential'
+        ax2.plot(xgrid, pot, c='r', lw=1.75, ls='--', label=pot_label)
+        ax2.set_ylim(min(pot), min(pot)+1.2*max(Ptot)*scale_potential)
+        ax2.set_ylabel('potential energy [Ha]')
+        labs.append(pot_label)
+        lines.append(Line2D([0.], [1.], c='r', lw=1.75, ls='--'))
+    
+    if show_all_particles:
+        for P_i in Pvals: ax.plot(bins[:-1], P_i/(len(Pvals)), alpha=0.5, lw=1.5)
+        lines.append(Line2D([0.], [1.], c='k', alpha=0.5))
+        labs.append("individual particle density")
+    
+    prop_label = 'total propability density'
+    ax.plot(bins[:-1], Ptot, c='b', lw=1.75, label=prop_label)
+    labs.append(prop_label)
+    lines.append(Line2D([0.], [1.],  c='b', lw=1.75))
+    
+    ax.set_xlabel('x [a.u.]')
+    ax.set_xlim(bins[0], bins[-1])
+    ax.set_ylim(0., 1.2*max(Ptot))
+    ax2.legend(lines, labs, loc='best')
+    ax.set_title("Propability distribution from QMP simulation")
+    fig.savefig(figname)
+    plt.show() if show_plot else plt.close()
+    
+
+def propability_distribution2D(model, plot_pot=True, dx_pot=0.1, dy_pot=0.1, show_plot=False, \
+                               scale_potential=1., nlines_pot=8, add_contour_labels=False, \
+                               only_particle=None, figname="propability_distribution2d.pdf"):
+    import matplotlib.pyplot as plt
+    from matplotlib import gridspec as gsp
+    from matplotlib import colors as cm
+    from qmp.model import Model as mod_ref
+    
+    
+    assert type(model) == mod_ref, "Please, provide qmp model."
+    sim_mode = model.parameters['mode']
+    has_property = "hasattr(model.data."+sim_mode+", 'prop_tot')"
+    err_msg = "Please, specify a model that provides propability distribution"
+    assert eval(has_property), err_msg
+    
+    if only_particle is None:
+        Ptot = eval("model.data."+sim_mode+".prop_tot")
+    else:
+        err_msg = "Please, specify integer <i> for particle to be plottet (only_particle=<i>)"
+        assert type(only_particle) == int, err_msg
+        err_msg = "Please, specify a model that provides propability distributions"
+        has_property = "hasattr(model.data."+sim_mode+", 'prop_vals')"
+        assert eval(has_property), err_msg
+        try:
+            npar = model.basis.npar
+            check = True
+        except:
+            check = False
+        
+        assert check, "Your model does not provide information on the number of particles. Stopping."
+        err_msg = "Specified index for particle to be plotted is out of range.\nOnly "
+        err_msg += str(npar)+" particles simulated. (particle indices start at 0)"
+        assert only_particle<=npar-1, err_msg
+        Ptot = eval("model.data."+sim_mode+".prop_vals["+str(only_particle)+"]")
+    
+    bins = eval("model.data."+sim_mode+".prop_bins")
+    assert len(bins) == 2, "Is this two-dimensional?"
+    x, y = np.meshgrid(bins[0][:-1],bins[1][:-1])
+    gs = gsp.GridSpec(2,2, height_ratios=[0.05,1.], width_ratios=[1.,0.05])
+    gs.update(left=0.075, right=0.9, bottom=0.08, top=0.9, wspace=0.02, hspace=0.03)
+    ax = plt.subplot(gs[1,0])
+    con_p = ax.contourf(x, y, Ptot-1e-12, cmap='hot_r', linestyles=None, extend='neither', \
+                        vmin=0., vmax=np.max(abs(Ptot)))
+    for c in con_p.collections: c.set_linestyle('solid')
+    cbax = plt.subplot(gs[1,1])
+    norm = cm.Normalize(vmin=0., vmax=con_p.cvalues.max())
+    sm = plt.cm.ScalarMappable(norm=norm, cmap=con_p.cmap)
+    sm.set_array([])
+    cb = plt.colorbar(cax=cbax, mappable=sm, ticks=con_p.levels, orientation='vertical', ticklocation='right')
+    cb.set_label('Propability density', labelpad=10)
+    if plot_pot:
+        xax = np.arange(bins[0][0], bins[0][-1]+dx_pot, dx_pot)
+        yax = np.arange(bins[1][0], bins[1][-1]+dy_pot, dy_pot)
+        xgrid, ygrid = np.meshgrid(xax, yax)
+        V_xy = model.pot(xgrid, ygrid)
+        con_v = ax.contour(xgrid, ygrid, V_xy, nlines_pot, cmap='winter', linewidths=2., extend='neither')
+        if add_contour_labels: ax.clabel(con_v, inline=1, fontsize=10)
+        cbax = plt.subplot(gs[0,0])
+        norm = cm.Normalize(vmin=con_v.cvalues.min(), vmax=con_v.cvalues.max())
+        sm = plt.cm.ScalarMappable(norm=norm, cmap=con_v.cmap)
+        sm.set_array([])
+        cb = plt.colorbar(cax=cbax, mappable=sm, ticks=con_v.levels, orientation='horizontal', ticklocation='top')
+        cb.set_label('Potential isolines [Ha]', labelpad=10)
+    
+    ax.set_xlabel('x [a.u.]')
+    ax.set_ylabel('y [a.u.]')
+    
+    plt.savefig(figname)
+    plt.show() if show_plot else plt.close()
+    
+

@@ -233,9 +233,9 @@ def create_potential2D(cell, name='free', **kwargs):
 
         ## 2D box
         def f_box(x,y):
-            box_p = kwargs.get('box_pos', np.mean(cell,0))
-            box_wx = kwargs.get('box_widthx', np.mean(cell,0)[0]/2.)/2.
-            box_wy = kwargs.get('box_widthy', np.mean(cell,0)[1]/2.)/2.
+            box_p = kwargs.get('box_pos', np.mean(cell,1))
+            box_wx = kwargs.get('box_widthx', abs(cell[0][1]-cell[0][0])/2.)/2.
+            box_wy = kwargs.get('box_widthy', abs(cell[1][1]-cell[1][0])/2.)/2.
             box_h = kwargs.get('box_height', 10000000000.)
             
             m = (x < box_p[0]+box_wx)*(x > box_p[0]-box_wx)
@@ -244,12 +244,12 @@ def create_potential2D(cell, name='free', **kwargs):
             
         ## double box
         def f_double_box(x,y):
-            box1_p = kwargs.get('box1_pos', np.mean(cell,0)/3.)
-            box1_wx = kwargs.get('box1_widthx', np.mean(cell,0)[0]/2.)/2.
-            box1_wy = kwargs.get('box1_widthy', np.mean(cell,0)[1]/2.)/2.
-            box2_p = kwargs.get('box2_pos', 2.*np.mean(cell,0)/3.)
-            box2_wx = kwargs.get('box2_widthx', np.mean(cell,0)[0]/2.)/2.
-            box2_wy = kwargs.get('box2_widthy', np.mean(cell,0)[1]/2.)/2.
+            box1_p = kwargs.get('box1_pos', np.mean(cell,1)/3.)
+            box1_wx = kwargs.get('box1_widthx', abs(cell[0][1]-cell[0][0])/2.)/2.
+            box1_wy = kwargs.get('box1_widthy', abs(cell[1][1]-cell[1][0])/2.)/2.
+            box2_p = kwargs.get('box2_pos', 2.*np.mean(cell,1)/3.)
+            box2_wx = kwargs.get('box2_widthx', abs(cell[0][0]-cell[0][0])/2.)/2.
+            box2_wy = kwargs.get('box2_widthy', abs(cell[1][1]-cell[1][0])/2.)/2.
             db_h = kwargs.get('double_box_height', 1000000.)
             
             m1 = (x < box1_p[0]+box1_wx)*(x > box1_p[0]-box1_wx)
@@ -276,10 +276,10 @@ def create_potential2D(cell, name='free', **kwargs):
         def f_harm(x,y):
             omx = kwargs.get('harmonic_omega_x', 1./2.)
             omy = kwargs.get('harmonic_omega_y', 1./2.)
-            harm_p = kwargs.get('harmonic_pos', np.mean(cell,0))
+            harm_p = kwargs.get('harmonic_pos', np.mean(cell,1))
             if (harm_p[0] < cell[0][0]) or \
-               (harm_p[0] > cell[1][0]) or \
-               (harm_p[1] < cell[0][1]) or \
+               (harm_p[0] > cell[0][1]) or \
+               (harm_p[1] < cell[1][0]) or \
                (harm_p[1] > cell[1][1]):
                 raise ValueError('Please define positions within cell')
             
@@ -300,10 +300,10 @@ def create_potential2D(cell, name='free', **kwargs):
                 raise ValueError("Please define 'wall_dir' as 0 or 1 (corresponds to x or y direction, respectively)")
             
             if (wall_dir == 0) and \
-               ((wall_p < cell[0][0]) or (wall_p > cell[1][0])):
+               ((wall_p < cell[0][0]) or (wall_p > cell[0][1])):
                 raise ValueError('Please define position within cell')
             elif (wall_dir == 1) and \
-               ((wall_p < cell[0][1]) or (wall_p > cell[1][1])):
+               ((wall_p < cell[1][0]) or (wall_p > cell[1][1])):
                 raise ValueError('Please define position within cell')
         
             return m*wall_h
@@ -313,10 +313,10 @@ def create_potential2D(cell, name='free', **kwargs):
         def f_mexican(x,y):
             mex_si = kwargs.get('mexican_sigma', 1.)
             mex_sc = kwargs.get('mexican_scale', 20.)
-            mex_p = kwargs.get('mexican_pos', np.mean(cell,0))
+            mex_p = kwargs.get('mexican_pos', np.mean(cell,1))
             if (mex_p[0] < cell[0][0]) or \
-               (mex_p[0] > cell[1][0]) or \
-               (mex_p[1] < cell[0][1]) or \
+               (mex_p[0] > cell[0][1]) or \
+               (mex_p[1] < cell[1][0]) or \
                (mex_p[1] > cell[1][1]):
                 raise ValueError('Please define positions within cell')
             
@@ -329,10 +329,10 @@ def create_potential2D(cell, name='free', **kwargs):
         ## gaussian
         def f_gauss(x,y):
             gauss_s = kwargs.get('gaussian_sigma', [1.,1.])
-            gauss_p = kwargs.get('gaussian_pos', np.mean(cell,0))
+            gauss_p = kwargs.get('gaussian_pos', np.mean(cell,1))
             if (gauss_p[0] < cell[0][0]) or \
-               (gauss_p[0] > cell[1][0]) or \
-               (gauss_p[1] < cell[0][1]) or \
+               (gauss_p[0] > cell[0][1]) or \
+               (gauss_p[1] < cell[1][0]) or \
                (gauss_p[1] > cell[1][1]):
                 raise ValueError('Please define positions within cell')
             

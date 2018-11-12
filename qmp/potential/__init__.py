@@ -24,6 +24,6 @@ This module contains all necessary subroutines to create
 a potential on which the dynamics run. It also contains a set of 
 predefined analytical potentials.
 """
-#from potential.potential import Potential
-#from potential.potential import Potential2D
+from qmp.potential.potential import Potential, Potential2D
+#from qmp.potential.potential2D import Potential2D
 

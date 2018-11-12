@@ -49,11 +49,9 @@ steps = 1000
 
 ### EVOLVE SYSTEM ###
 traj1d.run(steps,dt)
-print 'INTEGRATED'
 
 ## gather information
 r_t = traj1d.data.traj.r_t
-print r_t.shape
 v_t = traj1d.data.traj.v_t
 E_t = traj1d.data.traj.E_t
 E_kin = traj1d.data.traj.E_kin_t
