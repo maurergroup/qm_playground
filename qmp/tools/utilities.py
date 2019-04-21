@@ -1,10 +1,10 @@
 #qmp.tools.utilities
 #
 #    qm_playground - python package for dynamics simulations
-#    Copyright (C) 2016  Reinhard J. Maurer 
+#    Copyright (C) 2016  Reinhard J. Maurer
 #
 #    This file is part of qm_playground.
-#    
+#
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
@@ -28,6 +28,7 @@ mass = 1.
 kB = 3.16681E-6
 
 import numpy as np
+import scipy.special
 
 
 def num_deriv(f,x,incr=0.001):
@@ -74,3 +75,28 @@ def num_deriv2_2D(f, x,y, incr_x=0.001,incr_y=0.001):
     """
     return (f(x+incr_x,y)-2.*f(x,y)+f(x-incr_x,y))/(incr_x*incr_x) + \
            (f(x,y+incr_y)-2.*f(x,y)+f(x,y-incr_y))/(incr_y*incr_y)
+
+
+def general_deriv(f, location, order=1, h=0.001):
+
+    inverted = np.array([[0, 1/12, -1/24, -1/12, 1/24],
+                         [0, -2/3, 2/3, 1/6, -1/6],
+                         [1, 0, -5/4, 0, 1/4],
+                         [0, 2/3, 2/3, -1/6, -1/6],
+                         [0, -1/12, -1/24, 1/12, 1/24]])
+
+    derivative = np.zeros_like(location, dtype=float)
+    vect = np.zeros(5)
+
+    vect[order] = np.math.factorial(order)
+    coefficients = 1 / (h ** order) * np.matmul(inverted, vect)
+
+    sampled_points = np.array([-2.*h, -h, 0, h, 2.*h])
+
+    for i in range(len(location)):
+        for j, point in enumerate(sampled_points):
+            copy = location.copy()
+            copy[i] += point
+            derivative[i] += coefficients[j] * f(*copy)
+
+    return derivative
