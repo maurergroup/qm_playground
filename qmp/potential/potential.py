@@ -23,7 +23,7 @@ class potential
 
 from qmp.tools import utilities
 import numpy as np
-import inspect
+
 
 class Potential(object):
     """
@@ -78,19 +78,12 @@ class Potential(object):
         """
         calculate potential at point x or list of points x
         """
-        argument_dimension = len(np.shape(points))
-        try:
-            if argument_dimension == self.dimension:
-                result = np.zeros_like(points)
+        result = np.zeros(len(points))
 
-                for i, point in enumerate(points):
-                    result[i] = self.evaluate_potential(point, n=n)
+        for i, point in enumerate(points):
+            result[i] = self.evaluate_potential(point, n=n)
 
-                return result
-            else:
-                return self.evaluate_potential(points, n=n)
-        except ValueError:
-            print("Potential could not be evaluated for set of points.")
+        return result
 
     def evaluate_potential(self, point, n=0):
         """ Calculate potential at single point. """
@@ -156,3 +149,21 @@ class Potential(object):
             y[i] = self.f[0](x)
 
         plt.plot(L, y)
+
+    def plot_2d(self):
+        try:
+            from matplotlib import pyplot as plt
+        except ImportError:
+            raise ImportError('cannot import matplotlib')
+
+        x = np.linspace(self.cell[0][0], self.cell[0][1], 50)
+        y = np.linspace(self.cell[1][0], self.cell[1][1], 50)
+
+        X, Y = np.meshgrid(x, y)
+        Z = np.zeros_like(X)
+
+        for i, x in enumerate(X):
+            for j, y in enumerate(x):
+                Z[i, j] = self([[X[i, j], Y[i, j]]])
+
+        plt.contourf(X, Y, Z, cmap='RdGy')
