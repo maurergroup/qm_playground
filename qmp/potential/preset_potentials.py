@@ -1,6 +1,4 @@
 import numpy as np
-from qmp.integrator.dyn_tools \
-        import create_real_gaussian, create_real_gaussian2D
 
 
 class ModelPotential(object):
@@ -33,15 +31,13 @@ class Harmonic(ModelPotential):
         minimum = kwargs.get('minimum', np.full(dimension, 1./2.))
 
         def f_harm(*point):
-            result = 0.
             try:
                 assert len(point) == self.dimension
             except AssertionError:
                 print("Dimension of potential does not match input.")
 
-            for i, x in enumerate(point):
-                result += omega[i] * (x-minimum[i])**2
-            return result
+            result = omega * (point-minimum)**2
+            return np.sum(result)
 
         self.function = f_harm
 
@@ -127,3 +123,27 @@ class DoubleBox(ModelPotential):
             return result
 
         self.function = f_double_box
+
+
+class Morse(ModelPotential):
+
+    def __init__(self, dimension, **kwargs):
+        ModelPotential.__init__(self, dimension)
+
+        morse_a = kwargs.get('morse_a', np.full(dimension, 0.5))
+        morse_D = kwargs.get('morse_D', np.full(dimension, 5.0))
+        morse_p = kwargs.get('morse_pos', np.full(dimension, 0.5))
+
+        def f_morse(*point):
+            result = 0.
+            try:
+                assert len(point) == self.dimension
+            except AssertionError:
+                print("Dimension of potential does not match input.")
+
+            exponential = np.exp(-morse_a*(point-morse_p))
+            result = morse_D*(1-exponential)**2
+
+            return np.sum(result)
+
+        self.function = f_morse

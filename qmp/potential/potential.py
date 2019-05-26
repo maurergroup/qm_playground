@@ -134,7 +134,7 @@ class Potential(object):
         #else:
             #return d2(x)
 
-    def plot_pot(self, start=0.0, end=1.0, pts=50):
+    def plot_pot(self, pts=50):
         """
         plot potential with matplotlib
         """
@@ -143,7 +143,7 @@ class Potential(object):
         except ImportError:
             raise ImportError('cannot import matplotlib')
 
-        L = np.linspace(start, end, pts)
+        L = np.linspace(self.cell[0][0], self.cell[0][1], pts)
         y = np.zeros_like(L)
         for i, x in enumerate(L):
             y[i] = self.f[0](x)
