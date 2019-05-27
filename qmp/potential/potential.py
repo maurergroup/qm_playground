@@ -33,8 +33,8 @@ class Potential(object):
     be passed explicitly.
     """
 
-    def __init__(self, cell=[[0., 1.]], f=lambda a: 0, firstd=None, secondd=None,
-                 d1=None, d2=None):
+    def __init__(self, cell=[[0., 1.]], f=lambda a: 0, firstd=None,
+                 secondd=None, d1=None, d2=None):
         """
         Initializes potential
         Input
@@ -81,21 +81,47 @@ class Potential(object):
         result = np.zeros(len(points))
 
         for i, point in enumerate(points):
-            result[i] = self.evaluate_potential(point, n=n)
+            if not isinstance(point, list) and self.dimension == 1:
+                result[i] = self.evaluate_potential(point, n=n)
+            else:
+                try:
+                    assert len(point) == self.dimension
+                except AssertionError as error:
+                    print(error)
+                except TypeError:
+                    print("Dimension of point does not match potential.")
+                result[i] = self.evaluate_potential(point, n=n)
 
         return result
 
     def evaluate_potential(self, point, n=0):
         """ Calculate potential at single point. """
         f = self.f[n]
-        if isinstance(point, list):
+        if isinstance(point, (list, np.ndarray)):
             return f(*point)
         else:
             return f(point)
 
-    def deriv(self, point, n=0):
+    def deriv(self, points, n=0):
         """
         calculate 1st derivative at point x or list of points x
+        """
+        result = np.zeros(np.shape(points))
+
+        for i, point in enumerate(points):
+            try:
+                assert len(point) == self.dimension
+            except AssertionError as error:
+                print(error)
+            except TypeError:
+                print("Dimension of point does not match potential.")
+            result[i] = self.single_point_deriv(point, n=n)
+
+        return result
+
+    def single_point_deriv(self, point, n=0):
+        """
+        calculate 1st derivative at single point
         """
         firstd = self.firstd[n]
         if firstd is None:
@@ -103,9 +129,26 @@ class Potential(object):
         else:
             return firstd(*point)
 
-    def hess(self, point, n=0):
+    def hess(self, points, n=0):
         """
         calculate 2nd derivative at point x or list of points x
+        """
+        result = np.zeros(len(points))
+
+        for i, point in enumerate(points):
+            try:
+                assert len(point) == self.dimension
+            except AssertionError as error:
+                print(error)
+            except TypeError:
+                print("Dimension of point does not match potential.")
+            result[i] = self.single_point_hess(point, n=n)
+
+        return result
+
+    def single_point_hess(self, point, n=0):
+        """
+        calculate 2nd derivative at single point
         """
         secondd = self.secondd[n]
         if secondd is None:

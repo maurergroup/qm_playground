@@ -27,8 +27,8 @@ class Harmonic(ModelPotential):
     def __init__(self, dimension, **kwargs):
         ModelPotential.__init__(self, dimension)
 
-        omega = kwargs.get('omega', np.full(dimension, 1./2.))
-        minimum = kwargs.get('minimum', np.full(dimension, 1./2.))
+        omega = kwargs.get('omega', np.full(dimension, 1))
+        minimum = kwargs.get('minimum', np.full(dimension, 0))
 
         def f_harm(*point):
             try:
@@ -36,6 +36,7 @@ class Harmonic(ModelPotential):
             except AssertionError:
                 print("Dimension of potential does not match input.")
 
+            point = np.array(point)
             result = omega * (point-minimum)**2
             return np.sum(result)
 
@@ -132,7 +133,7 @@ class Morse(ModelPotential):
 
         morse_a = kwargs.get('morse_a', np.full(dimension, 0.5))
         morse_D = kwargs.get('morse_D', np.full(dimension, 5.0))
-        morse_p = kwargs.get('morse_pos', np.full(dimension, 0.5))
+        morse_p = kwargs.get('morse_p', np.full(dimension, 0.5))
 
         def f_morse(*point):
             result = 0.
@@ -141,6 +142,7 @@ class Morse(ModelPotential):
             except AssertionError:
                 print("Dimension of potential does not match input.")
 
+            point = np.array(point)
             exponential = np.exp(-morse_a*(point-morse_p))
             result = morse_D*(1-exponential)**2
 
