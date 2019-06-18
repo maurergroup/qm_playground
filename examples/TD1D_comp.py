@@ -27,11 +27,11 @@ tik1d = Model(
 #set the potential
 tik1d.set_potential(pot)
 
-#set basis 
+#set basis
 N=1024  # spatial discretization
 b = onedgrid(cell[0][0], cell[0][1],N)
 tik1d.set_basis(b)
-print tik1d
+print(tik1d)
 
 ##prepare initial wavefunction and dynamics
 dt =  .1  #whatever the units are ~> a.u.?
@@ -47,7 +47,7 @@ E_t_SOFT = tik1d.data.wvfn.E_t
 if tik1d.parameters['integrator'] == 'SOFT':
     E_kin_t = tik1d.data.wvfn.E_kin_t
     E_pot_t = tik1d.data.wvfn.E_pot_t
-    
+
 rho_t_SOFT = np.sum(psi_t*np.conjugate(psi_t),1)
 
 tik1d_eigen = Model(
@@ -63,9 +63,9 @@ tik1d_eigen = Model(
 #set the potential
 tik1d_eigen.set_potential(pot)
 
-#set basis 
+#set basis
 tik1d_eigen.set_basis(b)
-print tik1d_eigen
+print(tik1d_eigen)
 
 tik1d_eigen.run(0, dt, psi_0 = psi_0)
 tik1d_eigen.run(steps,dt, psi_0=psi_0)
@@ -91,9 +91,9 @@ tik1d_prim = Model(
 #set the potential
 tik1d_prim.set_potential(pot)
 
-#set basis 
+#set basis
 tik1d_prim.set_basis(b)
-print tik1d_prim
+print(tik1d_prim)
 
 tik1d_prim.run(steps,dt, psi_0=psi_0)
 psi_t_prim = tik1d_prim.data.wvfn.psi_t
@@ -151,4 +151,3 @@ button_prev = Button(pos_prev_button, 'Prev Wvfn')
 button_prev.on_clicked(callback.prev)
 
 plt.show()
-

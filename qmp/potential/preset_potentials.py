@@ -1,4 +1,5 @@
 import numpy as np
+from qmp.integrator.dyn_tools import create_real_gaussian2D
 
 
 class ModelPotential(object):
@@ -17,7 +18,7 @@ class Free(ModelPotential):
         ModelPotential.__init__(self, dimension)
 
         def f_free(*point):
-            return 0.
+            return np.zeros_like(point[0])
 
         self.function = f_free
 
@@ -30,15 +31,15 @@ class Harmonic(ModelPotential):
         omega = kwargs.get('omega', np.full(dimension, 1))
         minimum = kwargs.get('minimum', np.full(dimension, 0))
 
-        def f_harm(*point):
-            try:
-                assert len(point) == self.dimension
-            except AssertionError:
-                print("Dimension of potential does not match input.")
+        def f_harm(*coordinates):
+            coordinates_length = np.size(coordinates, 0)
+            if coordinates_length != self.dimension:
+                raise ValueError('Input does not match potential dimension.')
 
-            point = np.array(point)
-            result = omega * (point-minimum)**2
-            return np.sum(result)
+            result = 0
+            for i, coord in enumerate(coordinates):
+                result += omega[i] * (coord-minimum[i]) ** 2
+            return result
 
         self.function = f_harm
 
@@ -52,17 +53,24 @@ class Wall(ModelPotential):
         width = kwargs.get('width', np.full(dimension, 1./2.)) / 2.
         height = kwargs.get('height', 1./2.)
 
-        def f_wall(*point):
-            try:
-                assert len(point) == self.dimension
-            except AssertionError:
-                print("Dimension of potential does not match input.")
+        def f_wall(*coordinates):
 
-            if (point >= position-width).all() and \
-                    (point < position+width).all():
-                result = height
-            else:
-                result = 0.
+            coordinates_length = np.size(coordinates, 0)
+            if coordinates_length != self.dimension:
+                raise ValueError('Input does not match potential dimension.')
+
+            result = np.full(np.shape(coordinates[0]), height)
+
+            for i, coord in enumerate(coordinates):
+                lower_bound = position[i]-width[i]
+                upper_bound = position[i]+width[i]
+
+                ar = np.piecewise(coord,
+                                  [(coord >= lower_bound) &
+                                   (coord < upper_bound)],
+                                  [height])
+
+                result = np.where(ar == 0, ar, result)
 
             return result
 
@@ -78,17 +86,24 @@ class Box(ModelPotential):
         width = kwargs.get('width', np.full(dimension, 1./2.)) / 2.
         height = kwargs.get('height', 1000000)
 
-        def f_box(*point):
-            try:
-                assert len(point) == self.dimension
-            except AssertionError:
-                print("Dimension of potential does not match input.")
+        def f_box(*coordinates):
 
-            if (point > position-width).all() and \
-                    (point <= position+width).all():
-                result = 0.
-            else:
-                result = height
+            coordinates_length = np.size(coordinates, 0)
+            if coordinates_length != self.dimension:
+                raise ValueError('Input does not match potential dimension.')
+
+            result = np.full(np.shape(coordinates[0]), 0)
+
+            for i, coord in enumerate(coordinates):
+                upper_bound = position[i]+width[i]
+                lower_bound = position[i]-width[i]
+
+                ar = np.piecewise(coord,
+                                  [(coord >= upper_bound) |
+                                   (coord < lower_bound)],
+                                  [height])
+
+                result = np.where(ar == height, ar, result)
 
             return result
 
@@ -106,20 +121,28 @@ class DoubleBox(ModelPotential):
         width2 = kwargs.get('width2', np.full(dimension, 1./4.)) / 2.
         height = kwargs.get('height', 1000000)
 
-        def f_double_box(*point):
-            try:
-                assert len(point) == self.dimension
-            except AssertionError:
-                print("Dimension of potential does not match input.")
+        def f_double_box(*coordinates):
 
-            if (point > position1-width1).all() and \
-                    (point <= position1+width1).all():
-                result = 0.
-            elif (point > position2-width2).all() and \
-                    (point <= position2+width2).all():
-                result = 0.
-            else:
-                result = height
+            coordinates_length = np.size(coordinates, 0)
+            if coordinates_length != self.dimension:
+                raise ValueError('Input does not match potential dimension.')
+
+            result = np.full(np.shape(coordinates[0]), 0)
+
+            for i, coord in enumerate(coordinates):
+                upper_bound = position1[i]+width1[i]
+                lower_bound = position1[i]-width1[i]
+                upper_bound2 = position2[i]+width2[i]
+                lower_bound2 = position2[i]-width2[i]
+
+                ar = np.piecewise(coord,
+                                  [((coord >= upper_bound) |
+                                   (coord < lower_bound)) &
+                                   ((coord >= upper_bound2) |
+                                   (coord < lower_bound2))],
+                                  [height])
+
+                result = np.where(ar == height, ar, result)
 
             return result
 
@@ -135,17 +158,40 @@ class Morse(ModelPotential):
         morse_D = kwargs.get('morse_D', np.full(dimension, 5.0))
         morse_p = kwargs.get('morse_p', np.full(dimension, 0.5))
 
-        def f_morse(*point):
+        def f_morse(*coordinates):
+            coordinates_length = np.size(coordinates, 0)
+            if coordinates_length != self.dimension:
+                raise ValueError('Input does not match potential dimension.')
+
             result = 0.
-            try:
-                assert len(point) == self.dimension
-            except AssertionError:
-                print("Dimension of potential does not match input.")
+            for i, coord in enumerate(coordinates):
+                exponential = np.exp(-morse_a[i]*(coord-morse_p[i]))
+                result += morse_D[i]*(1-exponential)**2
 
-            point = np.array(point)
-            exponential = np.exp(-morse_a*(point-morse_p))
-            result = morse_D*(1-exponential)**2
-
-            return np.sum(result)
+            return result
 
         self.function = f_morse
+
+
+class Elbow(ModelPotential):
+
+    def __init__(self, dimension, **kwargs):
+        if dimension != 2:
+            raise ValueError('Elbow only available in 2D.')
+        ModelPotential.__init__(self, dimension)
+
+        elbow_sc = kwargs.get('elbow_scale', 2.)
+        elbow_p1 = kwargs.get('elbow_pos1', [11, 4.])
+        elbow_p2 = kwargs.get('elbow_pos2', [4., 31./3.])
+        elbow_si1 = kwargs.get('elbow_sigma1', [9./2., 1.])
+        elbow_si2 = kwargs.get('elbow_sigma2', [3./2., 11./2.])
+
+        def f_elbow(x, y):
+            z2 = np.exp(-(1./2.)*(((x-y-0.1)/2.)**2 + ((x-y-0.1)/2.)**2))
+            z = 100. * (
+                -create_real_gaussian2D(x, y, x0=elbow_p1, sigma=elbow_si1)
+                - create_real_gaussian2D(x, y, x0=elbow_p2, sigma=elbow_si2)
+                ) + (50./3.)*z2
+            return np.real(elbow_sc*z)
+
+        self.function = f_elbow

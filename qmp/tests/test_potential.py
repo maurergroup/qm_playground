@@ -6,37 +6,30 @@ import numpy as np
 class PotentialTestCase(unittest.TestCase):
 
     def setUp(self):
-        one_dimension = potential.Potential(f=lambda a: a)
-        two_dimension = potential.Potential([[0, 1], [0, 1]], f=lambda a, b:
-                a+b)
-        self.potentials = [one_dimension, two_dimension]
+        self.one_dimension = potential.Potential(f=lambda a: a)
+        self.two_dimension = potential.Potential([[0, 1], [0, 1]],
+                                                 f=lambda a, b: a+b)
+        self.potentials = [self.one_dimension, self.two_dimension]
 
-    def test_evaluate_single_point(self):
-        for i, pot in enumerate(self.potentials):
-            with self.subTest(dimension=i+1):
-                point = np.full(pot.dimension, 5)
-                evaluation = pot.evaluate_potential(point)
-                self.assertEqual(evaluation, 5*pot.dimension)
+    def test_call_one_dimension(self):
+        point = 5
+        self.assertEqual(self.one_dimension(point), 5)
+        point = np.linspace(0, 5, 1)
+        np.testing.assert_array_equal(self.one_dimension(point), point)
 
-    def test_call(self):
-        point = [5]
-        self.assertEqual(self.potentials[0](point), 5)
-        point = [5, 5]
-        self.assertTrue((self.potentials[0](point) == [5, 5]).all())
-
-        point = [[5, 5]]
-        self.assertEqual(self.potentials[1](point), 10)
-        point = [[5, 5], [5, 5]]
-        self.assertTrue(
-            len(self.potentials[1](point)) == self.potentials[1].dimension)
+    def test_call_two_dimension(self):
+        self.assertEqual(self.two_dimension(5, 5), 10)
+        x = np.linspace(0, 5, 1)
+        xx, yy = np.meshgrid(x, x)
+        np.testing.assert_array_equal(self.two_dimension(xx, yy), xx+yy)
 
     def test_deriv_single_point(self):
         point = [5]
         np.testing.assert_allclose(
-                self.potentials[0].single_point_deriv(point), [1])
+               self.potentials[0].single_point_deriv(point), [1])
         point = [5, 5]
         np.testing.assert_allclose(
-                self.potentials[1].single_point_deriv(point), [1, 1])
+               self.potentials[1].single_point_deriv(point), [1, 1])
 
     def test_deriv(self):
         point = [[5]]

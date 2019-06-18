@@ -9,14 +9,14 @@ from qmp.tools.visualizations import *     #
 ############################################
 
 
-### SIMULATION CELL ### 
+### SIMULATION CELL ###
 cell = [[0., 40.0]]
 
-### POTENTIAL ### 
+### POTENTIAL ###
 pot = Potential( cell, f=create_potential(cell, name='mexican_hat') )
 
 
-### INITIALIZE MODEL ### 
+### INITIALIZE MODEL ###
 traj1d = Model(
          ndim=1,
          mode='traj',
@@ -39,7 +39,7 @@ masses = [1., 2.]
 b = phasespace(rs, vs, masses)
 traj1d.set_basis(b)
 
-print traj1d
+print(traj1d)
 
 
 ### DYNAMICS PARAMETERS ###
@@ -128,5 +128,3 @@ ani = animation.FuncAnimation(fig, animate, np.arange(0, len(r_t[0])), init_func
                               interval=50, blit=False)
 
 plt.show()
-
-

@@ -6,19 +6,19 @@ from qmp import *                          #
 from qmp.basis.phasespace_basis import *   #
 from qmp.potential.pot_tools import *      #
 from qmp.tools.visualizations import *     #
-from qmp.potential import Potential2D      #
+# from qmp.potential import Potential2D      #
 from qmp.tools.utilities import *          #
 ############################################
 
 
-### SIMULATION CELL ### 
+### SIMULATION CELL ###
 cell = [[0.,20.], [0.,20.]]
 
 ### POTENTIAL ###
-pot = Potential2D( cell, f=create_potential2D(cell, name='elbow') )
+pot = Potential( cell, f=create_potential2D(cell, name='elbow') )
 
 
-### INITIALIZE MODEL ### 
+### INITIALIZE MODEL ###
 traj2d = Model(
          ndim=2,
          mode='traj',
@@ -37,7 +37,7 @@ masses = [1., 1., 1.]
 b = phasespace(rs, vs, masses)
 traj2d.set_basis(b)
 
-print traj2d
+print(traj2d)
 
 ### DYNAMICS PARAMETERS ###
 dt =  .1
@@ -62,4 +62,3 @@ V_xy = traj2d.pot(xg, yg)
 ### VISUALIZATION ###
 
 contour_movie2D(xg, yg, V_xy, r_t, steps+1, npar=3, trace=True)
-

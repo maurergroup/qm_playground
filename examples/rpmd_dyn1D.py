@@ -9,10 +9,10 @@ from qmp.potential.pot_tools import *      #
 from qmp.tools.visualizations import *     #
 ############################################
 
-### SIMULATION CELL ### 
+### SIMULATION CELL ###
 cell = [[0., 40.0]]
 
-### POTENTIAL ### 
+### POTENTIAL ###
 f = create_potential(cell,
                      name='double_well',
                      double_well_barrier=.008,
@@ -20,8 +20,8 @@ f = create_potential(cell,
 		     double_well_width=3.,
                      )
 pot = Potential( cell, f=f )
-                                          
-### INITIALIZE MODEL ### 
+
+### INITIALIZE MODEL ###
 rpmd1d = Model(
          ndim=1,
          mode='rpmd',
@@ -42,7 +42,7 @@ Temp = [50.,]*10#*5
 
 b = bead_basis(rs, vs, masses, n_beads, T=Temp)
 rpmd1d.set_basis(b)
-print rpmd1d
+print(rpmd1d)
 
 ### DYNAMICS PARAMETERS ###
 dt =  1.
@@ -134,5 +134,3 @@ ani = animation.FuncAnimation(fig, animate, np.arange(0, len(r_t[0,:,0])), init_
                               interval=50, blit=False)
 
 plt.show()
-
-

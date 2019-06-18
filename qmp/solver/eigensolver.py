@@ -1,10 +1,10 @@
 #qmp.solver.eigensolver
 #
 #    qm_playground - python package for dynamics simulations
-#    Copyright (C) 2016  Reinhard J. Maurer 
+#    Copyright (C) 2016  Reinhard J. Maurer
 #
 #    This file is part of qm_playground.
-#    
+#
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
@@ -71,21 +71,21 @@ class alglib_solver(solver):
 
     def solve(self):
 
-        try: 
+        try:
             import xalglib as xa
         except:
             print( red+'Cannot import alglib'+endcolor)
             pass
 
         from scipy.sparse import issparse
-        
+
         basis = self.data.wvfn.basis
         T = basis.construct_Tmatrix()
         V = basis.construct_Vmatrix(self.pot)
         H = (T + V)
         if issparse(H):
             H = H.todense()
-        
+
         print( gray+'Solving...'+endcolor)
         result, E, psi = xa.smatrixevd(H.tolist(), H.shape[0], 1, 1)
         print( gray+'SOLVED\n'+endcolor)

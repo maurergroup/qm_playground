@@ -1,10 +1,10 @@
 #qmp.basis.gridbasis
 #
 #    qm_playground - python package for dynamics simulations
-#    Copyright (C) 2016  Reinhard J. Maurer 
+#    Copyright (C) 2016  Reinhard J. Maurer
 #
 #    This file is part of qm_playground.
-#    
+#
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
@@ -42,7 +42,7 @@ class onedgrid(basis):
 
         self.x, self.dx = np.linspace(start, end, N, retstep=True)
         self.N = N
-        
+
         #wavefunction vector initialised with zeros
         self.psi = np.zeros_like(self.x)
 
@@ -68,14 +68,14 @@ class onedgrid(basis):
         L[-1,0] = 1.
 
         self.L = sparse.lil_matrix(L/(self.dx*self.dx))
-        
+
 
     def __eval__(self):
         return self.psi
 
     def deriv_psi(self):
         return np.dot(self.D,self.psi)
-    
+
     def Nabla_psi(self):
         return np.dot(self.D,self.psi)
 
@@ -88,10 +88,10 @@ class onedgrid(basis):
 
     def construct_Vmatrix(self,pot):
         return np.diag(pot(self.x))
-    
+
     def get_potential_flat(self,pot):
         return pot(self.x)
-        
+
 
 class  twodgrid(basis):
     """
@@ -156,7 +156,7 @@ class  twodgrid(basis):
         Returns array of derivatives (result[0]: d/dx, result[1]: d/dy)
         """
         return np.array([np.dot(self.psi, self.Dx), np.dot(self.Dy, self.psi)])
-    
+
     def Nabla_psi(self):
         return np.dot(self.psi, self.Dx) + np.dot(self.Dy, self.psi)
 
@@ -170,8 +170,6 @@ class  twodgrid(basis):
     def construct_Vmatrix(self,pot):
         Vflat = pot(self.xgrid,self.ygrid).flatten()
         return sparse.diags(Vflat, 0, (self.N*self.N,self.N*self.N))
-    
+
     def get_potential_flat(self,pot):
         return pot(self.xgrid,self.ygrid).flatten()
-
-

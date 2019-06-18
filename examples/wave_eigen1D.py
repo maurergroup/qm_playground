@@ -45,7 +45,7 @@ tik1d.set_potential(pot)
 N = 512
 b = onedgrid(cell[0][0], cell[0][1],N)
 tik1d.set_basis(b)
-print tik1d
+print(tik1d)
 
 tik1d.solve()
 

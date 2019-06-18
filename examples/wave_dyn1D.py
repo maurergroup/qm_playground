@@ -1,39 +1,27 @@
-############### IMPORT STUFF ###############
-import numpy as np                         #
-import sys                                 #
-sys.path.append('..')                      #
-from qmp import *                          #
-from qmp.basis.gridbasis import onedgrid   #
-from qmp.integrator.dyn_tools import *     #
-from qmp.potential.pot_tools import *      #
-from qmp.tools.visualizations import *     #
-from qmp.tools.termcolors import *         #
-############################################
+import numpy as np
+import sys
+sys.path.append('..')
+from qmp import *
+from qmp.basis.gridbasis import onedgrid
+from qmp.integrator.dyn_tools import *
+from qmp.potential.pot_tools import *
+from qmp.potential import preset_potentials
+from qmp.tools.visualizations import *
+from qmp.tools.termcolors import *
 
 
-### SIMULATION CELL ### 
+### SIMULATION CELL ###
 cell = [[-20., 20.0]]
 
-def create_harm(x0,k):
+harm = preset_potentials.Harmonic(1, minimum=[0.], omega=[0.005])
+### POTENTIAL ###
+pot = Potential(cell, f=harm())
 
-    def f_harm(x):
-        return 0.5*k*k*(x-x0)**2
-        
-    return f_harm
-
-### POTENTIAL ### 
-pot = Potential( cell, f=create_harm(0.,0.1))
-#create_potential(cell,
-#                                          name='harmonic',
-#                     harmonic_pos=0.00,
-#                     harmonic_omega=10.,
-#                                          ) )
-
-### NUMBER OF BASIS STATES ### 
+### NUMBER OF BASIS STATES ###
 ## for propagation in eigenbasis
 states = 128
 
-### INITIALIZE MODEL ### 
+### INITIALIZE MODEL ###
 tik1d = Model(
         ndim=1,
         mass=1850.0,
@@ -43,19 +31,18 @@ tik1d = Model(
         #TODO instead of states which is eigenstate specific, use nonadiabatic yes or no
         states=states,
         )
-
 ### SET POTENTIAL ###
 tik1d.set_potential(pot)
 
-### SET BASIS ### 
+### SET BASIS ###
 ## number of grid points
 N=400
 b = onedgrid(cell[0][0], cell[0][1],N)
 tik1d.set_basis(b)
 
-print tik1d
-print 'grid points:',N
-print ''
+print(tik1d)
+print('grid points:',N)
+print('')
 
 ### INITIAL WAVE FUNCTION AND DYNAMICS PARAMETERS ###
 ## time step, number of steps
@@ -83,7 +70,7 @@ if tik1d.parameters['integrator'] == 'SOFT':
 else:
     E_kin_t = None
     E_pot_t = None
-    
+
 rho_t = np.sum(psi_t*np.conjugate(psi_t),1)
 rho_r_mean = np.mean(psi_t*np.conjugate(psi_t), 0)
 r_mean = np.dot(tik1d.basis.x, rho_r_mean)

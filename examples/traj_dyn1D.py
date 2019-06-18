@@ -1,7 +1,7 @@
 ############### IMPORT STUFF ###############
 import numpy as np                         #
-#import sys                                 #
-#sys.path.append('..')                      #
+import sys                                 #
+sys.path.append('..')                      #
 from qmp import *                          #
 from qmp.basis.phasespace_basis import *   #
 from qmp.potential.pot_tools import *      #
@@ -49,7 +49,7 @@ b = phasespace(rs, vs, masses)
 traj1d.set_basis(b)
 
 ### PRINT INFORMATION ###
-print traj1d
+print(traj1d)
 
 
 ### DYNAMICS PARAMETERS ###

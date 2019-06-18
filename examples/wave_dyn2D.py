@@ -1,6 +1,6 @@
 """
-time independent 
-solutions to the 2D Particle in different 
+time independent
+solutions to the 2D Particle in different
 potentials
 """
 
@@ -10,7 +10,7 @@ import sys
 sys.path.append('..')
 from qmp import *
 from qmp.basis.gridbasis import twodgrid
-from qmp.potential import Potential2D
+from qmp.potential import Potential
 from qmp.integrator.dyn_tools import create_gaussian2D
 from qmp.tools.visualizations import wave_movie2D
 from qmp.potential.pot_tools import create_potential2D
@@ -18,7 +18,7 @@ from qmp.potential.pot_tools import create_potential2D
 
 cell = [[0, 0.], [20., 20.]]
 
-pot = Potential2D(cell, f=create_potential2D(cell, name='elbow'))
+pot = Potential(cell, f=create_potential2D(cell, name='elbow'))
 
 ### INITIALIZE MODEL ###
 tik2d = Model(
@@ -38,7 +38,7 @@ tik2d.set_potential(pot)
 N=200
 b = twodgrid(cell[0], cell[1], N)
 tik2d.set_basis(b)
-print tik2d
+print(tik2d)
 
 ### DYNAMICS ###
 dt =  .1

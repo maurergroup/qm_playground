@@ -4,28 +4,24 @@ import sys                                 #
 sys.path.append('..')                      #
 from qmp import *                          #
 from qmp.basis.rpmdbasis import *          #
-from qmp.potential import Potential2D      #
+from qmp.potential import Potential        #
+from qmp.potential.preset_potentials import Elbow
 from qmp.potential.pot_tools import *      #
 from qmp.tools.visualizations import *     #
 ############################################
 
 import scipy.linalg as la
 
-### SIMULATION CELL ### 
+### SIMULATION CELL ###
 cell = [[0.,20.], [0.,20.]]
 
 ### POTENTIAL ###
-f=create_potential2D(cell,
-                     name='elbow',
-                     elbow_scale=0.005,
-                     #harmonic_omega_x=1.,
-                     #harmonic_omega_y=2.,
-                    )
+f = Elbow(2, elbow_scale=0.005)
 
-pot = Potential2D( cell, f=f )
+pot = Potential(cell, f=f())
 
 
-### INITIALIZE MODEL ### 
+### INITIALIZE MODEL ###
 rpmd2d = Model(
          ndim=1,
          mode='rpmd',
@@ -46,7 +42,7 @@ Temp = [300.]#, 393., 1000.]
 b = bead_basis(rs, vs, masses, n_beads, T=Temp)
 rpmd2d.set_basis(b)
 
-print rpmd2d
+print(rpmd2d)
 
 ### DYNAMICS PARAMETERS ###
 dt =  2.
@@ -85,4 +81,3 @@ V_xy = rpmd2d.pot(xg, yg)
 propability_distribution2D(rpmd2d, show_plot=True, nlines_pot=6, add_contour_labels=True)
 
 contour_movie2D(xg, yg, V_xy, r_t, steps+1, npar=1, trace=True)
-

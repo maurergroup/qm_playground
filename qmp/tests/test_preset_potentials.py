@@ -11,103 +11,154 @@ class PresetPotentialTestCase(unittest.TestCase):
                 free = preset_potentials.Free(dimension)
                 function = free()
                 self.assertEqual(function(10), 0)
+                x = np.linspace(0, 10)
+                np.testing.assert_array_equal(function(x),
+                                              np.zeros_like(x))
+                xx, yy = np.meshgrid(x, x)
+                np.testing.assert_array_equal(function(xx, yy),
+                                              np.zeros_like(xx))
 
-    def test_harmonic(self):
-        expected_values = [25, 50]
-        for i, dimension in enumerate(range(1, 3)):
-            with self.subTest(dimension=dimension):
-                omega = np.full(dimension, 1)
-                minimum = np.full(dimension, 0)
-                harmonic = preset_potentials.Harmonic(dimension,
-                                                      omega=omega,
-                                                      minimum=minimum)
-                function = harmonic()
+    def test_harmonic_one_dimension(self):
+        harmonic = preset_potentials.Harmonic(1,
+                                              omega=[1],
+                                              minimum=[0])
+        function = harmonic()
 
-                point = np.full(dimension, 5)
-                self.assertEqual(function(*point), expected_values[i])
+        self.assertEqual(function(0), 0)
+        self.assertEqual(function(2), 4)
+        point = np.array([0, 2, 5])
+        np.testing.assert_array_equal(function(point), point**2)
 
-    def test_wall(self):
-        expected_values1 = [0, 0]
-        expected_values2 = [1, 1]
-        for i, dimension in enumerate(range(1, 3)):
-            with self.subTest(dimension=dimension):
-                position = np.full(dimension, 0)
-                height = 1
-                width = np.full(dimension, 1)
+    def test_harmonic_two_dimension(self):
+        harmonic = preset_potentials.Harmonic(2,
+                                              omega=[1, 1],
+                                              minimum=[0, 0])
+        function = harmonic()
 
-                wall = preset_potentials.Wall(dimension,
-                                              position=position,
-                                              width=width,
-                                              height=height)
-                function = wall()
+        self.assertEqual(function(0, 0), 0)
+        self.assertEqual(function(2, 2), 8)
+        x = np.linspace(0, 4, 5)
+        y = np.linspace(0, 4, 5)
+        np.testing.assert_array_equal(function(x, y), x**2 + y**2)
+        xx, yy = np.meshgrid(x, y)
+        np.testing.assert_array_equal(function(xx, yy), xx**2 + yy**2)
 
-                point = np.full(dimension, 5)
-                self.assertEqual(function(*point), expected_values1[i])
-                point = np.full(dimension, 0)
-                self.assertEqual(function(*point), expected_values2[i])
+    def test_wall_one_dimension(self):
+        wall = preset_potentials.Wall(1,
+                                      position=np.array([0]),
+                                      width=np.array([1]),
+                                      height=1)
+        function = wall()
 
-    def test_box(self):
-        expected_values1 = [0, 0]
-        expected_values2 = [10000, 10000]
-        for i, dimension in enumerate(range(1, 3)):
-            with self.subTest(dimension=dimension):
-                position = np.full(dimension, 0)
-                height = 10000
-                width = np.full(dimension, 1)
+        self.assertEqual(function(0), 1)
+        self.assertEqual(function(2), 0)
+        point = np.array([0, 2])
+        np.testing.assert_array_equal(function(point), [1, 0])
 
-                box = preset_potentials.Box(dimension,
-                                            position=position,
-                                            width=width,
-                                            height=height)
-                function = box()
+    def test_wall_two_dimension(self):
+        wall = preset_potentials.Wall(2,
+                                      position=np.array([0, 0]),
+                                      width=np.array([1, 1]),
+                                      height=1)
+        function = wall()
 
-                point = np.full(dimension, 0)
-                self.assertEqual(function(*point), expected_values1[i])
-                point = np.full(dimension, 5)
-                self.assertEqual(function(*point), expected_values2[i])
+        np.testing.assert_array_equal(function(0, 0), 1)
+        np.testing.assert_array_equal(function(2, 2), 0)
+        x = np.linspace(0, 4, 2)
+        y = np.linspace(0, 4, 2)
+        np.testing.assert_array_equal(function(x, y), [1, 0])
+        xx, yy = np.meshgrid(x, y)
+        np.testing.assert_array_equal(function(xx, yy), [[1, 0], [0, 0]])
 
-    def test_double_box(self):
-        expected_values1 = [0, 0]
-        expected_values2 = [10000, 10000]
-        for i, dimension in enumerate(range(1, 3)):
-            with self.subTest(dimension=dimension):
-                position1 = np.full(dimension, 0)
-                position2 = np.full(dimension, 5)
-                width1 = np.full(dimension, 0.5)
-                width2 = np.full(dimension, 0.5)
-                height = 10000
+    def test_box_one_dimension(self):
+        box = preset_potentials.Box(1,
+                                    position=np.array([0]),
+                                    width=np.array([1]),
+                                    height=10000)
+        function = box()
 
-                double_box = preset_potentials.DoubleBox(dimension,
-                                                         position1=position1,
-                                                         position2=position2,
-                                                         width1=width1,
-                                                         width2=width2,
-                                                         height=height)
-                function = double_box()
+        self.assertEqual(function(0), 0)
+        self.assertEqual(function(2), 10000)
+        point = np.array([0, 2])
+        np.testing.assert_array_equal(function(point), [0, 10000])
 
-                point = np.full(dimension, 0)
-                self.assertEqual(function(*point), expected_values1[i])
-                point = np.full(dimension, 7)
-                self.assertEqual(function(*point), expected_values2[i])
+    def test_box_two_dimension(self):
+        box = preset_potentials.Box(2,
+                                    position=np.array([0, 0]),
+                                    width=np.array([1, 1]),
+                                    height=10000)
+        function = box()
 
-    def test_morse(self):
-        expected_values1 = [0, 0]
-        expected_values2 = [1, 2]
-        for i, dimension in enumerate(range(1, 3)):
-            with self.subTest(dimension=dimension):
-                morse_a = np.full(dimension, 1)
-                morse_D = np.full(dimension, 1)
-                morse_p = np.full(dimension, 1)
-                morse = preset_potentials.Morse(dimension,
-                                                morse_a=morse_a,
-                                                morse_D=morse_D,
-                                                morse_p=morse_p)
-                function = morse()
+        np.testing.assert_array_equal(function(0, 0), 0)
+        np.testing.assert_array_equal(function(2, 2), 10000)
+        x = np.linspace(0, 4, 2)
+        y = np.linspace(0, 4, 2)
+        np.testing.assert_array_equal(function(x, y), [0, 10000])
+        xx, yy = np.meshgrid(x, y)
+        np.testing.assert_array_equal(function(xx, yy), [[0, 10000],
+                                                         [10000, 10000]])
 
-                point = np.full(dimension, 1)
-                self.assertEqual(function(*point), expected_values1[i])
-                point = np.full(dimension, 1000)
-                self.assertEqual(function(*point), expected_values2[i])
+    def test_double_box_one_dimension(self):
+        double_box = preset_potentials.DoubleBox(1,
+                                                 position1=np.array([0]),
+                                                 position2=np.array([5]),
+                                                 width1=np.array([1]),
+                                                 width2=np.array([1]),
+                                                 height=10000)
+        function = double_box()
+
+        self.assertEqual(function(0), 0)
+        self.assertEqual(function(2), 10000)
+        self.assertEqual(function(5), 0)
+        point = np.array([0, 2, 5])
+        np.testing.assert_array_equal(function(point), [0, 10000, 0])
+
+    def test_double_box_two_dimension(self):
+        double_box = preset_potentials.DoubleBox(2,
+                                                 position1=np.array([0, 0]),
+                                                 position2=np.array([5, 5]),
+                                                 width1=np.array([1, 1]),
+                                                 width2=np.array([1, 1]),
+                                                 height=10000)
+        function = double_box()
+
+        np.testing.assert_array_equal(function(0, 0), 0)
+        np.testing.assert_array_equal(function(2, 2), 10000)
+        np.testing.assert_array_equal(function(5, 5), 0)
+        x = np.linspace(0, 4, 2)
+        y = np.linspace(0, 4, 2)
+        np.testing.assert_array_equal(function(x, y), [0, 10000])
+        xx, yy = np.meshgrid(x, y)
+        np.testing.assert_array_equal(function(xx, yy), [[0, 10000],
+                                                         [10000, 10000]])
+
+    def test_morse_one_dimension(self):
+        morse = preset_potentials.Morse(1,
+                                        morse_a=np.array([1]),
+                                        morse_D=np.array([1]),
+                                        morse_p=np.array([1]))
+        function = morse()
+
+        self.assertEqual(function(1), 0)
+        self.assertEqual(function(1000), 1)
+        point = np.array([1, 1000])
+        np.testing.assert_array_equal(function(point), [0, 1])
+
+    def test_morse_two_dimension(self):
+        morse = preset_potentials.Morse(2,
+                                        morse_a=np.array([1, 1]),
+                                        morse_D=np.array([1, 1]),
+                                        morse_p=np.array([1, 1]))
+        function = morse()
+
+        np.testing.assert_array_equal(function(1, 1), 0)
+        np.testing.assert_array_equal(function(1000, 1000), 2)
+        x = np.linspace(1, 100, 2)
+        y = np.linspace(1, 100, 2)
+        np.testing.assert_array_equal(function(x, y), [0, 2])
+        xx, yy = np.meshgrid(x, y)
+        np.testing.assert_array_equal(function(xx, yy), [[0, 1],
+                                                         [1, 2]])
 
 
 if __name__ == "__main__":

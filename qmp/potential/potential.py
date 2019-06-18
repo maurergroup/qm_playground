@@ -74,33 +74,12 @@ class Potential(object):
 
         self.data = None
 
-    def __call__(self, points, n=0):
+    def __call__(self, *points, n=0):
         """
         calculate potential at point x or list of points x
         """
-        result = np.zeros(len(points))
-
-        for i, point in enumerate(points):
-            if not isinstance(point, list) and self.dimension == 1:
-                result[i] = self.evaluate_potential(point, n=n)
-            else:
-                try:
-                    assert len(point) == self.dimension
-                except AssertionError as error:
-                    print(error)
-                except TypeError:
-                    print("Dimension of point does not match potential.")
-                result[i] = self.evaluate_potential(point, n=n)
-
-        return result
-
-    def evaluate_potential(self, point, n=0):
-        """ Calculate potential at single point. """
         f = self.f[n]
-        if isinstance(point, (list, np.ndarray)):
-            return f(*point)
-        else:
-            return f(point)
+        return f(*points)
 
     def deriv(self, points, n=0):
         """
@@ -119,13 +98,13 @@ class Potential(object):
 
         return result
 
-    def single_point_deriv(self, point, n=0):
+    def single_point_deriv(self, *point, n=0):
         """
         calculate 1st derivative at single point
         """
         firstd = self.firstd[n]
         if firstd is None:
-            return utilities.general_deriv(self.f[n], point, order=1)
+            return utilities.general_deriv(self.f[n], *point, order=1)
         else:
             return firstd(*point)
 
@@ -186,12 +165,10 @@ class Potential(object):
         except ImportError:
             raise ImportError('cannot import matplotlib')
 
-        L = np.linspace(self.cell[0][0], self.cell[0][1], pts)
-        y = np.zeros_like(L)
-        for i, x in enumerate(L):
-            y[i] = self.f[0](x)
+        x = np.linspace(self.cell[0][0], self.cell[0][1], pts)
+        y = self.f[0](x)
 
-        plt.plot(L, y)
+        plt.plot(x, y)
 
     def plot_2d(self):
         try:
@@ -203,10 +180,6 @@ class Potential(object):
         y = np.linspace(self.cell[1][0], self.cell[1][1], 50)
 
         X, Y = np.meshgrid(x, y)
-        Z = np.zeros_like(X)
-
-        for i, x in enumerate(X):
-            for j, y in enumerate(x):
-                Z[i, j] = self([[X[i, j], Y[i, j]]])
+        Z = self(X, Y)
 
         plt.contourf(X, Y, Z, cmap='RdGy')
