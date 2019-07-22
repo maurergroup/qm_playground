@@ -1,10 +1,10 @@
 #qmp.data_containers.py
 #
 #    qm_playground - python package for dynamics simulations
-#    Copyright (C) 2016  Reinhard J. Maurer 
+#    Copyright (C) 2016  Reinhard J. Maurer
 #
 #    This file is part of qm_playground.
-#    
+#
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
@@ -21,25 +21,25 @@
 """
 data_containers.py
 
-collection of different data containers for different 
+collection of different data containers for different
 job classes such as wavefunction, particle, and RPMD necklace
 """
 
 import numpy as np
 
-#TODO fix data handling. 
+#TODO fix data handling.
 #make three distinctively different data container objects
 
 class wave(object):
     """
     Abstract wavefunction object
-    contains eigenfunctions, eigenvalues, 
-    and all important subroutines that act 
+    contains eigenfunctions, eigenvalues,
+    and all important subroutines that act
     on the wavefunctions.
     """
-    
+
     def __init__(self, basis):
-   
+
         self.basis = basis
         N = basis.N
         self.psi = np.random.random([N,N])
@@ -47,7 +47,7 @@ class wave(object):
 
     def normalize(self):
         """
-        Normalizes the wavefunction vector 
+        Normalizes the wavefunction vector
         """
 
         norm = np.dot(self.psi,self.psi)
@@ -58,28 +58,36 @@ class traj(object):
     """
     initializes positions and momenta for particle in phase space
     """
-    
+
     def __init__(self, basis):
-        
+
         self.basis = basis
         self.r = basis.r
         self.v = basis.v
         self.masses = basis.masses
-        
-        
+
+
 class rpmd(object):
     """
     initializes positions and momenta for beads in phase space
     """
-    
+
     def __init__(self, basis):
-        
+
         self.basis = basis
         self.r = basis.r
         self.v = basis.v
         self.m = basis.m
         self.n_beads = basis.nb
 
+
+class Hop():
+
+    def __init__(self, basis):
+        self.basis = basis
+        self.x = basis.x
+        self.velocity = basis.velocity
+        self.mass = basis.mass
 
 
 class data_container(dict):
@@ -106,6 +114,10 @@ class data_container(dict):
 
         elif mode is 'rpmd':
             self.rpmd_preparation(basis)
+
+        elif mode is 'hop':
+            self.hop_preparation(basis)
+
         else:
             pass
 
@@ -122,11 +134,11 @@ class data_container(dict):
         """
         Initializes wvfn object for wvfn calculations
         """
-    
+
         #stationary eigenvalues and eigenfunctions
         self.wvfn = wave(basis)
         #self.wvfn.normalize()
-        
+
         #
 
 
@@ -134,10 +146,10 @@ class data_container(dict):
         """
         Initializes arrays for traj dynamics
         """
-   
+
         ##error handling?
         self.traj = traj(basis)
-    
+
     def rpmd_preparation(self, basis):
         """
         Initializes arrays for RPMD simulations
@@ -145,3 +157,9 @@ class data_container(dict):
 
         self.rpmd = rpmd(basis)
 
+    def hop_preparation(self, basis):
+        """
+        Initializes arrays for Surface Hopping simulations
+        """
+
+        self.hop = Hop(basis)

@@ -1,10 +1,10 @@
 #qmp.potential.potential
 #
 #    qm_playground - python package for dynamics simulations
-#    Copyright (C) 2016  Reinhard J. Maurer 
+#    Copyright (C) 2016  Reinhard J. Maurer
 #
 #    This file is part of qm_playground.
-#    
+#
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
@@ -26,9 +26,9 @@ import numpy as np
 
 class Potential(object):
     """
-    Defines Potential and all operations on it. Functions for the 
-    potential energy, the first and second derivative, and for possible 
-    excited states and scalar and vectorial derivative couplings must 
+    Defines Potential and all operations on it. Functions for the
+    potential energy, the first and second derivative, and for possible
+    excited states and scalar and vectorial derivative couplings must
     be passed explicitly.
     """
 
@@ -84,7 +84,7 @@ class Potential(object):
             return np.zeros_like(x)
         else:
             return f(x)
-    
+
     def deriv(self,x,n=0):
         """
         calculate 1st derivative at point x or list of points x
@@ -115,7 +115,7 @@ class Potential(object):
             #return np.zeros_like(x)
         #else:
             #return d1(x)
-    
+
     #def coupling_d2(self,x,n=0, m=1):
         #"""
         #calculate nonadiabatic vectorial 1st order coupling
@@ -146,9 +146,9 @@ class Potential(object):
 
 class Potential2D(object):
     """
-    Defines Potential and all operations on it. Functions for the 
-    potential energy, the first and second derivative, and for possible 
-    excited states and scalar and vectorial derivative couplings must 
+    Defines Potential and all operations on it. Functions for the
+    potential energy, the first and second derivative, and for possible
+    excited states and scalar and vectorial derivative couplings must
     be passed explicitly.
     """
 
@@ -201,5 +201,4 @@ class Potential2D(object):
         ax = fig.gca(projection='3d')
         ax.plot_surface(xgrid, ygrid, V, alpha=.5)
         plt.show()
-    
 
