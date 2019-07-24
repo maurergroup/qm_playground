@@ -30,14 +30,14 @@ class Hopping(basis):
 
     def construct_V_matrix(self):
         flat = np.array(
-            [self.potential(self.x, i) for i in range(self.nstates**2)]
+            [self.potential(self.x, n=i) for i in range(self.nstates**2)]
             )
         V = flat.reshape((self.nstates, self.nstates))
         return V
 
     def construct_Nabla_matrix(self):
         flat = np.array(
-            [self.potential.deriv(self.x, i) for i in range(self.nstates**2)]
+            [self.potential.deriv(self.x, n=i) for i in range(self.nstates**2)]
             )
         D = flat.reshape((self.nstates, self.nstates))
         return D

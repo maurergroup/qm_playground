@@ -33,7 +33,7 @@ class Potential(object):
     be passed explicitly.
     """
 
-    def __init__(self, cell=[[0., 1.]], f=lambda a: 0, firstd=None,
+    def __init__(self, cell=[[0., 1.]], f=lambda a: 0, firstd=None, n=1,
                  secondd=None, d1=None, d2=None):
         """
         Initializes potential
@@ -54,7 +54,7 @@ class Potential(object):
             f = [f]
         self.f = f
 
-        self.states = len(self.f)
+        self.states = n
 
         if not isinstance(firstd, list):
             firstd = [firstd]
@@ -85,8 +85,10 @@ class Potential(object):
         """
         calculate 1st derivative at point x or list of points x
         """
-        result = np.zeros(np.shape(points))
+        if not isinstance(points, list):
+            return self.single_point_deriv(points, n=n)
 
+        result = np.zeros(np.shape(points))
         for i, point in enumerate(points):
             try:
                 assert len(point) == self.dimension
