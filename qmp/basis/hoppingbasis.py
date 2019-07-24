@@ -48,7 +48,15 @@ class Hopping(basis):
     def compute_force(self):
         force_matrix = -np.linalg.multi_dot([self.coeffs.T.conj(),
                                              self.D, self.coeffs])
-        return np.sum(force_matrix, axis=1)
+        return np.diag(force_matrix)
+        # Below also works and is faster for bigger matrices I prefer the above
+        # more readable version.
+
+        # half = np.einsum("ij,jp->ip", self.D, self.coeffs)
+        # out = np.zeros(2)
+        # for i in range(2):
+        #     out[i] += -np.einsum('i,i', self.coeffs[:,i], half[:,i])
+        # return out
 
     def compute_hamiltonian(self):
         return np.linalg.multi_dot([self.coeffs.T, self.V, self.coeffs])

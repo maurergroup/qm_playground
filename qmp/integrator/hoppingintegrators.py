@@ -40,8 +40,24 @@ class HoppingIntegrator(Integrator):
         self.last_velocity = self.velocity
         self.velocity += acceleration * dt
 
-    def rescale_velocity(self, deltaV):
-        self.velocity -= np.sqrt(2 * deltaV / self.basis.mass)
+    def rescale_velocity(self, deltaV, desired_state):
+        d = self.basis.derivative_coupling[desired_state, self.current_state]
+        a = 0.5 * d ** 2 / self.basis.mass
+        b = np.dot(self.velocity, d)
+
+        roots = np.roots([a, b, -deltaV])
+        gamma = min(roots, key=lambda x: abs(x))
+        self.velocity -= gamma * d / self.basis.mass
+
+        # This is the same I think
+        # direction = d / np.sqrt(np.dot(d, d))
+        # Md = self.basis.mass * direction
+        # a = np.dot(Md, Md)
+        # b = 2.0 * np.dot(self.basis.mass * self.velocity, Md)
+        # c = -2.0 * self.basis.mass * -deltaV
+        # roots = np.roots([a, b, c])
+        # scal = min(roots, key=lambda x: abs(x))
+        # self.velocity += scal * direction
 
     def execute_hopping(self):
 
@@ -77,9 +93,11 @@ class HoppingIntegrator(Integrator):
             deltaV = new - old
             kinetic = 0.5 * self.basis.mass * velocity ** 2
 
-            if kinetic > deltaV:
+            if kinetic >= deltaV:
+                self.rescale_velocity(deltaV, desired_state)
                 self.current_state = desired_state
-                self.rescale_velocity(deltaV)
+            else:
+                self.velocity = -1.0 * self.velocity
 
         velocity = 0.5 * (self.velocity + self.last_velocity)
         g = get_probabilities(velocity)
@@ -104,7 +122,7 @@ class HoppingIntegrator(Integrator):
             exit = True
         return exit, outcome
 
-    def run_single_trajectory(self, steps=1e5, dt=2):
+    def run_single_trajectory(self, steps=1e5, dt=20.0):
 
         self.dt = dt
         self.current_step = 0
@@ -139,15 +157,18 @@ class HoppingIntegrator(Integrator):
             if exit:
                 return outcome
 
-    def run(self, steps=1e5, dt=2):
+    def run(self, steps=1e5, dt=20.0):
 
         result = np.zeros((2, 2))
-        ntraj = 50
-        for i in range(50):
-            result += self.run_single_trajectory(steps=steps, dt=dt)
+        ntraj = 2000
+        for i in range(2000):
+
             self.basis.reset_system(self.initial_position,
                                     self.initial_velocity, self.initial_state)
             self.position = self.basis.x
             self.velocity = self.basis.velocity
             self.current_state = self.basis.current_state
+
+            result += self.run_single_trajectory(steps=steps, dt=dt)
+
         self.data.result = result / ntraj
