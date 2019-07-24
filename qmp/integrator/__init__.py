@@ -1,10 +1,10 @@
 #qmp.integrator.__init__
 #
 #    qm_playground - python package for dynamics simulations
-#    Copyright (C) 2016  Reinhard J. Maurer 
+#    Copyright (C) 2016  Reinhard J. Maurer
 #
 #    This file is part of qm_playground.
-#    
+#
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
@@ -24,6 +24,7 @@ Integrators
 from qmp.integrator.waveintegrators import *
 from qmp.integrator.trajintegrators import *
 from qmp.integrator.rpmdintegrators import *
+from qmp.integrator.hoppingintegrators import HoppingIntegrator
 
 integrator_type = {
     'primitive' : prim_propagator,
@@ -46,6 +47,7 @@ integrator_type = {
     'RPMD_equilibrium_properties' : RPMD_equilibrium_properties,
     'RPMD_eq_props' : RPMD_equilibrium_properties,
     'RPMD_scatter' : RPMD_scattering,
+    'hopping': HoppingIntegrator
     }
 
 def integrator_init(data, potential):
@@ -60,4 +62,3 @@ def integrator_help():
         for k in integrator_type.keys():
             string += key+'\n'
         return string
-
