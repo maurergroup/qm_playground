@@ -24,7 +24,7 @@ class PhaseSpaceTestCase(unittest.TestCase):
 
     def test_compute_kinetic_energy(self):
         ke = self.phasespace.compute_kinetic_energy()
-        correct = [2, 10, 0]
+        correct = [1, 5, 0]
         test.assert_array_equal(ke, correct)
 
     def test_compute_potential_energy(self):
@@ -34,9 +34,9 @@ class PhaseSpaceTestCase(unittest.TestCase):
 
     def test_compute_force(self):
         force = self.phasespace.compute_force(self.potential)
-        correct = np.array([[0, -3],
-                            [0, -3],
-                            [-3, 6]])
+        correct = np.array([[0, 0],
+                            [-3, -3],
+                            [-6, -3]])
         test.assert_array_almost_equal(force, correct)
 
 

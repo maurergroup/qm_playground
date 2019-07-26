@@ -169,18 +169,18 @@ class VelocityVerlet(Integrator):
         ndim = self.system.ndim
         m = self.system.masses
 
-        r_t = np.zeros((steps+1, N, ndim))
-        v_t = np.zeros((steps+1, N, ndim))
+        r_t = np.zeros((steps, N, ndim))
+        v_t = np.zeros((steps, N, ndim))
         r_t[0] = np.array(self.system.r)
         v_t[0] = np.array(self.system.v)
 
-        E_pot = np.zeros((steps+1, N))
-        E_kin = np.zeros((steps+1, N))
+        E_pot = np.zeros((steps, N))
+        E_kin = np.zeros((steps, N))
         E_pot[0] = self.system.compute_potential_energy(potential)
         E_kin[0] = self.system.compute_kinetic_energy()
 
         print('Integrating...')
-        for i_step in range(steps):
+        for i_step in range(1, steps):
 
             F = self.system.compute_force(potential)
             v1 = self.system.v + F / m[:, np.newaxis] * dt / 2

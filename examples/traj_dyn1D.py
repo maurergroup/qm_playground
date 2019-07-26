@@ -1,41 +1,19 @@
-############### IMPORT STUFF ###############
-import numpy as np                         #
-import sys                                 #
-sys.path.append('..')                      #
-from qmp import *                          #
-from qmp.basis.phasespace_basis import *   #
-from qmp.potential.pot_tools import *      #
-from qmp.tools.visualizations import *     #
-############################################
+import numpy as np
+import sys
+from qmp import Model
+from qmp.potential.pot_tools import *
+from qmp.potential import Potential
+from qmp.tools.visualizations import *
+from qmp.integrator.trajintegrators import VelocityVerlet
+from qmp.systems.phasespace import PhaseSpace
 
 
-### SIMULATION CELL ###
+# SIMULATION CELL
 cell = [[0., 40.0]]
 
-### POTENTIAL ###
-# define
-f = create_potential(cell,
-                     name='double_well',
-                     double_well_barrier=.008,
-                     double_well_asymmetry=0.,
-                     double_well_width=3.,
-                     )
-
-# create qmp.potential object
-pot = Potential( cell, f=f )
-
-
-### INITIALIZE MODEL ###
-traj1d = Model(
-         ndim=1,
-         mode='traj',
-         integrator='vel_verlet',
-        )
-
-### SET POTENTIAL ###
-traj1d.set_potential(pot)
-
-### SET INITIAL VALUES FOR DYNAMICS ###
+# DYNAMICS PARAMETERS
+dt = 8.1      # time step
+steps = 1E4    # number of steps
 # position(s)
 rs = [[17.]]
 # velocity(ies)
@@ -43,39 +21,51 @@ vs = [[0.002797]]
 # mass(es)
 masses = [1850.]
 
-# create and set basis
-b = phasespace(rs, vs, masses)
-traj1d.set_basis(b)
+# POTENTIAL
+f = create_potential(cell,
+                     name='double_well',
+                     double_well_barrier=.008,
+                     double_well_asymmetry=0.,
+                     double_well_width=3.,
+                     )
 
-### PRINT INFORMATION ###
+pot = Potential(cell, f=f)
+integrator = VelocityVerlet(dt)
+system = PhaseSpace(rs, vs, masses)
+
+
+# INITIALIZE MODEL
+traj1d = Model(
+         system=system,
+         potential=pot,
+         integrator=integrator,
+         mode='traj',
+        )
+
+
+# PRINT INFORMATION
 print(traj1d)
 
-
-### DYNAMICS PARAMETERS ###
-dt =  8.1      # time step
-steps = 1E4    # number of steps
-
-
-### EVOLVE SYSTEM ###
-traj1d.run(steps,dt)
+# EVOLVE SYSTEM
+traj1d.run(steps)
 
 ## gather information
-r_t = traj1d.data.traj.r_t.flatten()
-v_t = traj1d.data.traj.v_t.flatten()
-E_t = traj1d.data.traj.E_t.flatten()
-E_kin = traj1d.data.traj.E_kin_t.flatten()
-E_pot = traj1d.data.traj.E_pot_t.flatten()
+r_t = traj1d.data.r_t.flatten()
+v_t = traj1d.data.v_t.flatten()
+E_t = traj1d.data.E_t.flatten()
+E_kin = traj1d.data.E_kin_t.flatten()
+E_pot = traj1d.data.E_pot_t.flatten()
 
-### PROCESS DATA FOR PLOTTING/VISUALIZATION ###
-h = np.histogram(r_t,bins=np.arange(traj1d.data.cell[0][0], traj1d.data.cell[0][1], 0.1), density=True)
+# PROCESS DATA FOR PLOTTING/VISUALIZATION
+h = np.histogram(r_t, bins=np.arange(cell[0][0], cell[0][1], 0.1), density=True)
 rbins = h[1]
 prop_dist = h[0]
 
 r_sampled = np.linspace(0.95*min(r_t), 1.05*max(r_t), 600)
-V_r = traj1d.pot(r_sampled)
+V_r = traj1d.potential(r_sampled)
 
-### VISUALIZATION ###
-# propability distribution
+# VISUALIZATION
+# probability distribution
 import matplotlib.pyplot as plt
 fig = plt.figure()
 ax = plt.gca()
@@ -106,7 +96,7 @@ fig = plt.figure()
 ax = plt.subplot2grid((4,1), (1,0), rowspan=3, colspan=2)
 ax1 = plt.subplot2grid((4,1), (0,0))
 
-wave_plot1, = ax.plot(r_t[0], traj1d.pot(r_t[0]), ls='',marker='o',mfc='b',mec='b',ms=8.5)
+wave_plot1, = ax.plot(r_t[0], traj1d.potential(r_t[0]), ls='',marker='o',mfc='b',mec='b',ms=8.5)
 
 
 def _init_():
@@ -138,7 +128,7 @@ def _init_():
     return wave_plot1,
 
 def animate(i):
-    wave_plot1.set_data(r_t[i], traj1d.pot(r_t[i]))  # update data
+    wave_plot1.set_data(r_t[i], traj1d.potential(r_t[i]))  # update data
     wave_plot1.set_label('$r(t$ $=$ ${0:>4.1f}$ $au)$' .format(i*dt))
     ax.legend(loc='best',numpoints=1)
 

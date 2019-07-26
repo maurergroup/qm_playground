@@ -26,7 +26,7 @@ class PhaseSpace:
             raise NotImplementedError('Only 1D and 2D implemented.')
 
     def compute_kinetic_energy(self):
-        return self.masses * np.sum(self.v * self.v, axis=1)
+        return 0.5 * self.masses * np.sum(self.v * self.v, axis=1)
 
     def compute_potential_energy(self, potential):
         if self.ndim == 1:

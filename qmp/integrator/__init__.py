@@ -28,23 +28,14 @@ from qmp.integrator.hoppingintegrators import HoppingIntegrator
 
 integrator_type = {
     'primitive' : prim_propagator,
-    'primprop' : prim_propagator,
     'eigen' : eigen_propagator,
-    'eigenprop' :eigen_propagator,
     'SOFT' : SOFT_propagation,
-    'splitopprop' : SOFT_propagation,
-    'split_operator' : SOFT_propagation,
     'SOFT_scatter': SOFT_scattering,
     'SOFT_averages' : SOFT_average_properties,
-    'SOFT_avg_properties' : SOFT_average_properties,
-    'SOFT_avg_props' : SOFT_average_properties,
     'velocity_verlet' : VelocityVerlet,
     'langevin' : langevin_integrator,
-    'VelocityVerlet_RPMD' : RPMD_VelocityVerlet,
     'RPMD_VelocityVerlet' : RPMD_VelocityVerlet,
     'RPMD_averages' : RPMD_equilibrium_properties,
-    'RPMD_equilibrium_properties' : RPMD_equilibrium_properties,
-    'RPMD_eq_props' : RPMD_equilibrium_properties,
     'RPMD_scatter' : RPMD_scattering,
     'hopping': HoppingIntegrator
     }
