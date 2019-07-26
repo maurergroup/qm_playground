@@ -104,4 +104,4 @@ class Model(object):
         #     self.solve()
 
         self.integrator.run(self.system, steps=int(steps),
-                            potential=self.potential, data=self.data)
+                            potential=self.potential, data=self.data, **kwargs)

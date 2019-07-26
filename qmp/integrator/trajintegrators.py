@@ -1,4 +1,4 @@
-#qmp.integrator.trajintegrators
+#    qmp.integrator.trajintegrators
 #
 #    qm_playground - python package for dynamics simulations
 #    Copyright (C) 2016  Reinhard J. Maurer
@@ -21,26 +21,21 @@
 trajintegrators.py
 """
 
-##TODO redo integrators. The integrators should only write
-# into data containers and not invent their own data objects!
-
 from qmp.integrator.integrator import Integrator
-from qmp.tools.termcolors import *
 from numpy.random import standard_normal
 import numpy as np
 
-class langevin_integrator(Integrator):
+
+class Langevin(Integrator):
     """
     Langevin integrator for classical dynamics
+    This has not been rigorously tested. Quick update to work with new layout.
     """
 
-    def __init__(self, **kwargs):
-        Integrator.__init__(self, **kwargs)
+    def __init__(self, dt):
+        Integrator.__init__(self)
 
-        self.N = self.data.traj.basis.npar
-        self.ndim = self.data.traj.basis.ndim
-        self.m = self.data.traj.basis.masses
-        self.updatevars()
+        self.dt = dt
 
     def updatevars(self, dt=0.1, temp=300, friction=0.1):
         self.temp = temp
@@ -85,68 +80,61 @@ class langevin_integrator(Integrator):
         self.pmcor = pmcor
         self.cnst = cnst
 
-    def run(self, steps, dt, temp, friction):
+    def run(self, system, steps, potential, data, temp, friction):
 
-        self.updatevars(dt, temp, friction)
-        lt = self.lt
+        self.system = system
+        self.N = self.system.n_particles
+        self.ndim = self.system.ndim
+        self.m = self.system.masses
+        self.updatevars(self.dt, temp, friction)
+
         N = self.N
         ndim = self.ndim
         m = self.m
 
-        r_t = np.zeros((N,steps+1,ndim))
-        r_t[:,0,:] = np.array(self.data.traj.basis.r)
-        v_t = np.zeros((N,steps+1,ndim))
-        v_t[:,0,:] = np.array(self.data.traj.basis.v)
-        E_pot = np.zeros((N,steps+1))
-        E_kin = np.zeros((N,steps+1))
-        E_tot = np.zeros((N,steps+1))
+        r_t = np.zeros((steps, N, ndim))
+        v_t = np.zeros((steps, N, ndim))
+        r_t[0] = np.array(self.system.r)
+        v_t[0] = np.array(self.system.v)
 
-        print(gray+'Integrating...'+endcolor)
-        for i_par in range(N):
-            f = self.data.traj.basis.get_forces(r_t[i_par, 0], \
-                    self.pot)
-            for i_step in range(steps):
+        E_pot = np.zeros((steps, N))
+        E_kin = np.zeros((steps, N))
+        E_pot[0] = self.system.compute_potential_energy(potential)
+        E_kin[0] = self.system.compute_kinetic_energy()
 
-                e_pot = self.data.traj.basis.get_potential_energy( \
-                        r_t[i_par,i_step], self.pot)
-                e_kin = self.data.traj.basis.get_kinetic_energy(m[i_par], \
-                        v_t[i_par,i_step])
-                E_pot[i_par,i_step] = e_pot
-                E_kin[i_par,i_step] = e_kin
-                E_tot[i_par,i_step] = (e_pot+e_kin)
+        print('Integrating...')
+        f = self.system.compute_force(potential)
+        for i_step in range(1, steps):
 
+            random1 = standard_normal(size=(N, ndim))
+            random2 = standard_normal(size=(N, ndim))
+            rrnd = self.sdpos * random1
+            prnd = (self.sdmom * self.pmcor * random1 +
+                    self.sdmom * self.cnst * random2)
 
-                random1 = standard_normal(size=(ndim))
-                random2 = standard_normal(size=(ndim))
-                rrnd = self.sdpos[i_par] * random1
-                prnd = (self.sdmom[i_par] * self.pmcor * random1 +
-                        self.sdmom[i_par] * self.cnst * random2)
+            p = self.system.v * m[:, np.newaxis]
+            self.system.r += self.c1 * p + self.c2 * f + rrnd
+            p *= self.act0
+            p += self.c3 * f + prnd
 
-                p = v_t[i_par,i_step]*m[i_par]
-                r_t[i_par,i_step+1] = r_t[i_par,i_step] + \
-                        self.c1[i_par] * p + \
-                        self.c2[i_par] * f + rrnd
-                p *= self.act0
-                p += self.c3 * f + prnd
+            f = self.system.compute_force(potential)
 
-                f = self.data.traj.basis.get_forces(r_t[i_par, i_step+1], \
-                        self.pot)
+            self.system.v = p / m[:, np.newaxis] + self.c4 * f
 
-                v_t[i_par,i_step+1] = p/m[i_par] + self.c4 * f
+            r_t[i_step] = self.system.r
+            v_t[i_step] = self.system.v
+            E_pot[i_step] = self.system.compute_potential_energy(potential)
+            E_kin[i_step] = self.system.compute_kinetic_energy()
 
-            e_pot = self.data.traj.basis.get_potential_energy(r_t[i_par,-1], self.pot)
-            e_kin = self.data.traj.basis.get_kinetic_energy(m[i_par], v_t[i_par,-1])
-            E_pot[i_par,steps] = e_pot
-            E_kin[i_par,steps] = e_kin
-            E_tot[i_par,steps] = (e_pot+e_kin)
+        E_tot = E_pot + E_kin
 
-        print(gray+'INTEGRATED'+endcolor)
+        print('INTEGRATED')
 
-        self.data.traj.r_t = r_t
-        self.data.traj.v_t = v_t
-        self.data.traj.E_kin_t = np.array(E_kin)
-        self.data.traj.E_pot_t = np.array(E_pot)
-        self.data.traj.E_t = np.array(E_tot)
+        data.r_t = r_t
+        data.v_t = v_t
+        data.E_kin_t = E_kin
+        data.E_pot_t = E_pot
+        data.E_t = E_tot
 
 
 class VelocityVerlet(Integrator):
@@ -161,7 +149,6 @@ class VelocityVerlet(Integrator):
 
     def run(self, system, steps, potential, data, **kwargs):
 
-        print('running')
         dt = kwargs.get('dt', self.dt)
 
         self.system = system

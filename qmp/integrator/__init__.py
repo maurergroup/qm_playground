@@ -21,24 +21,25 @@
 Integrators
 """
 
-from qmp.integrator.waveintegrators import *
-from qmp.integrator.trajintegrators import *
-from qmp.integrator.rpmdintegrators import *
+import qmp.integrator.waveintegrators as wave
+import qmp.integrator.trajintegrators as traj
+import qmp.integrator.rpmdintegrators as rpmd
 from qmp.integrator.hoppingintegrators import HoppingIntegrator
 
 integrator_type = {
-    'primitive' : prim_propagator,
-    'eigen' : eigen_propagator,
-    'SOFT' : SOFT_propagation,
-    'SOFT_scatter': SOFT_scattering,
-    'SOFT_averages' : SOFT_average_properties,
-    'velocity_verlet' : VelocityVerlet,
-    'langevin' : langevin_integrator,
-    'RPMD_VelocityVerlet' : RPMD_VelocityVerlet,
-    'RPMD_averages' : RPMD_equilibrium_properties,
-    'RPMD_scatter' : RPMD_scattering,
+    'primitive': wave.prim_propagator,
+    'eigen': wave.eigen_propagator,
+    'SOFT': wave.SOFT_propagation,
+    'SOFT_scatter': wave.SOFT_scattering,
+    'SOFT_averages': wave.SOFT_average_properties,
+    'velocity_verlet': traj.VelocityVerlet,
+    'langevin': traj.Langevin,
+    'RPMD_VelocityVerlet': rpmd.RPMD_VelocityVerlet,
+    'RPMD_averages': rpmd.RPMD_equilibrium_properties,
+    'RPMD_scatter': rpmd.RPMD_scattering,
     'hopping': HoppingIntegrator
     }
+
 
 def integrator_init(data, potential):
 
@@ -47,8 +48,9 @@ def integrator_init(data, potential):
 
     return integrator
 
+
 def integrator_help():
-        string = 'Integrator types include: \n'
-        for k in integrator_type.keys():
-            string += key+'\n'
-        return string
+    string = 'Integrator types include: \n'
+    for key in integrator_type.keys():
+        string += key + '\n'
+    return string
