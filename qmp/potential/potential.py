@@ -21,11 +21,11 @@
 class potential
 """
 
-from qmp.tools import utilities
+from qmp.tools import utilities as util
 import numpy as np
 
 
-class Potential(object):
+class Potential:
     """
     Defines Potential and all operations on it. Functions for the
     potential energy, the first and second derivative, and for possible
@@ -85,57 +85,30 @@ class Potential(object):
         """
         calculate 1st derivative at point x or list of points x
         """
-        if not isinstance(points, list):
-            return self.single_point_deriv(points, n=n)
-
-        result = np.zeros(np.shape(points))
-        for i, point in enumerate(points):
-            try:
-                assert len(point) == self.dimension
-            except AssertionError as error:
-                print(error)
-            except TypeError:
-                print("Dimension of point does not match potential.")
-            result[i] = self.single_point_deriv(point, n=n)
-
-        return result
-
-    def single_point_deriv(self, *point, n=0):
-        """
-        calculate 1st derivative at single point
-        """
         firstd = self.firstd[n]
         if firstd is None:
-            return utilities.general_deriv(self.f[n], *point, order=1)
+            if self.dimension == 1:
+                return util.num_deriv(self, points)
+            elif self.dimension == 2:
+                d = np.empty_like(points)
+                for i, point in enumerate(points):
+                    d[i] = util.num_deriv_2D(self, point[0], point[1])
+                return d
         else:
-            return firstd(*point)
+            return firstd(*points)
 
     def hess(self, points, n=0):
         """
         calculate 2nd derivative at point x or list of points x
         """
-        result = np.zeros(len(points))
-
-        for i, point in enumerate(points):
-            try:
-                assert len(point) == self.dimension
-            except AssertionError as error:
-                print(error)
-            except TypeError:
-                print("Dimension of point does not match potential.")
-            result[i] = self.single_point_hess(point, n=n)
-
-        return result
-
-    def single_point_hess(self, point, n=0):
-        """
-        calculate 2nd derivative at single point
-        """
         secondd = self.secondd[n]
         if secondd is None:
-            return np.sum(utilities.general_deriv(self.f[n], point, order=2))
+            if self.dimension == 1:
+                return util.num_deriv2(self, points)
+            elif self.dimension == 2:
+                return util.num_deriv2_2D(self, points[:, 0], points[:, 1])
         else:
-            return secondd(*point)
+            return secondd(*points)
 
     #### coupling is different for different PES pairs
     #def coupling_d1(self,x,n=0, m=1):

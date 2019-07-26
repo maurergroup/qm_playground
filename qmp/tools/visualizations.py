@@ -306,7 +306,7 @@ def contour_movie2D(xgrid, ygrid, pot, pos_arr, steps, npar=1, interval = 50, tr
         else:
             plots = []
             for p in range(npar):
-                plots.append(ax0.plot(pos_arr[p,0,0], pos_arr[p,0,1], \
+                plots.append(ax0.plot(pos_arr[0,p,0], pos_arr[0,p,1], \
                         label='r{0:03d}(t)'.format(p), \
                         ls='', marker=markers[p%ml], mec='k',mfc='k', ms=9)[0])
                 ttl = ax0.text(0.5,1.005,'', transform=ax0.transAxes)
@@ -320,7 +320,7 @@ def contour_movie2D(xgrid, ygrid, pot, pos_arr, steps, npar=1, interval = 50, tr
             def animate(i):
                 result = []
                 for p in range(npar):
-                    plots[p].set_data(pos_arr[p,i,0],pos_arr[p,i,1])
+                    plots[p].set_data(pos_arr[i,p,0],pos_arr[i,p,1])
                 ttl.set_text('step='+str(i))
                 return tuple(plots), ttl
 
@@ -345,8 +345,8 @@ def contour_movie2D(xgrid, ygrid, pot, pos_arr, steps, npar=1, interval = 50, tr
                 return pos_plot, trace_plot,
 
             def animate(i):
-                trace_plot.set_data(pos_arr[0,:i+1,0], pos_arr[0,:i+1,1])
-                pos_plot.set_data(pos_arr[0,i,0], pos_arr[0,i,1])
+                trace_plot.set_data(pos_arr[:i+1,0,0], pos_arr[:i+1,0,1])
+                pos_plot.set_data(pos_arr[i,0,0], pos_arr[i,0,1])
                 return pos_plot, trace_plot,
 
             ani = animation.FuncAnimation(fig, animate, np.arange(0, steps), init_func=_init_, \
@@ -357,10 +357,10 @@ def contour_movie2D(xgrid, ygrid, pot, pos_arr, steps, npar=1, interval = 50, tr
             plots = []
             traces = []
             for p in range(npar):
-                plots.append(ax0.plot(pos_arr[p,0,0], pos_arr[p,0,1], \
+                plots.append(ax0.plot(pos_arr[0,p,0], pos_arr[0,p,1], \
                             label='r{0:03d}(t)'.format(p), \
                             ls='', marker=markers[p%ml], mec='k',mfc='k', ms=9)[0])
-                traces.append(ax0.plot(pos_arr[p,0,0], pos_arr[p,0,1], ls=':',lw=2,c='0.9',zorder=1)[0])
+                traces.append(ax0.plot(pos_arr[0,p,0], pos_arr[0,p,1], ls=':',lw=2,c='0.9',zorder=1)[0])
                 ttl = ax0.text(0.5,1.005,'', transform=ax0.transAxes)
             def _init_():
                 pot_plot = ax0.contourf(xgrid, ygrid, pot, lvl, ls=None,alpha=.75,cmap=cm.jet)
@@ -372,8 +372,8 @@ def contour_movie2D(xgrid, ygrid, pot, pos_arr, steps, npar=1, interval = 50, tr
             def animate(i):
                 result = []
                 for p in range(npar):
-                    plots[p].set_data(pos_arr[p,i,0],pos_arr[p,i,1])
-                    traces[p].set_data(pos_arr[p,:i+1,0],pos_arr[p,:i+1,1])
+                    plots[p].set_data(pos_arr[i,p,0],pos_arr[i,p,1])
+                    traces[p].set_data(pos_arr[:i+1,p,0],pos_arr[:i+1,p,1])
                 ttl.set_text('step='+str(i))
                 return tuple(plots), tuple(traces),ttl,
             ani = animation.FuncAnimation(fig, animate, np.arange(0, steps), init_func=_init_, \
@@ -509,4 +509,3 @@ def propability_distribution2D(model, plot_pot=True, dx_pot=0.1, dy_pot=0.1, sho
 
     plt.savefig(figname)
     plt.show() if show_plot else plt.close()
-

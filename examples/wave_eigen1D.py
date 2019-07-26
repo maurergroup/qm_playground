@@ -1,6 +1,6 @@
 """
-time independent 
-solutions to the 1D Particle in different 
+time independent
+solutions to the 1D Particle in different
 potentials
 """
 
@@ -13,10 +13,10 @@ from qmp.potential.pot_tools import create_potential
 from qmp.tools.visualizations import wave_slideshow1D
 
 
-### SIMULATION CELL ### 
+### SIMULATION CELL ###
 cell = [[0., 120.0]]
 
-### POTENTIAL ### 
+### POTENTIAL ###
 pot = Potential( cell, f=create_potential(cell,
                                           name='double_well',
 					  double_well_barrier=.008,
@@ -32,12 +32,12 @@ tik1d = Model(
         ndim=1,
         mass=1.0,
         mode='wave',
-        basis='onedgrid',
+        # basis='onedgrid',
         solver='scipy',
         states=states,
         )
 
-### SET POTENTIAL ### 
+### SET POTENTIAL ###
 tik1d.set_potential(pot)
 
 ### BASIS ###
@@ -53,4 +53,3 @@ psi = tik1d.data.wvfn.psi
 
 ### VISUALIZATION ###
 wave_slideshow1D(tik1d.basis.x, psi, tik1d.pot(tik1d.basis.x))
-

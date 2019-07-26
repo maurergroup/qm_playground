@@ -1,10 +1,10 @@
 #qmp.integrator.integrator
 #
 #    qm_playground - python package for dynamics simulations
-#    Copyright (C) 2016  Reinhard J. Maurer 
+#    Copyright (C) 2016  Reinhard J. Maurer
 #
 #    This file is part of qm_playground.
-#    
+#
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
@@ -26,29 +26,21 @@ import numpy as np
 
 class Integrator(object):
     """
-    Base class for all integrators. All integrators 
-    need to be initialized with basis, potential and data 
+    Base class for all integrators. All integrators
+    need to be initialized with basis, potential and data
     object.
 
     Every integrator needs the following:
      __init__,
-     run, 
+     run,
      get_forces,
      integrate
-    
+
     """
 
-    def __init__(self, data=None, potential=None, logger=None):
-        
-        self.data = data
-        self.pot = potential
-        
-        #if logger is None:
-            #self.data.logger = Logger()
-        #else:
-            #self.data.logger = logger
+    def __init__(self, data=None, logger=None):
 
-        self.counter = 0
+        self.data = data
 
     def run(self, steps, dt):
         """
@@ -76,5 +68,3 @@ class Integrator(object):
         raise NotImplementedError('integrate needs to be implemented by \
                 the subclasses!')
         pass
-
-

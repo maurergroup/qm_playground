@@ -149,61 +149,56 @@ class langevin_integrator(Integrator):
         self.data.traj.E_t = np.array(E_tot)
 
 
-class velocity_verlet_integrator(Integrator):
+class VelocityVerlet(Integrator):
     """
     Velocity verlet integrator for classical dynamics
     """
 
-    def __init__(self, **kwargs):
-        Integrator.__init__(self, **kwargs)
+    def __init__(self, dt):
+        Integrator.__init__(self)
 
-        self.N = self.data.traj.basis.npar
-        self.ndim = self.data.traj.basis.ndim
-        self.m = self.data.traj.basis.masses
+        self.dt = dt
 
-    def run(self, steps, dt, **kwargs):
+    def run(self, system, steps, potential, data, **kwargs):
 
-        ## We don't need this in this class?!?
-        #self.dt = dt
-        #lt = self.friction*self.dt
-        N = self.N
-        ndim = self.ndim
-        m = self.m
+        print('running')
+        dt = kwargs.get('dt', self.dt)
 
-        r_t = np.zeros((N,steps+1,ndim))
-        r_t[:,0,:] = np.array(self.data.traj.basis.r)
-        v_t = np.zeros((N,steps+1,ndim))
-        v_t[:,0,:] = np.array(self.data.traj.basis.v)
-        E_pot = np.zeros((N,steps+1))
-        E_kin = np.zeros((N,steps+1))
-        E_tot = np.zeros((N,steps+1))
+        self.system = system
+        N = self.system.n_particles
+        ndim = self.system.ndim
+        m = self.system.masses
 
-        print(gray+'Integrating...'+endcolor)
-        for i_par in range(N):
-            for i_step in range(steps):
-                e_pot = self.data.traj.basis.get_potential_energy(r_t[i_par,i_step], self.pot)
-                e_kin = self.data.traj.basis.get_kinetic_energy(m[i_par], v_t[i_par,i_step])
-                E_pot[i_par,i_step] = e_pot
-                E_kin[i_par,i_step] = e_kin
-                E_tot[i_par,i_step] = (e_pot+e_kin)
+        r_t = np.zeros((steps+1, N, ndim))
+        v_t = np.zeros((steps+1, N, ndim))
+        r_t[0] = np.array(self.system.r)
+        v_t[0] = np.array(self.system.v)
 
-                F = self.data.traj.basis.get_forces(r_t[i_par, i_step], self.pot)
-                v1 = v_t[i_par,i_step] + F/m[i_par]*dt/2.
-                r_t[i_par,i_step+1] = r_t[i_par,i_step]+v1*dt
-                F = ( F + self.data.traj.basis.get_forces(r_t[i_par,i_step+1], self.pot) )/2.
-                v_t[i_par,i_step+1] = v_t[i_par,i_step]+F/m[i_par]*dt
+        E_pot = np.zeros((steps+1, N))
+        E_kin = np.zeros((steps+1, N))
+        E_pot[0] = self.system.compute_potential_energy(potential)
+        E_kin[0] = self.system.compute_kinetic_energy()
 
-            e_pot = self.data.traj.basis.get_potential_energy(r_t[i_par,-1], self.pot)
-            e_kin = self.data.traj.basis.get_kinetic_energy(m[i_par], v_t[i_par,-1])
-            E_pot[i_par,steps] = e_pot
-            E_kin[i_par,steps] = e_kin
-            E_tot[i_par,steps] = (e_pot+e_kin)
+        print('Integrating...')
+        for i_step in range(steps):
 
-        print(gray+'INTEGRATED'+endcolor)
+            F = self.system.compute_force(potential)
+            v1 = self.system.v + F / m[:, np.newaxis] * dt / 2
+            self.system.r += v1 * dt
+            F = (F + self.system.compute_force(potential)) / 2
+            self.system.v += F / m[:, np.newaxis] * dt
 
-        self.data.traj.r_t = r_t
-        self.data.traj.v_t = v_t
-        self.data.traj.E_kin_t = np.array(E_kin)
-        self.data.traj.E_pot_t = np.array(E_pot)
-        self.data.traj.E_t = np.array(E_tot)
+            r_t[i_step] = self.system.r
+            v_t[i_step] = self.system.v
+            E_pot[i_step] = self.system.compute_potential_energy(potential)
+            E_kin[i_step] = self.system.compute_kinetic_energy()
 
+        E_tot = E_pot + E_kin
+
+        print('INTEGRATED')
+
+        data.r_t = r_t
+        data.v_t = v_t
+        data.E_kin_t = E_kin
+        data.E_pot_t = E_pot
+        data.E_t = E_tot

@@ -1,63 +1,54 @@
-############### IMPORT STUFF ###############
-import numpy as np                         #
-import sys                                 #
-sys.path.append('..')                      #
-from qmp import *                          #
-from qmp.basis.phasespace_basis import *   #
-from qmp.potential.pot_tools import *      #
-from qmp.tools.visualizations import *     #
-# from qmp.potential import Potential2D      #
-from qmp.tools.utilities import *          #
-############################################
+import numpy as np
+from qmp.systems.phasespace import PhaseSpace
+from qmp.potential import Potential
+from qmp import Model
+from qmp.tools.visualizations import *
+from qmp.potential.preset_potentials import Elbow
+from qmp.tools.utilities import *
+from qmp.integrator.trajintegrators import VelocityVerlet
 
 
 ### SIMULATION CELL ###
-cell = [[0.,20.], [0.,20.]]
+cell = [[0., 20.], [0., 20.]]
+
+rs = [[15., 4.5], [15., 3.5], [2.5, 8.]]
+vs = [[-.001, -0.00001], [0., 0.], [1., -2.]]
+masses = [1., 1., 1.]
+dt = 0.1
 
 ### POTENTIAL ###
-pot = Potential( cell, f=create_potential2D(cell, name='elbow') )
-
+elbow = Elbow(2)
+pot = Potential(cell, f=elbow())
+integ = VelocityVerlet(dt)
+sys = PhaseSpace(rs, vs, masses)
 
 ### INITIALIZE MODEL ###
 traj2d = Model(
-         ndim=2,
+         system=sys,
+         potential=pot,
+         integrator=integ,
          mode='traj',
-         basis='phasespace',
-         integrator='vel_verlet',
         )
-
-### SET POTENTIAL ###
-traj2d.set_potential(pot)
-
-### SET INITIAL VALUES ###
-rs = [[15.,4.5],[15.,3.5], [2.5,8.]]
-vs = [[-.001,-0.00001],[0.,0.],[1.,-2.]]
-masses = [1., 1., 1.]
-
-b = phasespace(rs, vs, masses)
-traj2d.set_basis(b)
 
 print(traj2d)
 
 ### DYNAMICS PARAMETERS ###
-dt =  .1
 steps = 300
 
-
 ### EVOLVE SYSTEM ###
-traj2d.run(steps,dt)
+traj2d.run(steps)
 
 ## gather information
-r_t = traj2d.data.traj.r_t
-v_t = traj2d.data.traj.v_t
-E_t = traj2d.data.traj.E_t
-E_kin = traj2d.data.traj.E_kin_t
-E_pot = traj2d.data.traj.E_pot_t
+r_t = traj2d.data.r_t
+v_t = traj2d.data.v_t
+E_t = traj2d.data.E_t
+E_kin = traj2d.data.E_kin_t
+E_pot = traj2d.data.E_pot_t
 
 x = np.linspace(0., 20., 500)
 y = np.linspace(0., 20., 500)
-xg, yg = np.meshgrid(x,y)
-V_xy = traj2d.pot(xg, yg)
+xg, yg = np.meshgrid(x, y)
+V_xy = traj2d.potential(xg, yg)
 
 ### VISUALIZATION ###
 

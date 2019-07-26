@@ -9,7 +9,7 @@ from qmp.tools.visualizations import *     #
 ############################################
 
 
-### SIMULATION CELL ### 
+### SIMULATION CELL ###
 cell = [[0., 40.0]]
 
 ### POTENTIAL ###
@@ -25,11 +25,10 @@ f = create_potential(cell,
 pot = Potential( cell, f=f )
 
 
-### INITIALIZE MODEL ### 
+### INITIALIZE MODEL ###
 traj1d = Model(
          ndim=1,
          mode='traj',
-         basis='phasespace',
          integrator='vel_verlet',
         )
 
@@ -127,7 +126,7 @@ def _init_():
     ax1.xaxis.set_label_position('top')
     if (E_kin is None) and (E_pot is None):
         ax1.set_ylim(min(E_t.flatten())-0.01, max(E_t.flatten())+0.01)
-    
+
     ax.set_xlabel('$r$ $[a.u.]$')
     ax.set_ylim(min(V_r)-0.1*max(V_r), max(V_r)*1.1)
     ax.set_xlim(r_sampled[0], r_sampled[-1])
@@ -135,7 +134,7 @@ def _init_():
     ax.set_ylabel(r'$\mathcal{V}(r)$ $[a.u.]$', color='r')
     for tl in ax.get_yticklabels():
         tl.set_color('r')
-    
+
     return wave_plot1,
 
 def animate(i):
@@ -143,11 +142,9 @@ def animate(i):
     wave_plot1.set_label('$r(t$ $=$ ${0:>4.1f}$ $au)$' .format(i*dt))
     ax.legend(loc='best',numpoints=1)
 
-    return wave_plot1, 
+    return wave_plot1,
 
 ani = animation.FuncAnimation(fig, animate, np.arange(0, len(r_t)), init_func=_init_, \
                               interval=20, blit=False)
 
 plt.show()
-
-
