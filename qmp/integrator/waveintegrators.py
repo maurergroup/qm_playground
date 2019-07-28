@@ -142,7 +142,7 @@ class PrimitivePropagator(Integrator):
         data.E_t = np.array(E)
 
 
-class SOFT_Propagation(Integrator):
+class SOFT_Propagator(Integrator):
     """
     Split operator propagator for psi(x,0)
         Trotter series: exp(iHt) ~= exp(iVt/2)*exp(iTt)*exp(iVt/2)
@@ -307,7 +307,7 @@ class SOFT_Propagation(Integrator):
         remove_restart()
 
 
-class SOFT_AverageProperties(SOFT_Propagation):
+class SOFT_AverageProperties(SOFT_Propagator):
     """
     SOFT propagator for psi(r,0) to determine expectation values from long simulations
 
@@ -389,7 +389,7 @@ class SOFT_AverageProperties(SOFT_Propagation):
         pick.dump(wave_data, out)
 
 
-class SOFT_Scattering(SOFT_Propagation):
+class SOFT_Scattering(SOFT_Propagator):
     """
     SOFT propagator for scattering processes
                      _               ..
