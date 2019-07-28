@@ -176,15 +176,15 @@ def wave_movie2D(xgrid, ygrid, psi_arr, pot=0.):
     pot_max = max(pot.flatten())
 
     frame = None
-    for i in xrange(psi_arr.shape[0]):
+    for i in range(psi_arr.shape[0]):
         oldframe = frame
 
         frame = ax.plot_surface(xgrid, ygrid, np.reshape(psi_arr[i,:]*np.conjugate(psi_arr[i,:]), (N,N)), \
                                         alpha=0.75, antialiased=False, cmap = cm.coolwarm, lw=0.)
         ax.set_zlim(-0.025*rho_max,rho_max+0.1*rho_max)
-        ax.contour(xgrid, ygrid, pot, zdir='z', offset=ax.get_zlim()[0], ls=ls_pot, cmap=cm.spectral)
-        ax.contour(xgrid, ygrid, pot/pot_max*rho_max, zdir='x', offset=min(xgrid.flatten()), ls=ls_pot, cmap=cm.spectral)
-        ax.contour(xgrid, ygrid, pot/pot_max*rho_max, zdir='y', offset=max(ygrid.flatten()), ls=ls_pot, cmap=cm.spectral)
+        ax.contour(xgrid, ygrid, pot, zdir='z', offset=ax.get_zlim()[0], ls=ls_pot, cmap=cm.Spectral)
+        ax.contour(xgrid, ygrid, pot/pot_max*rho_max, zdir='x', offset=min(xgrid.flatten()), ls=ls_pot, cmap=cm.Spectral)
+        ax.contour(xgrid, ygrid, pot/pot_max*rho_max, zdir='y', offset=max(ygrid.flatten()), ls=ls_pot, cmap=cm.Spectral)
 
         if oldframe is not None:
             ax.collections.remove(oldframe)
@@ -236,9 +236,9 @@ def wave_slideshow2D(xgrid, ygrid, psi_arr, pot=0.):
             ax.clear()
             l = ax.plot_surface(xgrid, ygrid, np.reshape(psi_arr[:,self.ind], (N,N)), lw=0., cmap=cm.coolwarm)
             ax.set_zlim([psi_min-0.1*psi_min, psi_max+0.1*psi_max])
-            ax.contour(xgrid, ygrid, pot, zdir='z', offset=ax.get_zlim()[0], ls=ls_pot, cmap=cm.spectral)
-            ax.contour(xgrid, ygrid, pot/pot_max*psi_max, zdir='x', offset=min(xgrid.flatten()), ls=ls_pot, cmap=cm.spectral)
-            ax.contour(xgrid, ygrid, pot/pot_max*psi_max, zdir='y', offset=max(ygrid.flatten()), ls=ls_pot, cmap=cm.spectral)
+            ax.contour(xgrid, ygrid, pot, zdir='z', offset=ax.get_zlim()[0], ls=ls_pot, cmap=cm.Spectral)
+            ax.contour(xgrid, ygrid, pot/pot_max*psi_max, zdir='x', offset=min(xgrid.flatten()), ls=ls_pot, cmap=cm.Spectral)
+            ax.contour(xgrid, ygrid, pot/pot_max*psi_max, zdir='y', offset=max(ygrid.flatten()), ls=ls_pot, cmap=cm.Spectral)
             plt.draw()
 
 
@@ -249,9 +249,9 @@ def wave_slideshow2D(xgrid, ygrid, psi_arr, pot=0.):
             ax.clear()
             l = ax.plot_surface(xgrid, ygrid, np.reshape(psi_arr[:,self.ind], (N,N)), lw=0., cmap=cm.coolwarm)
             ax.set_zlim([psi_min-0.1*psi_min, psi_max+0.1*psi_max])
-            ax.contour(xgrid, ygrid, pot, zdir='z', offset=ax.get_zlim()[0], ls=ls_pot, cmap=cm.spectral)
-            ax.contour(xgrid, ygrid, pot/pot_max*psi_max, zdir='x', offset=min(xgrid.flatten()), ls=ls_pot, cmap=cm.spectral)
-            ax.contour(xgrid, ygrid, pot/pot_max*psi_max, zdir='y', offset=max(ygrid.flatten()), ls=ls_pot, cmap=cm.spectral)
+            ax.contour(xgrid, ygrid, pot, zdir='z', offset=ax.get_zlim()[0], ls=ls_pot, cmap=cm.Spectral)
+            ax.contour(xgrid, ygrid, pot/pot_max*psi_max, zdir='x', offset=min(xgrid.flatten()), ls=ls_pot, cmap=cm.Spectral)
+            ax.contour(xgrid, ygrid, pot/pot_max*psi_max, zdir='y', offset=max(ygrid.flatten()), ls=ls_pot, cmap=cm.Spectral)
             plt.draw()
 
     callback = Index()

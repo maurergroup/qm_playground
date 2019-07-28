@@ -3,22 +3,23 @@ from qmp.potential import Potential
 from qmp.integrator.dyn_tools import create_gaussian
 from qmp.potential import preset_potentials
 from qmp.tools.visualizations import *
-from qmp.integrator.waveintegrators import SOFT_Propagation
+from qmp.integrator.waveintegrators import SOFT_Scattering
 from qmp.systems.grid import Grid1D
 from qmp import Model
 
 
 # SIMULATION CELL
-cell = [[-20., 20.0]]
+cell = [[-10., 10.0]]
 N = 400
 mass = 1800
 dt = 82.
 
 
 # POTENTIAL
-harm = preset_potentials.Harmonic(1, minimum=[0.], omega=[0.005])
-pot = Potential(cell, f=harm())
-integrator = SOFT_Propagation(dt)
+wall = preset_potentials.Wall(1, position=[5.],
+                              width=np.array([2]), height=[2])
+pot = Potential(cell, f=wall())
+integrator = SOFT_Scattering(dt)
 system = Grid1D(mass, cell[0][0], cell[0][1], N)
 
 # initial wave functions

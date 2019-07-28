@@ -32,11 +32,6 @@ class Langevin(Integrator):
     This has not been rigorously tested. Quick update to work with new layout.
     """
 
-    def __init__(self, dt):
-        Integrator.__init__(self)
-
-        self.dt = dt
-
     def updatevars(self, dt=0.1, temp=300, friction=0.1):
         self.temp = temp
         self.friction = friction
@@ -141,11 +136,6 @@ class VelocityVerlet(Integrator):
     """
     Velocity verlet integrator for classical dynamics
     """
-
-    def __init__(self, dt):
-        Integrator.__init__(self)
-
-        self.dt = dt
 
     def run(self, system, steps, potential, data, **kwargs):
 

@@ -1,5 +1,4 @@
 import numpy as np
-from qmp.tools.utilities import num_deriv_2D
 
 
 class PhaseSpace:

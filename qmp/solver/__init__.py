@@ -1,10 +1,10 @@
 #qmp.solver.__init__
 #
 #    qm_playground - python package for dynamics simulations
-#    Copyright (C) 2016  Reinhard J. Maurer 
+#    Copyright (C) 2016  Reinhard J. Maurer
 #
 #    This file is part of qm_playground.
-#    
+#
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
@@ -21,13 +21,14 @@
 Solver
 """
 
-from qmp.solver.eigensolver import *
+from qmp.solver.solver import ScipySolver, AlglibSolver
 
 solver_type = {
-        'scipy': scipy_solver,
-        'alglib': alglib_solver,
-        #'pimd': pimd_solver,
+        'scipy': ScipySolver,
+        'alglib': AlglibSolver,
+        # 'pimd': pimd_solver,
         }
+
 
 def solver_init(data, potential):
     param = data.parameters
@@ -35,9 +36,9 @@ def solver_init(data, potential):
 
     return solver
 
+
 def solver_help():
     string = 'Solver types include: \n'
-    for k in solver_type.keys():
+    for key in solver_type.keys():
         string += key+'\n'
     return string
-    

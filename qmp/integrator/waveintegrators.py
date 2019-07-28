@@ -1,4 +1,4 @@
-#qmp.integrator.waveintegrators
+#    qmp.integrator.waveintegrators
 #
 #    qm_playground - python package for dynamics simulations
 #    Copyright (C) 2016  Reinhard J. Maurer
@@ -21,17 +21,17 @@
 waveintegrators.py
 """
 
-from qmp.tools.utilities import *
+from qmp.tools.utilities import hbar
 from qmp.integrator.integrator import Integrator
 from qmp.integrator.dyn_tools import project_wvfn
-from qmp.tools.termcolors import *
 import numpy as np
 
 
-def remove_restart(filename):
+def remove_restart():
     """
     Removes filename from current directory, if existing
     """
+    filename = '*.rst'
     try:
         from os import remove
         remove(filename)
@@ -40,125 +40,109 @@ def remove_restart(filename):
         pass
 
 
-class eigen_propagator(Integrator):
+class EigenPropagator(Integrator):
     """
-    Projects initial wavefunction onto eigenbasis, propagates expansion coefficients
+    Projects initial wavefunction onto eigenbasis,
+    propagates expansion coefficients.
     """
 
-    def __init__(self, **kwargs):
-        """
-        Initialization
-        """
-        Integrator.__init__(self, **kwargs)
-
-        #prepare data object for time integration
-        #we need trajectories for different observables
-        #every integrator owns a Logger which is either
-        #empty or wants data
-
-        self.data.c = np.zeros_like(self.data.wvfn.E)
-
-
-    def run(self, steps, dt, **kwargs):
+    def run(self, system, steps, potential, data, **kwargs):
         """
         Propagates psi_0 for 'steps' timesteps of length 'dt'.
         """
 
-        psi_0 = kwargs.get('psi_0', 0.)
-        psi_basis = self.data.wvfn.psi     #(x,states)
+        self.system = system
+        dt = kwargs.get('dt', self.dt)
+        psi_0 = self.system.psi
+        psi_basis = self.system.basis
+        self.system.c = np.zeros_like(self.system.E)
 
         if steps == 0:
-            self.data.c[0] = 1
-            c = self.data.c
-        elif not (np.any(self.data.c) != 0.) and not (np.any(psi_0) != 0.):
-            raise ValueError('Integrator needs either expansion coefficients \
-or initial wave function to propagate system!')
+            self.system.c[0] = 1
+            c = self.system.c
+        elif not (np.any(self.system.c) != 0.) and not (np.any(psi_0) != 0.):
+            raise ValueError('Integrator needs either expansion coefficients '
+                             + 'or initial wave function to propagate system!')
         elif not (np.any(psi_0) != 0.):
-            c = self.data.c
+            c = self.system.c
             norm = np.sqrt(np.conjugate(c).dot(c))
             c /= norm
         elif (len(psi_0.flatten()) != psi_basis.shape[0]):
-            raise ValueError('Initial wave function needs to be defined on \
-same grid as system was solved on!')
+            raise ValueError('Initial wave function needs to be defined on '
+                             + 'same grid as system was solved on!')
         else:
             states = psi_basis.shape[1]
-            print(gray+'Projecting wavefunction onto basis of '+str(states)+' eigenstates'+endcolor)
+            print('Projecting wavefunction onto basis of '
+                  + str(states) + ' eigenstates')
             if psi_basis.shape[0] != states:
-                print(gray+'**WARNING: This basis is incomplete, coefficients and wavefunction might contain errors**'+endcolor)
+                print('**WARNING: This basis is incomplete, coefficients and'
+                      + ' wavefunction might contain errors**')
             c = np.array([project_wvfn(psi_0, psi_basis)])
 
-        prop = np.diag(np.exp(-1j*self.data.wvfn.E*dt/hbar))    #(states,states)
-        psi = [psi_basis.dot(c[0])]    #(x,1)
-        E = [np.dot(np.conjugate(c[0]), (c[0]*self.data.wvfn.E))]
+        prop = np.diag(np.exp(-1j*self.system.E*dt/hbar))  # (states,states)
+        psi = [psi_basis.dot(c[0])]  # (x,1)
+        E = [np.dot(np.conjugate(c[0]), (c[0]*self.system.E))]
 
         self.counter = 0
-        print(gray+'Integrating...'+endcolor)
-        for i in range(1,steps+1):
+        print('Integrating...')
+        for i in range(1, steps+1):
             self.counter += 1
-            c = np.append(c, np.dot(prop,c[i-1])).reshape(i+1, states)
-            psi = np.append(psi, np.dot(psi_basis,c[i])).reshape(i+1,psi_basis.shape[0])
-            E.append(np.dot(np.conjugate(c[i]), (c[i]*self.data.wvfn.E)))
+            c = np.append(c, np.dot(prop, c[i-1])).reshape(i+1, states)
+            psi = np.append(psi, np.dot(psi_basis, c[i])
+                            ).reshape(i+1, psi_basis.shape[0])
+            E.append(np.dot(np.conjugate(c[i]), (c[i]*self.system.E)))
 
-        print(gray+'INTEGRATED\n'+endcolor)
+        print('INTEGRATED\n')
 
-        self.data.wvfn.psi_t = np.array(psi)
-        self.data.wvfn.c_t = np.array(c)
-        self.data.wvfn.E_t = np.array(E)
+        data.psi_t = np.array(psi)
+        data.c_t = np.array(c)
+        data.E_t = np.array(E)
 
 
-class prim_propagator(Integrator):
+class PrimitivePropagator(Integrator):
     """
-    Primitive exp(-iHt) propagator for psi in arbitrary basis in spatial representation
+    Primitive exp(-iHt) propagator for psi in arbitrary
+    basis in spatial representation
     """
 
-    def __init__(self, **kwargs):
-        """
-        Initialization
-        """
-        Integrator.__init__(self, **kwargs)
-
-        #prepare data object for time integration
-        #we need trajectories for different observables
-        #every integrator owns a Logger which is either
-        #empty or wants data
-
-        ##something?
-
-    def run(self, steps, dt, **kwargs):
+    def run(self, system, steps, potential, data, **kwargs):
         """
         Propagates the system for 'steps' timesteps of length 'dt'.
         """
         import scipy.linalg as la
 
-        psi_0 = kwargs.get('psi_0')
+        self.system = system
+        dt = kwargs.get('dt', self.dt)
+        psi_0 = self.system.psi
 
-        #construct H
-        T=self.data.wvfn.basis.construct_Tmatrix()
-        V=self.data.wvfn.basis.construct_Vmatrix(self.pot)
+        # construct H
+        T = self.system.construct_T_matrix()
+        V = self.system.construct_V_matrix(potential)
 
         if (not psi_0.any() != 0.) or (len(psi_0.flatten()) != T.shape[1]):
-            raise ValueError('Please provide initial wave function on appropriate grid')
+            raise ValueError('Please provide initial wave function'
+                             + ' on appropriate grid')
 
         H = np.array(T+V)
-        prop = la.expm(-1j*H*dt/hbar)    #(x,x)
-        psi = np.array([psi_0.flatten()])    #(1,x)
-        E = [np.dot(np.conjugate(psi_0.flatten()), np.dot(H,psi_0.flatten()))]
+        prop = la.expm(-1j*H*dt/hbar)  # (x,x)
+        psi = np.array([psi_0.flatten()])  # (1,x)
+        E = [np.dot(np.conjugate(psi_0.flatten()), np.dot(H, psi_0.flatten()))]
+
         self.counter = 0
-
-        print(gray+'Integrating...'+endcolor)
+        print('Integrating...')
         for i in range(steps):
-            self.counter +=1
-            psi = np.append(psi, np.dot(prop,psi[i]))
-            psi = np.reshape(psi, (i+2,T.shape[0]))
-            E.append(np.dot(psi[i+1].conjugate(), np.dot(H,psi[i+1])))
+            self.counter += 1
+            psi = np.append(psi, np.dot(prop, psi[i]))
+            psi = np.reshape(psi, (i+2, T.shape[0]))
+            E.append(np.dot(psi[i+1].conjugate(), np.dot(H, psi[i+1])))
 
-        print(gray+'INTEGRATED\n'+endcolor)
+        print('INTEGRATED\n')
 
-        self.data.wvfn.psi_t = np.array(psi)
-        self.data.wvfn.E_t = np.array(E)
+        data.psi_t = np.array(psi)
+        data.E_t = np.array(E)
 
 
-class SOFT_propagation(Integrator):
+class SOFT_Propagation(Integrator):
     """
     Split operator propagator for psi(x,0)
         Trotter series: exp(iHt) ~= exp(iVt/2)*exp(iTt)*exp(iVt/2)
@@ -167,147 +151,163 @@ class SOFT_propagation(Integrator):
         => psi(x,t) = iFT(exp(t*p**2/4m) * FT(exp(iVt) * iFT(exp(t*p**2/4m) * FT(psi(x,0)))))
     """
 
-    def __init__(self, **kwargs):
-        """
-        Initialization
-        """
-        Integrator.__init__(self, **kwargs)
+    def load_restart(self):
+        import pickle as pick
+        try:
+            restart_file = open(self.system.psi, 'rb')
+            current_data = pick.load(restart_file)
+            self.psi = current_data['psi']
+            self.rho = current_data['rho']
+            self.E = current_data['E_tot']
+            self.E_kin = current_data['E_kin']
+            self.E_pot = current_data['E_pot']
+            self.i_start = current_data['i']+1
+        except FileNotFoundError:
+            raise ValueError('Input does not refer to a wave function nor \
+                             to a restart file.')
 
-        #prepare data object for time integration
-        #we need trajectories for different observables
-        #every integrator owns a Logger which is either
-        #empty or wants data
+    def prepare_coefficients(self):
+        self.psi_basis = self.system.psi
+        states = self.psi_basis.shape[1]
+        print('Projecting wavefunction onto basis of '
+              + str(states) + ' eigenstates')
+        if self.psi_basis.shape[0] != states:
+            print('** WARNING: This basis is incomplete, \
+                  coefficients might contain errors **')
 
+        return [project_wvfn(self.psi, self.psi_basis)]
 
-    def run(self, steps, dt, **kwargs):
+    def prepare(self, add_info):
+        if type(self.system.psi) == str:
+            self.load_restart(self.system)
+        else:
+            self.psi = [self.system.psi.flatten()]
+            self.rho = np.conjugate(self.psi)*self.psi
+            self.E, self.E_kin, self.E_pot = [], [], []
+            self.i_start = 0
+
+        if (add_info == 'coefficients'):
+            self.c_t = self.prepare_coefficients()
+
+    def compute_p(self, N):
+        from numpy.fft import fftfreq as FTp
+
+        dx = self.system.dx
+        nx = self.system.N
+        ndim = self.system.ndim
+
+        if ndim == 1:
+            p = np.pi*FTp(N, dx)
+            p = p*p
+        elif ndim == 2:
+            p = FTp(nx, dx).conj()*FTp(nx, dx)
+            p = np.pi*np.pi*(np.kron(np.ones(nx), p)
+                             + np.kron(p, np.ones(nx)))
+        else:
+            raise NotImplementedError('Only 1D and 2D systems implemented')
+
+        return p
+
+    def compute_operators(self, potential, dt):
+        m = self.system.mass
+        self.V = self.system.compute_potential_flat(potential)
+        N = self.V.size
+
+        self.expV = np.exp(-1j*self.V*dt / hbar)
+
+        self.p = self.compute_p(N)
+        self.expT = np.exp(-1j*(dt/hbar)*self.p/m)
+
+    def propagate_psi(self, i):
+        from numpy.fft import fft as FT
+        from numpy.fft import ifft as iFT
+
+        psi1 = iFT(self.expT*FT(self.psi[i]))
+        psi2 = FT(self.expV*psi1)
+        psi3 = iFT(self.expT*psi2)
+        return psi3
+
+    def store_result(self, psi, e_kin, e_pot):
+
+        self.rho += np.conjugate(psi)*psi
+        self.psi.append(psi)
+        self.E_kin.append(e_kin)
+        self.E_pot.append(e_pot)
+        self.E.append(e_kin+e_pot)
+
+    def write_restart(self, i):
+        import pickle as pick
+        out = open('wave_dyn.rst', 'wb')
+        wave_data = {'psi': self.psi, 'rho': self.rho,
+                     'E_kin': self.E_kin,
+                     'E_pot': self.E_pot,
+                     'E_tot': self.E, 'i': i}
+        pick.dump(wave_data, out)
+
+    def assign_data(self, data, i, add_info):
+        # TODO RETHINK c_t -- Why? (MS) -- what's happening? (JG)
+        if add_info == 'coefficients':
+            data.c_t = np.array(self.c_t)
+
+        data.psi_t = np.array(self.psi)
+        data.E_t = np.array(self.E)
+        data.E_kin_t = np.array(self.E_kin)
+        data.E_pot_t = np.array(self.E_pot)
+        data.E_mean = np.sum(self.E)/i
+        data.E_k_mean = np.sum(self.E_kin)/i
+        data.E_p_mean = np.sum(self.E_pot)/i
+        data.rho_mean = self.rho/i
+
+    def write_output(self, data):
+        import pickle as pick
+        out = open('wave_dyn.end', 'wb')
+        wave_data = {'psi': data.psi_t, 'rho': data.rho_mean,
+                     'E_kin': data.E_kin_t,
+                     'E_pot': data.E_pot_t, 'E_tot': data.E_t}
+        pick.dump(wave_data, out)
+
+    def run(self, system, steps, potential, data, **kwargs):
         """
         Propagates the system for 'steps' timesteps of length 'dt'.
         """
         from numpy.fft import fft as FT
         from numpy.fft import ifft as iFT
-        from numpy.fft import fftfreq as FTp
-        import pickle as pick
 
-        #try:
-        psi_0 = kwargs.get('psi_0')
-        #except:
-        #	psi_0 = self.data.wave.psi
+        dt = kwargs.get('dt', self.dt)
         add_info = kwargs.get('additional', None)
+        self.system = system
+        self.prepare(add_info)
 
-        V = self.data.wvfn.basis.get_potential_flat(self.pot)
-        N = V.size
+        m = system.mass
 
-        if type(psi_0)==str:
-            try:
-                restart_file = open(psi_0,'rb')
-                current_data = pick.load(restart_file)
-                psi = current_data['psi']
-                rho = current_data['rho']
-                E = current_data['E_tot']
-                E_kin = current_data['E_kin']
-                E_pot = current_data['E_pot']
-                i_start = current_data['i']+1
-            except:
-                raise ValueError('Given input does neither refer to wave function nor to an existing restart file.')
-        else:
-            psi = [np.array(psi_0.flatten())]
-            rho = np.conjugate(psi)*psi
-            E, E_kin, E_pot = [], [], []
-            i_start = 0
-
-        #TODO reconsider this bypassing of data_container
-        #if (not psi_0.any() != 0.) or (len(psi_0.flatten()) != N):
-        #    raise ValueError('Please provide initial wave function on appropriate grid')
-
-        if (add_info == 'coefficients'):
-            psi_basis = self.data.wvfn.psi
-            states = psi_basis.shape[1]
-            print(gray+'Projecting wavefunction onto basis of '+str(states)+' eigenstates'+endcolor)
-            if psi_basis.shape[0] != states:
-                print(gray+'**WARNING: This basis is incomplete, coefficients might contain errors**'+endcolor)
-
-            c_t = [project_wvfn(psi_0, psi_basis)]
-
-
-        m = self.data.mass
-        dx = self.data.wvfn.basis.dx
-        nx = self.data.wvfn.basis.N
-        nDim = self.data.ndim
-
-        expV = np.exp(-1j*V*dt/hbar)
-        if nDim == 1:
-            p = np.pi*FTp(N, dx)
-            p = p*p
-        elif nDim == 2:
-            p = FTp(nx,dx).conj()*FTp(nx,dx)
-            p = np.pi*np.pi*(np.kron(np.ones(nx), p) + np.kron(p, np.ones(nx)))
-        else:
-            raise NotImplementedError('Only evolving 1D and 2D systems implemented')
-
-        expT = np.exp(-1j*(dt/hbar)*p/m)
+        self.compute_operators(potential, dt)
 
         self.counter = 0
 
-        print(gray+'Integrating...'+endcolor)
-        for i in range(i_start, steps):
+        print('Integrating...')
+        for i in range(self.i_start, steps):
             self.counter += 1
-            psi1 = iFT( expT*FT(psi[i]) )
-            psi2 = FT( expV*psi1 )
-            psi3 = iFT( expT*psi2 )
-            rho += np.conjugate(psi3)*psi3
-            psi.append(psi3)
+
+            psi = self.propagate_psi(i)
+            e_kin = (np.conjugate(psi).dot(iFT(2.*self.p/m * FT(psi))))
+            e_pot = np.conjugate(psi).dot(self.V*psi)
+
+            self.store_result(psi, e_kin, e_pot)
+
             if add_info == 'coefficients':
-                c_t.append(project_wvfn(psi3, psi_basis))
+                self.c_t.append(project_wvfn(psi, self.psi_basis))
 
-            e_kin = (np.conjugate(psi3).dot( iFT(2.*p/m * FT(psi3)) ))
-            e_pot = np.conjugate(psi3).dot(V*psi3)
-            E_kin.append(e_kin)
-            E_pot.append(e_pot)
-            E.append(e_kin+e_pot)
+            if (np.mod(i+1, 1000000) == 0):
+                self.write_restart(i)
 
-            if (np.mod(i+1, 1000000)==0):
-                out = open('wave_dyn.rst', 'wb')
-                wave_data = {'psi':psi, 'rho':rho, 'E_kin':E_kin, 'E_pot':E_pot, 'E_tot':E, 'i':i}
-                pick.dump(wave_data,out)
+        print('INTEGRATED\n')
+
+        self.assign_data(data, i, add_info)
+        self.write_output(data)
+        remove_restart()
 
 
-        print(gray+'INTEGRATED\n'+endcolor)
-
-        psi_ft = FT(psi[-1])
-        e_kin = np.dot(np.conjugate(psi[-1]), iFT( 2.*p/m*psi_ft))
-        e_pot = np.conjugate(psi[-1]).dot(V*psi[-1])
-        E_kin.append(e_kin)
-        E_kin = np.array(E_kin)
-        E_pot.append(e_pot)
-        E_pot = np.array(E_pot)
-        E.append(e_kin+e_pot)
-        E = np.array(E)
-        #TODO RETHINK c_t -- Why? (MS)
-        if add_info =='coefficients':
-            c_t = np.array(c_t)
-            self.data.wvfn.c_t = c_t
-
-        self.data.wvfn.psi_t = np.array(psi)
-        self.data.wvfn.E_t = E
-        self.data.wvfn.E_kin_t = np.array(E_kin)
-        self.data.wvfn.E_pot_t = np.array(E_pot)
-        self.data.wvfn.E_mean = np.sum(E)/i
-        self.data.wvfn.E_k_mean = np.sum(E_kin)/i
-        self.data.wvfn.E_p_mean = np.sum(E_pot)/i
-        self.data.wvfn.rho_mean = rho/i
-
-        ## write psi, rho to binary output file
-        out = open('wave_dyn.end', 'wb')
-        wave_data = {'psi':psi, 'rho':rho, 'E_kin':E_kin, 'E_pot':E_pot, 'E_tot':E}
-        pick.dump(wave_data,out)
-        ## remove restart files
-        remove_restart('wave_dyn.rst')
-
-
-
-
-
-class SOFT_average_properties(Integrator):
+class SOFT_AverageProperties(SOFT_Propagation):
     """
     SOFT propagator for psi(r,0) to determine expectation values from long simulations
 
@@ -318,128 +318,78 @@ class SOFT_average_properties(Integrator):
         E_kin:  average kinetic energy, \sum_{steps} E_kin/steps
         E_pot:  average potential energy, \sum+{steps} E_pot/steps
     """
-
-    def __init__(self, **kwargs):
-        """
-        Initialization
-        """
-        Integrator.__init__(self, **kwargs)
-
-        #something?
-
-
-    def run(self, steps, dt, **kwargs):
-        """
-        Propagates the system for 'steps' timesteps of length 'dt'.
-        """
-        ## import stuff
-        from numpy.fft import fft as FT
-        from numpy.fft import ifft as iFT
-        from numpy.fft import fftfreq as FTp
+    def load_restart(self):
         import pickle as pick
+        try:
+            restart_file = open(self.system.psi, 'rb')
+            current_data = pick.load(restart_file)
+            self.i_start = current_data['i']+1
+            self.psi = current_data['psi']
+            self.rho = current_data['rho']*self.i_start
+            self.E = current_data['E_tot']*self.i_start
+            self.E_kin = current_data['E_kin']*self.i_start
+            self.E_pot = current_data['E_pot']*self.i_start
+        except FileNotFoundError:
+            raise ValueError('Input does not refer to a wave function nor \
+                             to a restart file.')
 
-        psi_0 = kwargs.get('psi_0')
-        add_info = kwargs.get('additional', None)
-
-        V = self.data.wvfn.basis.get_potential_flat(self.pot)
-        N = V.size
-
-        if type(psi_0)==str:
-            try:
-                restart_file = open(psi_0,'rb')
-                current_data = pick.load(restart_file)
-                i_start = current_data['i']
-                psi = current_data['psi']
-                rho = current_data['rho']*i_start
-                E = current_data['E_tot']*i_start
-                E_kin = current_data['E_kin']*i_start
-                E_pot = current_data['E_pot']*i_start
-                i_start+=1
-            except:
-                raise ValueError('Given input does neither refer to wave function nor to an existing restart file.')
+    def prepare(self, add_info):
+        if type(self.system.psi) == str:
+            self.load_restart(self.system)
         else:
-            psi = np.array(psi_0.flatten())
-            rho = np.conjugate(psi)*psi
-            E, E_kin, E_pot = 0., 0., 0.
-            i_start = 0
-
-        if (not psi_0.any() != 0.) or (len(psi_0.flatten()) != N):
-            raise ValueError('Please provide initial wave function on appropriate grid')
+            self.psi = np.array(self.system.psi.flatten())
+            self.rho = np.conjugate(self.psi)*self.psi
+            self.E, self.E_kin, self.E_pot = 0, 0, 0
+            self.i_start = 0
 
         if (add_info == 'coefficients'):
-            psi_basis = self.data.wvfn.psi
-            states = psi_basis.shape[1]
-            print(gray+'Projecting wavefunction onto basis of '+str(states)+' eigenstates'+endcolor)
-            if psi_basis.shape[0] != states:
-                print(gray+'**WARNING: This basis is incomplete, coefficients might contain errors**'+endcolor)
+            self.c_mean = self.prepare_coefficients()[0]
 
-            c_mean = project_wvfn(psi_0, psi_basis)
+    def propagate_psi(self, i):
+        from numpy.fft import fft as FT
+        from numpy.fft import ifft as iFT
 
-        m = self.data.mass
-        dx = self.data.wvfn.basis.dx
-        nx = self.data.wvfn.basis.N
-        nDim = self.data.ndim
+        psi1 = iFT(self.expT*FT(self.psi))
+        psi2 = FT(self.expV*psi1)
+        psi3 = iFT(self.expT*psi2)
+        return psi3
 
-        expV = np.exp(-1j*V*dt/hbar)
-        if nDim == 1:
-            p = np.pi*FTp(N, dx)
-            p = p*p
-        elif nDim == 2:
-            p = FTp(nx,dx).conj()*FTp(nx,dx)
-            p = np.pi*np.pi*(np.kron(np.ones(nx), p) + np.kron(p, np.ones(nx)))
-        else:
-            raise NotImplementedError('Only evolving 1D and 2D systems implemented')
+    def store_result(self, psi, e_kin, e_pot):
+        self.rho += np.conjugate(psi)*psi
+        self.psi = psi
+        self.E_kin += e_kin
+        self.E_pot += e_pot
+        self.E += e_kin + e_pot
 
-        expT = np.exp(-1j*(dt/hbar)*p/m)
+    def write_restart(self, i):
+        import pickle as pick
+        out = open('wave_avgs.rst', 'wb')
+        wave_data = {'psi': self.psi,
+                     'rho': self.rho/i,
+                     'E_kin': self.E_kin/i,
+                     'E_pot': self.E_pot/i,
+                     'E_tot': self.E/i,
+                     'i': i}
+        pick.dump(wave_data, out)
 
-        self.counter = 0
-
-        print(gray+'Integrating...'+endcolor)
-        for i in range(i_start, steps):
-            self.counter += 1
-            psi1 = iFT( expT*FT(psi) )
-            psi2 = FT( expV*psi1 )
-            psi = iFT( expT*psi2 )
-            rho += np.conjugate(psi)*psi
-            if add_info == 'coefficients':
-                c_mean += project_wvfn(psi, psi_basis)
-
-            e_kin = (np.conjugate(psi3).dot( iFT(2.*p/m * FT(psi3)) ))
-            e_pot = np.conjugate(psi3).dot(V*psi3)
-            E_kin+=e_kin
-            E_pot+=e_pot
-            E+=(e_kin+e_pot)
-
-            if (np.mod(i+1, 1000000)==0):
-                out = open('wave_avgs.rst', 'wb')
-                current_data = {'psi':psi, 'rho':rho/i, 'E_kin':E_kin/i, 'E_pot':E_pot/i, 'E_tot':E/i, 'i':i}
-                pick.dump(current_data,out)
-
-
-        print(gray+'INTEGRATED\n'+endcolor)
-
-        e_kin = np.dot(np.conjugate(psi), iFT( 2.*p/m*FT(psi)))
-        e_pot = np.conjugate(psi).dot(V*psi)
-        E_kin+=e_kin
-        E_pot+=e_pot
-        E += (e_kin+e_pot)
+    def assign_data(self, data, i, add_info):
         if add_info == 'coefficients':
-            self.data.wvfn.c_mean = c_mean/i
+            data.c_mean = np.array(self.c_mean/i)
 
-        self.data.wvfn.E_tot = E/i
-        self.data.wvfn.E_kin = E_kin/i
-        self.data.wvfn.E_pot = E_pot/i
-        self.data.wvfn.rho = rho/i
+        data.E_tot = self.E / i
+        data.E_kin = self.E_kin / i
+        data.E_pot = self.E_pot / i
+        data.rho = self.rho/i
 
-        ## write energies, rho to binary output file
+    def write_output(self, data):
+        import pickle as pick
         out = open('wave_avgs.end', 'wb')
-        wave_data = {'rho':rho/i, 'E_kin':E_kin/i, 'E_pot':E_pot/i, 'E_tot':E/i}
-        pick.dump(wave_data,out)
-        ## remove restart files
-        remove_restart('wave_avgs.rst')
+        wave_data = {'rho': data.rho, 'E_kin': data.E_kin,
+                     'E_pot': data.E_pot, 'E_tot': data.E_tot}
+        pick.dump(wave_data, out)
 
 
-class SOFT_scattering(Integrator):
+class SOFT_Scattering(SOFT_Propagation):
     """
     SOFT propagator for scattering processes
                      _               ..
@@ -468,155 +418,96 @@ class SOFT_scattering(Integrator):
         status:   information whether scattering process should be complete
     """
 
-    def __init__(self, **kwargs):
-        """
-        Initialization
-        """
-        Integrator.__init__(self, **kwargs)
+    # get borders, r_l and r_b, and dividing surface (1D: rb)
+    # TODO: 2D dividing surface?
 
-        ## get borders, r_l and r_b, and dividing surface (1D: rb)
-        ## TODO: 2D dividing surface?
-        grid = self.data.wvfn.basis.x
-        x_Vmax = grid[np.argmax(self.pot(grid))]
-        rb = kwargs.get('div_surf', x_Vmax)
-        self.rb_idx = np.argmin(abs(grid-rb))
+    def store_result(self, psi, e_kin, e_pot):
 
+        self.rho += np.conjugate(psi)*psi
+        self.psi.append(psi)
+        self.E_kin.append(e_kin)
+        self.E_pot.append(e_pot)
+        self.E.append(e_kin+e_pot)
+        self.E_mean = np.mean(self.E)
 
-    def run(self, steps, dt, **kwargs):
+    def assign_data(self, data, i, add_info):
+        data.psi_t = np.array(self.psi)
+        data.E_t = np.array(self.E)
+        data.E_mean = np.array(self.E_mean)
+        data.dErel_max = np.array(
+                abs(max(abs(self.E-self.E_mean))/self.E_mean))
+        data.E_kin_t = np.array(self.E_kin)
+        data.E_pot_t = np.array(self.E_pot)
+        data.p_refl = np.array(self.p_refl)
+        data.p_trans = np.array(self.p_trans)
+        data.status = self.status
+        if add_info == 'coefficients':
+            data.c_t = np.array(self.c_t)
+
+    def write_output(self, data, rho_current):
+        import pickle as pick
+        out = open('wave_scatter.end', 'wb')
+        wave_data = {'psi_t': data.psi_t, 'p_refl': data.p_refl,
+                     'p_trans': data.p_trans, 'E_kin': data.E_kin_t,
+                     'E_pot': data.E_pot_t, 'E_tot': data.E_t,
+                     'rho_end': rho_current}
+        pick.dump(wave_data, out)
+
+    def run(self, system, steps, potential, data, **kwargs):
         """
         Propagates the system for 'steps' timesteps of length 'dt'.
         Stops at (rho(r_l,t_stop) + rho(r_r,t_stop)) > 1E-8.
         """
-        ## import stuff
         from numpy.fft import fft as FT
         from numpy.fft import ifft as iFT
-        from numpy.fft import fftfreq as FTp
-        import pickle as pick
 
-        psi_0 = kwargs.get('psi_0')
-        V = self.data.wvfn.basis.get_potential_flat(self.pot)
-        N = V.size
-
-        ## load restart file (filename given as psi_0)
-        if type(psi_0)==str:
-            try:
-                restart_file = open(psi_0,'rb')
-                current_data = pick.load(restart_file)
-                psi = current_data['psi']
-                E = current_data['E_tot']
-                E_kin = current_data['E_kin']
-                E_pot = current_data['E_pot']
-                i_start = current_data['i']+1
-            except:
-                raise ValueError('Given input does neither refer to wave function nor to an existing restart file.')
-        else:
-            if (not psi_0.any() != 0.) or (len(psi_0.flatten()) != N):
-                raise ValueError('Please provide initial wave function on appropriate grid')
-
-            psi = [np.array(psi_0.flatten())]
-            E, E_kin, E_pot = [], [], []
-            i_start = 0
-
+        dt = kwargs.get('dt', self.dt)
         add_info = kwargs.get('additional', None)
-        if (add_info == 'coefficients'):
-            psi_basis = self.data.wvfn.psi
-            states = psi_basis.shape[1]
-            print(gray+'Projecting wavefunction onto basis of '+str(states)+' eigenstates...'+endcolor)
-            if psi_basis.shape[0] != states:
-                print(gray+'**WARNING: This basis is incomplete, coefficients might contain errors**'+endcolor)
+        self.system = system
+        self.prepare(add_info)
 
-            c_t = [project_wvfn(psi, psi_basis)]
+        grid = self.system.x
+        x_Vmax = grid[np.argmax(potential(grid))]
+        rb = kwargs.get('div_surf', x_Vmax)
+        self.rb_idx = np.argmin(abs(grid-rb))
 
+        self.status = 'Wave did not hit border(s). Scattering process might be incomplete.'
+        m = system.mass
 
-        status = 'Wave did not hit border(s). Scattering process might be incomplete.'
-        m = self.data.mass
-        dx = self.data.wvfn.basis.dx
-        nx = self.data.wvfn.basis.N
-        nDim = self.data.ndim
-
-        ## get exponential operators
-        expV = np.exp(-1j*V*dt/hbar)
-        if nDim == 1:
-            p = np.pi*FTp(N, dx)
-            p = p*p
-        elif nDim == 2:
-            p = FTp(nx,dx).conj()*FTp(nx,dx)
-            p = np.pi*np.pi*(np.kron(np.ones(nx), p) + np.kron(p, np.ones(nx)))
-        else:
-            raise NotImplementedError('Only evolving 1D and 2D systems implemented')
-
-        expT = np.exp(-1j*(dt/hbar)*p/m)
+        self.compute_operators(potential, dt)
 
         self.counter = 0
 
-        print(gray+'Integrating...'+endcolor)
-        for i in range(i_start, steps):
+        print('Integrating...')
+        for i in range(self.i_start, steps):
             self.counter += 1
-            psi1 = iFT( expT*FT(psi[i]) )
-            psi2 = FT( expV*psi1 )
-            psi3 = iFT( expT*psi2 )
-            psi.append(psi3)
+
+            psi = self.propagate_psi(i)
+            e_kin = (np.conjugate(psi).dot(iFT(2.*self.p/m * FT(psi))))
+            e_pot = np.conjugate(psi).dot(self.V*psi)
+
+            self.store_result(psi, e_kin, e_pot)
+
             if add_info == 'coefficients':
-                c_t.append(project_wvfn(psi3, psi_basis))
+                self.c_t.append(project_wvfn(psi, self.psi_basis))
 
-            e_kin = (np.conjugate(psi3).dot( iFT(2.*p/m * FT(psi3)) ))
-            e_pot = np.conjugate(psi3).dot(V*psi3)
-            E_kin.append(np.real(e_kin))
-            E_pot.append(np.real(e_pot))
-            E.append(np.real(e_kin+e_pot))
-
-            rho_current = np.real(np.conjugate(psi3)*psi3)
-            if (rho_current[0]+rho_current[-1] > 5E-7):
-                status = 'Wave hit border(s). Simulation terminated.'
+            rho_current = np.real(np.conjugate(psi)*psi)
+            if (rho_current[0]+rho_current[-1] > 2E-3):
+                self.status = 'Wave hit border(s). Simulation terminated.'
                 break
 
-            if (np.mod(i+1, 1000000)==0):
-                out = open('wave_scatter.rst', 'wb')
-                current_data = {'psi':psi, 'E_tot':E, 'E_kin':E_kin, \
-                                'E_pot':E_pot, 'i':i}
-                pick.dump(current_data,out)
+            if (np.mod(i+1, 1000000) == 0):
+                self.write_restart(i)
 
+        print('INTEGRATED')
+        print(self.status+'\n')
 
-        print(gray+'INTEGRATED')
-        print(status+'\n'+endcolor)
+        self.p_refl = np.sum(rho_current[:self.rb_idx])
+        self.p_trans = np.sum(rho_current[(self.rb_idx+1):])
+        self.assign_data(data, i, add_info)
 
-        e_kin = np.dot(np.conjugate(psi[-1]), iFT( 2.*p/m*FT(psi[-1])))
-        e_pot = np.conjugate(psi[-1]).dot(V*psi[-1])
-        E_kin.append(np.real(e_kin))
-        E_kin = np.array(E_kin)
-        E_pot.append(np.real(e_pot))
-        E_pot = np.array(E_pot)
-        E.append(np.real(e_kin+e_pot))
-        E = np.array(E)
-        E_mean = np.mean(E)
+        # write psi, rho, energies to binary output file
+        if (self.status == 'Wave hit border(s). Simulation terminated.'):
+            self.write_output(data, rho_current)
 
-        psi = np.array(psi)
-        p_refl = np.sum(rho_current[:self.rb_idx])
-        p_trans = np.sum(rho_current[(self.rb_idx+1):])
-
-        ## write psi, rho, energies to binary output file
-        if (status == 'Wave hit border(s). Simulation terminated.'):
-            out = open('wave_scatter.end', 'wb')
-            wave_data = {'psi':psi, 'p_refl':p_refl, 'p_trans':p_trans, 'E_kin':E_kin, \
-                         'E_pot':E_pot, 'E_tot':E, 'rho_end':rho_current}
-            pick.dump(wave_data,out)
-
-            ## remove restart files
-            remove_restart('wave_scatter.rst')
-
-        ## write data to model.data.wvfn
-        self.data.wvfn.psi_t = psi
-        self.data.wvfn.E_t = E
-        self.data.wvfn.E_mean = E_mean
-        self.data.wvfn.dErel_max = abs(max(abs(E-E_mean))/E_mean)
-        self.data.wvfn.E_kin_t = E_kin
-        self.data.wvfn.E_pot_t = E_pot
-        self.data.wvfn.p_refl = p_refl
-        self.data.wvfn.p_trans = p_trans
-        self.data.wvfn.status = status
-        if add_info == 'coefficients':
-            self.data.wvfn.c_t = np.array(c_t)
-
-
-
-#--EOF--#
+        remove_restart()

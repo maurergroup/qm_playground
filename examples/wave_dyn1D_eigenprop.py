@@ -2,8 +2,8 @@ import numpy as np
 from qmp.potential import Potential
 from qmp.integrator.dyn_tools import create_gaussian
 from qmp.potential import preset_potentials
-from qmp.tools.visualizations import *
-from qmp.integrator.waveintegrators import SOFT_Propagation
+from qmp.tools.visualizations import wave_movie1D
+from qmp.integrator.waveintegrators import EigenPropagator
 from qmp.systems.grid import Grid1D
 from qmp import Model
 
@@ -18,7 +18,7 @@ dt = 82.
 # POTENTIAL
 harm = preset_potentials.Harmonic(1, minimum=[0.], omega=[0.005])
 pot = Potential(cell, f=harm())
-integrator = SOFT_Propagation(dt)
+integrator = EigenPropagator(dt)
 system = Grid1D(mass, cell[0][0], cell[0][1], N)
 
 # initial wave functions
@@ -38,7 +38,7 @@ tik1d = Model(
         potential=pot,
         integrator=integrator,
         mode='wave',
-        solver='scipy',
+        states=states
         )
 
 print(tik1d)
@@ -56,8 +56,6 @@ tik1d.run(steps)
 psi_t = tik1d.data.psi_t
 # c_t = tik1d.data..c_t
 E_t = tik1d.data.E_t
-E_kin_t = tik1d.data.E_kin_t
-E_pot_t = tik1d.data.E_pot_t
 
 rho_t = np.sum(psi_t*np.conjugate(psi_t),1)
 rho_r_mean = np.mean(psi_t*np.conjugate(psi_t), 0)
@@ -88,4 +86,4 @@ ax0.set_ylim(min(tik1d.potential(tik1d.system.x)), 11.)
 
 
 ## view animation
-wave_movie1D(tik1d.system.x, psi_t*np.conjugate(psi_t), V_x, dt=dt, E_arr=E_t, rho_tot_arr=rho_t, E_kin_arr=E_kin_t, E_pot_arr=E_pot_t)
+wave_movie1D(tik1d.system.x, psi_t*np.conjugate(psi_t), V_x, dt=dt, E_arr=E_t, rho_tot_arr=rho_t)

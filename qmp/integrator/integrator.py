@@ -1,4 +1,4 @@
-#qmp.integrator.integrator
+#    qmp.integrator.integrator
 #
 #    qm_playground - python package for dynamics simulations
 #    Copyright (C) 2016  Reinhard J. Maurer
@@ -21,10 +21,8 @@
 integrator.py
 """
 
-import numpy as np
-#from qmp.logger import Logger
 
-class Integrator(object):
+class Integrator:
     """
     Base class for all integrators. All integrators
     need to be initialized with basis, potential and data
@@ -38,11 +36,11 @@ class Integrator(object):
 
     """
 
-    def __init__(self, data=None, logger=None):
+    def __init__(self, dt):
 
-        self.data = data
+        self.dt = dt
 
-    def run(self, steps, dt):
+    def run(self, steps):
         """
         Placeholder for run function of subclasses.
         """

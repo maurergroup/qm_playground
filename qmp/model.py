@@ -1,4 +1,4 @@
-#qmp.model
+#    qmp.model
 #
 #    qm_playground - python package for dynamics simulations
 #    Copyright (C) 2016  Reinhard J. Maurer
@@ -21,11 +21,11 @@
 model class
 """
 
-from qmp.solver import solver_init
+from qmp.solver.solver import ScipySolver
 from qmp.data_containers import WaveData, TrajData, RpmdData, HopData
 
 
-class Model(object):
+class Model:
     """
     The model class contains all information and all
     subroutines to run the calculations.
@@ -39,7 +39,8 @@ class Model(object):
 
     """
 
-    def __init__(self, system, potential, integrator, mode='traj'):
+    def __init__(self, system, potential, integrator, mode, solver=None,
+                 states=20):
         """
         Initializes the calculation model using arbitrary keyword arguments
         which are parsed later.
@@ -49,21 +50,21 @@ class Model(object):
         self.potential = potential
         self.integrator = integrator
         self.mode = mode
-        self.solved = False
+        self.states = states
+
+        if solver is None:
+            self.solver = ScipySolver(self.system, self.potential, self.states)
 
         self.data = self.prepare_data()
 
-    # def __repr__(self):
+    def __repr__(self):
 
-    #     string = 'Model Summary:\n'
-    #     for key in self.parameters.keys():
-    #         string += key + ' : ' + str(self.parameters[key])+'\n'
+        string = 'Model Summary\n'
+        string += 'System: ' + type(self.system).__name__ + '\n'
+        string += 'Integrator: ' + type(self.integrator).__name__ + '\n'
+        string += 'Mode: ' + self.mode + '\n'
 
-    #     string += '\n'
-    #     for key in self.data.keys():
-    #         string += 'contains data entries for: '+key+'\n'
-
-    #     return string
+        return string
 
     def prepare_data(self):
         mode = self.mode
@@ -76,32 +77,25 @@ class Model(object):
         elif mode == 'hop':
             return HopData()
 
-    def set_solver(self, solver):
-        self.solver = solver
-
     def solve(self):
         """
         Wrapper for solver.solve
         """
-
-        try:
-            self.solver.solve()
-        except (AttributeError, TypeError):
-            print('Initializing Solver')
-            self.solver = solver_init(self.data, self.pot)
-            self.solver.solve()
+        self.solver.solve()
 
     def run(self, steps, **kwargs):
         """
         Wrapper for dyn.run
         """
 
-        # if ((self.parameters['integrator'] == 'eigenprop') or
-        #     (self.parameters['integrator'] == 'eigen') or
-        #     (add_info == 'coefficients')) and \
-        #    (self.data.solved is False):
-        #     print(gray+'Projection onto eigen basis requires solving eigenvalue problem...'+endcolor)
-        #     self.solve()
+        add_info = kwargs.get('additional', None)
+
+        integ = type(self.integrator).__name__
+        if (integ == 'EigenPropagator' or add_info == 'coefficients') and \
+                self.system.solved is False:
+            print('Projection onto eigenbasis '
+                  + 'requires solving eigenvalue problem...')
+            self.solve()
 
         self.integrator.run(self.system, steps=int(steps),
                             potential=self.potential, data=self.data, **kwargs)

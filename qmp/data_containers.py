@@ -58,10 +58,11 @@ class WaveData(Data):
 
     def __init__(self):
 
-        self.basis = basis
-        N = basis.N
-        self.psi = np.random.random([N,N])
-        self.E = np.random.random(N)
+        Data.__init__(self)
+        # self.basis = basis
+        # N = basis.N
+        # self.psi = np.random.random([N,N])
+        # self.E = np.random.random(N)
 
     def normalize(self):
         """
@@ -81,6 +82,7 @@ class TrajData(Data):
 
         Data.__init__(self)
 
+        self.r_t = None
         # self.basis = basis
         # self.r = basis.r
         # self.v = basis.v

@@ -27,11 +27,11 @@ import qmp.integrator.rpmdintegrators as rpmd
 from qmp.integrator.hoppingintegrators import HoppingIntegrator
 
 integrator_type = {
-    'primitive': wave.prim_propagator,
-    'eigen': wave.eigen_propagator,
-    'SOFT': wave.SOFT_propagation,
-    'SOFT_scatter': wave.SOFT_scattering,
-    'SOFT_averages': wave.SOFT_average_properties,
+    'primitive': wave.PrimitivePropagator,
+    'eigen': wave.EigenPropagator,
+    'SOFT': wave.SOFT_Propagation,
+    'SOFT_scatter': wave.SOFT_Scattering,
+    'SOFT_averages': wave.SOFT_AverageProperties,
     'velocity_verlet': traj.VelocityVerlet,
     'langevin': traj.Langevin,
     'RPMD_VelocityVerlet': rpmd.RPMD_VelocityVerlet,
