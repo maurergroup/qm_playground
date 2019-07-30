@@ -48,65 +48,65 @@ class Data(dict):
         self[key] = value
 
 
-class WaveData(Data):
-    """
-    Abstract wavefunction object
-    contains eigenfunctions, eigenvalues,
-    and all important subroutines that act
-    on the wavefunctions.
-    """
+# class WaveData(Data):
+#     """
+#     Abstract wavefunction object
+#     contains eigenfunctions, eigenvalues,
+#     and all important subroutines that act
+#     on the wavefunctions.
+#     """
 
-    def __init__(self):
+#     def __init__(self):
 
-        Data.__init__(self)
-        # self.basis = basis
-        # N = basis.N
-        # self.psi = np.random.random([N,N])
-        # self.E = np.random.random(N)
+#         Data.__init__(self)
+#         # self.basis = basis
+#         # N = basis.N
+#         # self.psi = np.random.random([N,N])
+#         # self.E = np.random.random(N)
 
-    def normalize(self):
-        """
-        Normalizes the wavefunction vector
-        """
+#     def normalize(self):
+#         """
+#         Normalizes the wavefunction vector
+#         """
 
-        norm = np.dot(self.psi,self.psi)
-        self.psi = self.psi / np.sqrt(norm)
-
-
-class TrajData(Data):
-    """
-    initializes positions and momenta for particle in phase space
-    """
-
-    def __init__(self):
-
-        Data.__init__(self)
-
-        self.r_t = None
-        # self.basis = basis
-        # self.r = basis.r
-        # self.v = basis.v
-        # self.masses = basis.masses
+#         norm = np.dot(self.psi,self.psi)
+#         self.psi = self.psi / np.sqrt(norm)
 
 
-class RpmdData(Data):
-    """
-    initializes positions and momenta for beads in phase space
-    """
+# class TrajData(Data):
+#     """
+#     initializes positions and momenta for particle in phase space
+#     """
 
-    def __init__(self):
+#     def __init__(self):
 
-        self.basis = basis
-        self.r = basis.r
-        self.v = basis.v
-        self.m = basis.m
-        self.n_beads = basis.nb
+#         Data.__init__(self)
+
+#         self.r_t = None
+#         # self.basis = basis
+#         # self.r = basis.r
+#         # self.v = basis.v
+#         # self.masses = basis.masses
 
 
-class HopData(Data):
+# class RpmdData(Data):
+#     """
+#     initializes positions and momenta for beads in phase space
+#     """
 
-    def __init__(self):
-        self.basis = basis
-        self.x = basis.x
-        self.velocity = basis.velocity
-        self.mass = basis.mass
+#     def __init__(self):
+
+#         self.basis = basis
+#         self.r = basis.r
+#         self.v = basis.v
+#         self.m = basis.m
+#         self.n_beads = basis.nb
+
+
+# class HopData(Data):
+
+#     def __init__(self):
+#         self.basis = basis
+#         self.x = basis.x
+#         self.velocity = basis.velocity
+#         self.mass = basis.mass

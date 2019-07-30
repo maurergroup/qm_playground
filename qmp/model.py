@@ -22,7 +22,7 @@ model class
 """
 
 from qmp.solver.solver import ScipySolver
-from qmp.data_containers import WaveData, TrajData, RpmdData, HopData
+from qmp.data_containers import Data
 
 
 class Model:
@@ -68,6 +68,7 @@ class Model:
 
     def prepare_data(self):
         mode = self.mode
+        return Data()
         if mode == 'wave':
             return WaveData()
         elif mode == 'traj':

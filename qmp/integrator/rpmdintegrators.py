@@ -1,4 +1,4 @@
-#qmp.integrator.rpmdintegrator
+#    qmp.integrator.rpmdintegrators
 #
 #    qm_playground - python package for dynamics simulations
 #    Copyright (C) 2016  Reinhard J. Maurer
@@ -23,17 +23,17 @@ rpmd integrators.py
 
 from qmp.integrator.integrator import Integrator
 from qmp.integrator.dyn_tools import create_thermostat
-from qmp.tools.termcolors import *
 import numpy as np
+import pickle as pick
 
 
-def remove_restart(filename):
+def remove_restart():
     """
     Removes filename from current directory, if existing
     """
     try:
         from os import remove
-        remove(filename)
+        remove('*.rst')
         del remove
     except OSError:
         pass
@@ -44,344 +44,241 @@ class RPMD_VelocityVerlet(Integrator):
     Velocity verlet integrator for classical dynamics
     """
 
-    def __init__(self, **kwargs):
-        Integrator.__init__(self, **kwargs)
-        self.basis = self.data.rpmd.basis
+    def __init__(self, dt, **kwargs):
+        Integrator.__init__(self, dt)
 
-        ## create thermostat
-        no_ts = {'name':'no_thermostat', 'cfreq':0., 'T_set':0.}
+        # create thermostat
+        no_ts = {'name': 'no_thermostat', 'cfreq': 0., 'T_set': 0.}
         ts_dict = kwargs.get('thermostat', no_ts)
         ts_name = ts_dict['name']
         ts_cfreq = ts_dict['cfreq']
         ts_Tset = ts_dict['T_set']
-        self.thermo = create_thermostat(name=ts_name, cfreq=ts_cfreq, T_set=ts_Tset)
+        self.thermo = create_thermostat(name=ts_name,
+                                        cfreq=ts_cfreq,
+                                        T_set=ts_Tset)
 
-        Np = self.basis.npar
-        Nb = self.basis.nb
         self.restart = kwargs.get('restart_file', False)
 
+    def initialise_zero_arrays(self, steps, N, Nb, ndim, potential):
+        self.rb_t = np.zeros((steps, N, Nb, ndim))
+        self.vb_t = np.zeros((steps, N, Nb, ndim))
+        self.r_t = np.zeros((steps, N, ndim))
+        self.v_t = np.zeros((steps, N, ndim))
 
-    def run(self, steps, dt, **kwargs):
-        import pickle as pick
-        ## general information
-        Np = self.basis.npar
-        Nb = self.basis.nb
-        ndim = self.basis.ndim
-        m = self.basis.m
+        self.rb_t[0] = np.array(self.system.r_beads)
+        self.vb_t[0] = np.array(self.system.v_beads)
 
-        Np = self.basis.npar
-        Nb = self.basis.nb
+        self.e_pot = np.zeros((steps, N, Nb))
+        self.e_kin = np.zeros((steps, N, Nb))
+
+        self.e_pot[0] = self.system.compute_bead_potential_energy(potential)
+        self.e_kin[0] = self.system.compute_kinetic_energy()
+
+        self.dt_ts = np.zeros(Nb)
+
+    def load_restart(self):
+        try:
+            restart_file = open(self.restart, 'rb')
+            current_data = pick.load(restart_file)
+            self.rb_t = current_data['rb_t']
+            self.vb_t = current_data['vb_t']
+            self.e_kin = current_data['Eb_kin']
+            self.e_pot = current_data['Eb_pot']
+            self.vals = current_data['prob_vals']
+            self.rbins = current_data['bins']
+            self.omega_t = current_data['omega_t']
+            self.s_start = current_data['i_step']+1
+        except FileNotFoundError:
+            raise FileNotFoundError("Could not load restart file '"
+                                    + str(self.restart)+"'.")
+
+    def prepare(self, steps, potential):
         if not self.restart:
-            ## initialize zero arrays
-            self.rb_t = np.zeros((Np,Nb,steps+1,ndim))
-            self.rb_t[:,:,0,:] = np.array(self.basis.r_beads)
-            self.r_t = np.zeros((Np,steps+1,ndim))
 
-            self.vb_t = np.zeros((Np,Nb,steps+1,ndim))
-            self.vb_t[:,:,0,:] = np.array(self.basis.v_beads)
-            self.v_t = np.zeros((Np,steps+1,ndim))
+            ndim = self.system.ndim
+            N = self.system.n_particles
+            Nb = self.system.n_beads
+            self.initialise_zero_arrays(steps, N, Nb, ndim, potential)
 
-            self.E_pot = np.zeros((Np,steps+1))
-            self.E_kin = np.zeros((Np,steps+1))
-            self.E_tot = np.zeros((Np,steps+1))
+            bins = np.arange(potential.cell[0][0], potential.cell[0][1], 0.1)
+            H, self.rbins = np.histogram(self.system.r, bins=bins)
+            self.vals = np.zeros((N, len(H)))
 
-            self.e_pot = np.zeros((Np,Nb,steps+1))
-            self.e_kin = np.zeros((Np,Nb,steps+1))
-            self.e_tot = np.zeros((Np,Nb,steps+1))
-
-            bins = [np.arange(self.data.cell[0][0], self.data.cell[0][1], 0.1)]
-            if ndim == 2:
-                bins.append(np.arange(self.data.cell[1][0], self.data.cell[1][1], 0.1))
-
-            H, self.rbins = np.histogramdd(self.r_t[0,:,:], bins=bins)
-            self.vals = np.zeros(np.shape([H,]*Np))
-
-#            h = np.histogram(self.rb_t[:,0,:],bins=np.arange(self.data.cell[0][0], self.data.cell[0][1], 0.1))
-#            self.vals = np.zeros((Np,len(h[0])))
-#            self.rbins = h[1]
-
-            self.omega_t = np.zeros((Np,steps+1))
+            self.omega_t = np.zeros((steps+1, N))
 
             self.p_start = 0
             self.s_start = 0
         else:
-            ## try to load arrays from restart file
-            try:
-                import pickle as pick
-                restart_file = open(self.restart,'rb')
-                current_data = pick.load(restart_file)
-                self.rb_t = current_data['rb_t']
-                self.r_t = current_data['r_t']
-                self.vb_t = current_data['vb_t']
-                self.v_t = current_data['v_t']
-                self.E_tot = current_data['E_tot']
-                self.E_kin = current_data['E_kin']
-                self.E_pot = current_data['E_pot']
-                self.e_tot = current_data['Eb_tot']
-                self.e_kin = current_data['Eb_kin']
-                self.e_pot = current_data['Eb_pot']
-                self.vals = current_data['prop_vals']
-                self.rbins = current_data['bins']
-                self.omega_t = current_data['omega_t']
-                self.p_start = current_data['i_p']
-                self.s_start = current_data['i_s']+1
-            except:
-                raise ValueError("Could not load restart file '"+str(self.restart)+"'.")
+            self.load_restart()
 
-        ## positions, velocities, energies, etc.
-        rb_t, vb_t, r_t, v_t = self.rb_t, self.vb_t, self.r_t, self.v_t
+    def update_omega(self, dyn_T, potential, i_step):
+        if dyn_T == 'Rugh':
+            self.system.compute_omega_Rugh(potential)
+        elif dyn_T is not False:
+            raise ValueError("Scheme for dynamical Temperature '"
+                             + dyn_T + "' not known. Use False or 'Rugh'.")
+        self.omega_t[i_step] = self.system.omega
 
-        E_pot, E_kin, E_tot = self.E_pot, self.E_kin, self.E_tot
-        e_pot, e_kin, e_tot = self.e_pot, self.e_kin, self.e_tot
+    def propagate_system(self, potential, dt):
+        m = self.system.masses
+        F = self.system.compute_bead_force(potential)
+        v1 = self.system.v_beads + F / m[:, np.newaxis, np.newaxis] * dt / 2.
+        self.system.r_beads += v1 * dt
+        F = self.system.compute_bead_force(potential)
+        self.system.v_beads = v1 + F / m[:, np.newaxis, np.newaxis] * dt / 2
 
-        vals, rbins = self.vals, self.rbins
+    def apply_thermostat(self, dt):
+        self.dt_ts += dt
+        m = self.system.masses
+        ndim = self.system.ndim
+        self.system.v_beads, self.dt_ts = self.thermo(self.system.v_beads,
+                                                      m, self.dt_ts, ndim)
 
-        dyn_T = kwargs.get('dyn_T', False)
-        omega_t = self.omega_t
+    def store_result(self, e_pot, e_kin, i_step):
 
-        print(gray+'Integrating...'+endcolor)
-        for i_p in range(Np):
-            dt_ts = np.zeros(Nb)
-            for i_s in range(steps):
-                ## get omega according to dyn_T
-                if not dyn_T:
-                    om = self.basis.om[i_p]
-                elif dyn_T == 'Rugh':
-                    om = self.basis.get_omega_Rugh(r_t[i_p,i_s], self.pot, v_t[i_p,i_s], m[i_p])
-                else:
-                    raise ValueError("Scheme for dynamical Temperature '"+dyn_T+"' not known. Use False or 'Rugh'.")
-                omega_t[i_p,i_s] = om
+        self.rb_t[i_step] = self.system.r_beads
+        self.vb_t[i_step] = self.system.v_beads
+        self.r_t[i_step] = self.system.r
+        self.v_t[i_step] = self.system.v
+        self.e_pot[i_step] = e_pot
+        self.e_kin[i_step] = e_kin
 
-                ## energy stuff
-                e_pot[i_p,:,i_s] = self.basis.get_potential_energy_beads(rb_t[i_p,:,i_s], self.pot, m[i_p], om)
-                e_kin[i_p,:,i_s] = self.basis.get_kinetic_energy(m[i_p], vb_t[i_p,:,i_s])
-                e_tot[i_p,:,i_s] = e_kin[i_p,:,i_s]+e_pot[i_p,:,i_s]
+    def write_restart(self, i_step):
+        out = open('rpmd_dyn.rst', 'wb')
+        rpmd_data = {'rb_t': self.rb_t, 'vb_t': self.vb_t,
+                     'Eb_pot': self.e_pot, 'Eb_kin': self.e_kin,
+                     'bins': self.rbins, 'prob_vals': self.vals,
+                     'omega_t': self.omega_t, 'i_step': i_step}
+        pick.dump(rpmd_data, out)
 
-                v_t[i_p,i_s] = np.mean(vb_t[i_p,:,i_s],0)
-                r_t[i_p,i_s] = np.mean(rb_t[i_p,:,i_s],0)
-#                if i_s > 10000:
-#                    vals[i_p] += np.histogram(r_t[i_p,i_s],bins=rbins,density=True)[0]
+    def create_histogram(self):
+        for i in range(self.system.n_particles):
+            self.vals[i] = np.histogramdd(self.r_t[:, i],
+                                          bins=self.rbins, normed=True)[0]
+        self.vals_tot = np.mean(self.vals, 0)
 
-                ## propagation
-                F = self.basis.get_forces_beads(rb_t[i_p,:,i_s], self.pot, m[i_p], om)
-                v1 = vb_t[i_p,:,i_s] + F/m[i_p]*dt/2.
-                rb_t[i_p,:,i_s+1] = rb_t[i_p,:,i_s]+v1*dt
-                F = self.basis.get_forces_beads(rb_t[i_p,:,i_s+1], self.pot, m[i_p], om)
-                vb_t[i_p,:,i_s+1] = v1+F/m[i_p]*dt/2.
+    def assign_data(self, data, i_step):
+        data.rb_t = self.rb_t
+        data.vb_t = self.vb_t
+        data.r_t = np.mean(self.rb_t, 2)
+        data.v_t = np.mean(self.vb_t, 2)
 
-                ## thermostatting
-                dt_ts += dt
-                vb_t[i_p,:,i_s+1], dt_ts = self.thermo(vb_t[i_p,:,i_s+1], m[i_p], dt_ts, ndim)
+        data.Eb_kin_t = self.e_kin
+        data.Eb_pot_t = self.e_pot
+        data.Eb_t = self.e_kin + self.e_pot
+        data.E_kin_t = np.mean(self.e_kin, 2)
+        data.E_pot_t = np.mean(self.e_pot, 2)
+        data.E_t = np.mean(data.Eb_t, 2)
 
-                ## write binary restart file
-                if np.mod(i_s+1, 1000000) == 0:
-                    out = open('rpmd_dyn.rst', 'wb')
-                    rpmd_data = {'rb_t':rb_t, 'r_t':r_t, 'vb_t':vb_t, 'v_t':v_t, \
-                                 'E_kin':E_kin, 'E_pot':E_pot, 'E_tot':E_tot, \
-                                 'Eb_kin':e_kin, 'Eb_pot':e_pot, 'Eb_tot':e_tot, \
-                                 'bins':rbins, 'prop_vals':vals, 'omega_t':omega_t, \
-                                 'i_p':i_p, 'i_s':i_s}
-                    pick.dump(rpmd_data,out)
+        data.prob_vals = self.vals
+        data.prob_tot = self.vals_tot
+        data.prob_bins = self.rbins
+        data.omega_t = self.omega_t
 
-            vals[i_p] = np.histogramdd(r_t[i_p,:,:],bins=rbins,normed=True)[0]
-#            vals[i_p] /= i_s
-
-            e_pot[i_p,:,steps] = self.basis.get_potential_energy_beads(rb_t[i_p,:,steps], self.pot, m[i_p], om)
-            e_kin[i_p,:,steps] = self.basis.get_kinetic_energy(m[i_p], vb_t[i_p,:,steps])
-            e_tot[i_p,:,steps] = e_kin[i_p,:,i_s]+e_pot[i_p,:,i_s]
-
-            E_pot[i_p] = np.mean(e_pot[i_p],0)
-            E_kin[i_p] = np.mean(e_kin[i_p],0)
-            E_tot[i_p] = np.mean(e_tot[i_p],0)
-
-        vals_tot = np.mean(vals,0)
-        print(gray+'INTEGRATED'+endcolor)
-
-
-        ## write rb_t, r_t, energies, propabilities to binary output file
+    def write_output(self, data):
         out = open('rpmd_dyn.end', 'wb')
-        rpmd_data = {'rb_t':rb_t, 'r_t':r_t, 'vb_t':vb_t, 'v_t':v_t, \
-                     'E_kin':E_kin, 'E_pot':E_pot, 'E_tot':E_tot, \
-                     'Eb_kin':e_kin, 'Eb_pot':e_pot, 'Eb_tot':e_tot, \
-                     'bins':rbins, 'prop_vals':vals, 'prop_tot':vals_tot, \
-                     'omega_t':omega_t}
-        pick.dump(rpmd_data,out)
+        rpmd_data = {'rb_t': data.rb_t, 'r_t': data.r_t, 'vb_t': data.vb_t,
+                     'v_t': data.v_t, 'E_kin': data.E_kin_t,
+                     'E_pot': data.E_pot_t,
+                     'E_tot': data.E_t, 'Eb_kin': data.Eb_kin_t,
+                     'Eb_pot': data.Eb_pot_t,
+                     'Eb_tot': data.Eb_t, 'bins': data.prob_bins,
+                     'prob_vals': data.prob_vals,
+                     'prob_tot': data.prob_tot, 'omega_t': data.omega_t}
+        pick.dump(rpmd_data, out)
 
-        ## write information to model.data.rpmd
-        self.data.rpmd.rb_t = rb_t
-        self.data.rpmd.vb_t = vb_t
-        self.data.rpmd.r_t = r_t
-        self.data.rpmd.v_t = v_t
+    def run(self, system, steps, potential, data, **kwargs):
 
-        self.data.rpmd.Eb_kin_t = e_kin
-        self.data.rpmd.Eb_pot_t = e_pot
-        self.data.rpmd.Eb_t = e_tot
-        self.data.rpmd.E_kin_t = E_kin
-        self.data.rpmd.E_pot_t = E_pot
-        self.data.rpmd.E_t = E_tot
-
-        self.data.rpmd.prop_vals = vals
-        self.data.rpmd.prop_tot = vals_tot
-        self.data.rpmd.prop_bins = rbins
-
-        self.data.rpmd.omega_t = omega_t
-
-        ## remove restart file(s)
-        remove_restart('rpmd_dyn.rst')
-
-
-
-class RPMD_equilibrium_properties(Integrator):
-    """
-    Velocity verlet integrator to obtain equilibrium properties from RPMD Trajectories
-    """
-
-    def __init__(self, **kwargs):
-        Integrator.__init__(self, **kwargs)
-        self.basis = self.data.rpmd.basis
-
-        ## create thermostat
-        no_ts = {'name':'no_thermostat', 'cfreq':0., 'T_set':0.}
-        ts_dict = kwargs.get('thermostat', no_ts)
-        ts_name = ts_dict['name']
-        ts_cfreq = ts_dict['cfreq']
-        ts_Tset = ts_dict['T_set']
-        self.thermo = create_thermostat(name=ts_name, cfreq=ts_cfreq, T_set=ts_Tset)
-
-        Np = self.basis.npar
-        restart = kwargs.get('restart_file', False)
-        if not restart:
-            ## initialize zero arrays
-            self.rb_t = np.array(self.basis.r_beads)
-            self.r_mean = np.zeros(Np)
-            self.vb_t = np.array(self.basis.v_beads)
-            self.E_pot = np.zeros(Np)
-            self.E_kin = np.zeros(Np)
-            self.E_tot = np.zeros(Np)
-            h = np.histogram(self.rb_t[:,0,:],bins=np.arange(self.data.cell[0][0], self.data.cell[0][1], 0.1))
-            self.vals = np.zeros((Np,len(h[0])))
-            self.rbins = h[1]
-            self.p_start = 0
-            self.s_start = 0
-        else:
-            ## try to load arrays from restart file
-            try:
-                import pickle as pick
-                restart_file = open(restart,'rb')
-                current_data = pick.load(restart_file)
-                self.s_start = current_data['i_s']
-                self.rb_t = current_data['rb_t']
-                self.r_mean = current_data['r_mean']
-                self.E_tot = current_data['E_tot']
-                self.E_kin = current_data['E_kin']
-                self.E_pot = current_data['E_pot']
-                self.vals = current_data['prop_dist']
-                self.rbins = current_data['bins']
-                self.p_start = current_data['i_p']
-                self.s_start += 1
-            except:
-                raise ValueError("Could not load restart file '"+str(restart)+"'.")
-
-
-    def run(self, steps, dt, **kwargs):
-        import pickle as pick
-        ##general information
-        Np = self.basis.npar
-        Nb = self.basis.nb
-        ndim = self.basis.ndim
-        m = self.basis.m
+        dt = kwargs.get('dt', self.dt)
         dyn_T = kwargs.get('dyn_T', False)
 
-        ## get arrays for position, velocity, etc.
-        rb_t = self.rb_t
-        r_mean = self.r_mean
-        vb_t = self.vb_t
-        E_pot = self.E_pot
-        E_kin = self.E_kin
-        E_tot = self.E_tot
-        vals = self.vals
-        rbins = self.rbins
+        self.system = system
 
-        print(gray+'Integrating...'+endcolor)
-        for i_p in range(self.p_start, Np):     ## loop over beads rewritten in vector-matrix-formalism
-            dt_ts = np.zeros(Nb)
-            for i_s in range(self.s_start, steps):
-                ## get omega according to dyn_T
-                if not dyn_T:
-                    om = self.basis.om[i_p]
-                elif dyn_T == 'Rugh':
-                    om = self.basis.get_omega_Rugh(r_t[i_p,i_s], self.pot, v_t[i_p,i_s], m[i_p])
-                else:
-                    raise ValueError("Scheme for dynamical Temperature '"+dyn_T+"' not known. Use False or 'Rugh'.")
+        self.prepare(steps, potential)
 
-                ## energy stuff
-                e_pot = self.basis.get_potential_energy_beads(rb_t[i_p], self.pot, m[i_p], om)
-                e_kin = self.basis.get_kinetic_energy(m[i_p], vb_t[i_p])
-                e_tot = e_kin+e_pot
-                E_pot[i_p] += np.mean(e_pot)
-                E_kin[i_p] += np.mean(e_kin)
-                E_tot[i_p] += np.mean(e_tot)
+        print('Integrating...')
+        for i_step in range(1, steps):
+            self.update_omega(dyn_T, potential, i_step)
 
-                ## let system equilibrate for a few 100 steps
-                if i_s > 1000:
-                    vals[i_p] += np.histogram(np.mean(rb_t[i_p],0),bins=rbins,density=True)[0]
-                    r_mean[i_p] += np.mean(rb_t[i_p],0)
+            self.propagate_system(potential, dt)
 
-                ## propagation
-                F = self.basis.get_forces_beads(rb_t[i_p], self.pot, m[i_p], om)
-                v1 = vb_t[i_p] + F/m[i_p]*dt/2.
-                rb_t[i_p] = rb_t[i_p]+v1*dt
-                F = self.basis.get_forces_beads(rb_t[i_p], self.pot, m[i_p], om)
-                vb_t[i_p] = v1+F/m[i_p]*dt/2.
+            self.apply_thermostat(dt)
 
-                ## thermostatting
-                dt_ts += dt
-                vb_t[i_p], dt_ts = self.thermo(vb_t[i_p], m[i_p], dt_ts, ndim)
+            self.system.r = np.mean(self.system.r_beads, 1)
+            self.system.v = np.mean(self.system.v_beads, 1)
 
-                ## write binary restart files
-                if np.mod(i_s+1, 1000000) == 0:
-                    out = open('rpmd_avgs.rst', 'wb')
-                    rpmd_data = {'bins':rbins, 'prop_dist':vals, 'r_mean':r_mean, \
-                                 'E_kin':E_kin, 'E_pot':E_pot, 'E_tot':E_tot,\
-                                 'i_p':i_p, 'i_s':i_s}
-                    pick.dump(rpmd_data,out)
+            e_pot = self.system.compute_bead_potential_energy(potential)
+            e_kin = self.system.compute_kinetic_energy()
 
-            vals[i_p] /= i_s
-            r_mean[i_p] /= i_s
-            e_pot = self.basis.get_potential_energy_beads(rb_t[i_p], self.pot, m[i_p], om)
-            e_kin = self.basis.get_kinetic_energy(m[i_p], vb_t[i_p])
-            e_tot = e_kin+e_pot
-            E_pot[i_p] += np.mean(e_pot)
-            E_pot[i_p] /= i_s
-            E_kin[i_p] += np.mean(e_kin)
-            E_kin[i_p] /= i_s
-            E_tot[i_p] += np.mean(e_tot)
-            E_tot[i_p] /= i_s
+            self.store_result(e_pot, e_kin, i_step)
 
-        vals_tot = np.mean(vals,0)
-        r_mean_tot = np.mean(r_mean)
-        print(gray+'INTEGRATED'+endcolor)
+            # # write binary restart file
+            if np.mod(i_step+1, 1000000) == 0:
+                self.write_restart(i_step)
 
-        ## write rb_t, r_t, energies, propabilities to binary output file
+        self.create_histogram()
+        print('INTEGRATED')
+
+        self.assign_data(data, i_step)
+        self.write_output(data)
+        remove_restart()
+
+
+class RPMD_EquilibriumProperties(RPMD_VelocityVerlet):
+    """
+    Velocity verlet integrator to obtain equilibrium
+    properties from RPMD Trajectories
+    """
+    # Stuff commented out is probability distribution stuff,
+    # not sure how relevant that is for this equilibrium calculation.
+
+    def initialise_zero_arrays(self, steps, N, Nb, ndim, potential):
+        self.r_mean = np.zeros((N, ndim))
+        self.E_pot = np.zeros(N)
+        self.E_kin = np.zeros(N)
+
+        self.dt_ts = np.zeros(Nb)
+
+    def store_result(self, e_pot, e_kin, i_step):
+        self.E_pot += np.mean(e_pot, 1)
+        self.E_kin += np.mean(e_kin, 1)
+        self.r_mean += np.mean(self.system.r_beads, 1)
+
+    def write_restart(self, i_step):
+        out = open('rpmd_avgs.rst', 'wb')
+        rpmd_data = {'r_mean': self.r_mean,
+                     # 'bins': self.rbins, 'prob_vals': self.vals,
+                     'E_kin': self.E_kin, 'E_pot': self.E_pot,
+                     'i_step': i_step}
+        pick.dump(rpmd_data, out)
+
+    def create_histogram(self):
+        pass
+        # for i in range(self.system.n_particles):
+        #     self.vals[i] += np.histogram(self.r_mean[1000:, i],
+        #                                  bins=self.rbins, density=True)[0]
+        # self.vals_tot = np.mean(self.vals, 0)
+
+    def assign_data(self, data, i_step):
+        data.E_kin = self.E_kin / i_step
+        data.E_pot = self.E_pot / i_step
+        data.E_t = data.E_kin + data.E_pot
+
+        data.r_mean = self.r_mean / i_step
+        # data.prob_vals = self.vals
+        # data.prob_tot = self.vals_tot
+        # data.prob_bins = self.rbins
+
+    def write_output(self, data):
         out = open('rpmd_avgs.end', 'wb')
-        rpmd_data = {'bins':rbins, 'prop_dist_p':vals, 'prop_dist_tot':vals_tot, \
-                     'r_mean_p':r_mean, 'r_mean_tot':r_mean_tot, \
-                     'E_kin':E_kin, 'E_pot':E_pot, 'E_tot':E_tot}
-        pick.dump(rpmd_data,out)
-
-        ## write information to model.data.rpmd
-        self.data.rpmd.E_kin = E_kin
-        self.data.rpmd.E_pot = E_pot
-        self.data.rpmd.E_t = E_tot
-        self.data.rpmd.prop_vals = vals
-        self.data.rpmd.prop_tot = vals_tot
-        self.data.rpmd.prop_bins = rbins
-        self.data.rpmd.r_mean = r_mean
-        self.data.rpmd.r_mean_tot = r_mean_tot
-
-        ## remove restart file
-        remove_restart('rpmd_avgs.rst')
-
+        rpmd_data = {
+                     'E_pot': data.E_pot,
+                     'E_tot': data.E_t, 'E_kin': data.E_kin,
+                     # 'bins': data.prob_bins,
+                     # 'prob_vals': data.prob_vals,
+                     # 'prob_tot': data.prob_tot,
+                     'r_mean': data.r_mean}
+        pick.dump(rpmd_data, out)
 
 
 class RPMD_scattering(Integrator):
@@ -444,44 +341,44 @@ class RPMD_scattering(Integrator):
         print(gray+'Integrating...'+endcolor)
         for i_p in range(Np):
             dt_ts = np.zeros(Nb)
-            for i_s in range(steps):
+            for i_step in range(steps):
                 ## get omega according to dyn_T
                 if not dyn_T:
                     om = self.basis.om[i_p]
                 elif dyn_T == 'Rugh':
-                    om = self.basis.get_omega_Rugh(r_t[i_p,i_s], self.pot, v_t[i_p,i_s], m[i_p])
+                    om = self.basis.get_omega_Rugh(r_t[i_p,i_step], self.pot, v_t[i_p,i_step], m[i_p])
                 else:
                     raise ValueError("Scheme for dynamical Temperature '"+dyn_T+"' not known. Use False or 'Rugh'.")
-                omega_t[i_p,i_s] = om
+                omega_t[i_p,i_step] = om
 
                 ## energy stuff
-                e_pot[i_p,:,i_s] = self.basis.get_potential_energy_beads(rb_t[i_p,:,i_s], self.pot, m[i_p], om)
-                e_kin[i_p,:,i_s] = self.basis.get_kinetic_energy(m[i_p], vb_t[i_p,:,i_s])
+                e_pot[i_p,:,i_step] = self.basis.get_potential_energy_beads(rb_t[i_p,:,i_step], self.pot, m[i_p], om)
+                e_kin[i_p,:,i_step] = self.basis.get_kinetic_energy(m[i_p], vb_t[i_p,:,i_step])
 
                 ## check if particle has reached a border. If so freeze and exit current loop
-                v_t[i_p,i_s] = np.mean(vb_t[i_p,:,i_s],0)
-                r_t[i_p,i_s] = np.mean(rb_t[i_p,:,i_s],0)
-                if (r_t[i_p,i_s] <= self.lower_bound) or \
-                   (r_t[i_p,i_s] >= self.upper_bound):
-                    r_t[i_p,i_s:] = np.array([r_t[i_p,i_s]]*(steps-i_s+1))
-                    rb_t[i_p,:,i_s:] = np.array([[rb_t[i_p,b,i_s]]*(steps-i_s+1) for b in range(rb_t.shape[1])])
-                    vb_t[i_p,:,i_s:] = np.array([[vb_t[i_p,b,i_s]]*(steps-i_s+1) for b in range(vb_t.shape[1])])
-                    e_pot[i_p,:,i_s:] = np.array([[e_pot[i_p,b,i_s]]*(steps-i_s+1) for b in range(e_pot.shape[1])])
-                    e_kin[i_p,:,i_s:] = np.array([[e_kin[i_p,b,i_s]]*(steps-i_s+1) for b in range(e_kin.shape[1])])
-                    omega_t[i_p,i_s:] = np.array([om,]*(steps-i_s+1)).flatten()
+                v_t[i_p,i_step] = np.mean(vb_t[i_p,:,i_step],0)
+                r_t[i_p,i_step] = np.mean(rb_t[i_p,:,i_step],0)
+                if (r_t[i_p,i_step] <= self.lower_bound) or \
+                   (r_t[i_p,i_step] >= self.upper_bound):
+                    r_t[i_p,i_step:] = np.array([r_t[i_p,i_step]]*(steps-i_step+1))
+                    rb_t[i_p,:,i_step:] = np.array([[rb_t[i_p,b,i_step]]*(steps-i_step+1) for b in range(rb_t.shape[1])])
+                    vb_t[i_p,:,i_step:] = np.array([[vb_t[i_p,b,i_step]]*(steps-i_step+1) for b in range(vb_t.shape[1])])
+                    e_pot[i_p,:,i_step:] = np.array([[e_pot[i_p,b,i_step]]*(steps-i_step+1) for b in range(e_pot.shape[1])])
+                    e_kin[i_p,:,i_step:] = np.array([[e_kin[i_p,b,i_step]]*(steps-i_step+1) for b in range(e_kin.shape[1])])
+                    omega_t[i_p,i_step:] = np.array([om,]*(steps-i_step+1)).flatten()
                     self.mobile -= 1
                     break
 
                 ## propagation
-                F = self.basis.get_forces_beads(rb_t[i_p,:,i_s], self.pot, m[i_p], om)
-                v1 = vb_t[i_p,:,i_s] + F/m[i_p]*dt/2.
-                rb_t[i_p,:,i_s+1] = rb_t[i_p,:,i_s]+v1*dt
-                F = self.basis.get_forces_beads(rb_t[i_p,:,i_s+1], self.pot, m[i_p], om)
-                vb_t[i_p,:,i_s+1] = v1+F/m[i_p]*dt/2.
+                F = self.basis.get_forces_beads(rb_t[i_p,:,i_step], self.pot, m[i_p], om)
+                v1 = vb_t[i_p,:,i_step] + F/m[i_p]*dt/2.
+                rb_t[i_p,:,i_step+1] = rb_t[i_p,:,i_step]+v1*dt
+                F = self.basis.get_forces_beads(rb_t[i_p,:,i_step+1], self.pot, m[i_p], om)
+                vb_t[i_p,:,i_step+1] = v1+F/m[i_p]*dt/2.
 
                 ## thermostatting
                 dt_ts += dt
-                vb_t[i_p,:,i_s+1], dt_ts = self.thermo(vb_t[i_p,:,i_s+1], m[i_p], dt_ts, ndim)
+                vb_t[i_p,:,i_step+1], dt_ts = self.thermo(vb_t[i_p,:,i_step+1], m[i_p], dt_ts, ndim)
 
             e_pot[i_p,:,steps] = self.basis.get_potential_energy_beads(rb_t[i_p,:,steps], self.pot, m[i_p], om)
             e_kin[i_p,:,steps] = self.basis.get_kinetic_energy(m[i_p], vb_t[i_p,:,steps])

@@ -35,7 +35,7 @@ integrator_type = {
     'velocity_verlet': traj.VelocityVerlet,
     'langevin': traj.Langevin,
     'RPMD_VelocityVerlet': rpmd.RPMD_VelocityVerlet,
-    'RPMD_averages': rpmd.RPMD_equilibrium_properties,
+    'RPMD_averages': rpmd.RPMD_EquilibriumProperties,
     'RPMD_scatter': rpmd.RPMD_scattering,
     'hopping': HoppingIntegrator
     }

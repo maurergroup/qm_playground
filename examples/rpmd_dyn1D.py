@@ -1,75 +1,85 @@
-############### IMPORT STUFF ###############
-import numpy as np                         #
-import sys                                 #
-sys.path.append('..')                      #
-from qmp import *                          #
-from qmp.basis.rpmdbasis import *          #
-from qmp.potential import Potential        #
-from qmp.potential.pot_tools import *      #
-from qmp.tools.visualizations import *     #
-############################################
+import numpy as np
+from qmp.systems.rpmd import RPMD
+from qmp.potential import Potential
+from qmp.integrator.rpmdintegrators import RPMD_VelocityVerlet
+from qmp.potential.pot_tools import create_potential
+from qmp.tools.visualizations import *
+from qmp import Model
 
-### SIMULATION CELL ###
+# SIMULATION CELL
 cell = [[0., 40.0]]
 
-### POTENTIAL ###
+# DYNAMICS PARAMETERS
+dt = 1.
+steps = 1E4
+
+### INITIAL VALUES ###
+rs = [[17.],
+      [17.],
+      [18.],
+      [18.],
+      [16.],
+      [16.],
+      [17.5],
+      [17.5],
+      [16.5],
+      [16.5]]
+vs = [[0.002797],
+      [-0.002797],
+      [0.002270],
+      [-0.002270],
+      [0.001610],
+      [-0.001610],
+      [0.002649],
+      [-0.002649],
+      [0.002588],
+      [-0.002588]]
+masses = [1850.,]*10
+n_beads = 8
+Temp = [50.,]*10
+
+# POTENTIAL
 f = create_potential(cell,
                      name='double_well',
                      double_well_barrier=.008,
-		     double_well_asymmetry=0.,
-		     double_well_width=3.,
+                     double_well_asymmetry=0.,
+                     double_well_width=3.,
                      )
-pot = Potential( cell, f=f )
+pot = Potential(cell, f=f)
+integrator = RPMD_VelocityVerlet(dt)
+system = RPMD(rs, vs, masses)
 
-### INITIALIZE MODEL ###
+# INITIALIZE MODEL
 rpmd1d = Model(
-         ndim=1,
-         mode='rpmd',
-         basis='rpmd_basis',
-         integrator='RPMD_VelocityVerlet',
-        )
-
-## set potential
-rpmd1d.set_potential(pot)
+         system=system,
+         potential=pot,
+         integrator=integrator,
+         mode='rpmd'
+         )
 
 
-### INITIAL VALUES ###
-rs = [[17.],[17.],[18.],[18.],[16.],[16.],[17.5],[17.5],[16.5],[16.5]]#*5
-vs = [[0.002797],[-0.002797],[0.002270],[-0.002270],[0.001610],[-0.001610],[0.002649],[-0.002649],[0.002588],[-0.002588]]#*5
-masses = [1850.,]*10#*5
-n_beads = 8
-Temp = [50.,]*10#*5
-
-b = bead_basis(rs, vs, masses, n_beads, T=Temp)
-rpmd1d.set_basis(b)
-print(rpmd1d)
-
-### DYNAMICS PARAMETERS ###
-dt =  1.
-steps = 1E4
-
-### THERMOSTAT ###
-thermostat = {'name' : 'Andersen',
-              'cfreq' : 1E-4,
-              'T_set' : 400.,
-             }
+# THERMOSTAT
+thermostat = {'name': 'Andersen',
+              'cfreq': 1E-4,
+              'T_set': 400.,
+              }
 
 
-### EVOLVE SYSTEM ###
-rpmd1d.run(steps,dt)#, thermostat=thermostat)
+# EVOLVE SYSTEM
+rpmd1d.run(steps)  # , thermostat=thermostat)
 
-### GATHER INFO ###
-r_t = rpmd1d.data.rpmd.r_t
-rb_t = rpmd1d.data.rpmd.rb_t
-v_t = rpmd1d.data.rpmd.v_t
-vb_t = rpmd1d.data.rpmd.vb_t
-E_t = rpmd1d.data.rpmd.E_t
-E_kin = rpmd1d.data.rpmd.E_kin_t
-E_pot = rpmd1d.data.rpmd.E_pot_t
-Eb_kin = rpmd1d.data.rpmd.Eb_kin_t
-Ptot = rpmd1d.data.rpmd.prop_tot
-Pind = rpmd1d.data.rpmd.prop_vals
-bins = rpmd1d.data.rpmd.prop_bins[0]
+# GATHER INFO
+r_t = rpmd1d.data.r_t
+rb_t = rpmd1d.data.rb_t
+v_t = rpmd1d.data.v_t
+vb_t = rpmd1d.data.vb_t
+E_t = rpmd1d.data.E_t
+E_kin = rpmd1d.data.E_kin_t
+E_pot = rpmd1d.data.E_pot_t
+Eb_kin = rpmd1d.data.Eb_kin_t
+# Ptot = rpmd1d.data.prop_tot
+# Pind = rpmd1d.data.prop_vals
+# bins = rpmd1d.data.prop_bins[0]
 
 
 f = open('rpmd_'+str(n_beads)+'beads_'+str(int(steps))+'steps.log', 'w')
