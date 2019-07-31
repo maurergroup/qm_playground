@@ -22,7 +22,7 @@ results = np.zeros((len(momenta), 5))
 for i, vel in enumerate(velocities):
     system = Hopping(x, [vel], mass, initial_state, pot)
     surfhop = Model(potential=pot, mode='hop', system=system, integrator=integ)
-    surfhop.run(max_steps, dt=dt, ntraj=200)
+    surfhop.run(max_steps, dt=dt, ntraj=2000)
     dat = surfhop.data
     results[i, 0] = momenta[i]
     results[i, 1] = dat.reflect_lower
@@ -30,4 +30,4 @@ for i, vel in enumerate(velocities):
     results[i, 3] = dat.transmit_lower
     results[i, 4] = dat.transmit_upper
 
-np.savetxt('hopping.txt', results)
+np.savetxt('avoided_crossing.txt', results)
