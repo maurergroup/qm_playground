@@ -21,9 +21,9 @@
 Integrators
 """
 
-import qmp.integrator.waveintegrators as wave
-import qmp.integrator.trajintegrators as traj
-import qmp.integrator.rpmdintegrators as rpmd
+from qmp.integrator import waveintegrators as wave
+from qmp.integrator import trajintegrators as traj
+from qmp.integrator import rpmdintegrators as rpmd
 from qmp.integrator.hoppingintegrators import HoppingIntegrator
 
 integrator_type = {

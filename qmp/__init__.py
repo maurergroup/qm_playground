@@ -26,6 +26,7 @@ qm_playground package
 from qmp.model import Model
 from qmp.potential.potential import Potential
 from qmp.systems import *
+from qmp import integrator
 from qmp.tools.utilities import *
 
 import numpy as np
