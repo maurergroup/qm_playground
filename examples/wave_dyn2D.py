@@ -12,7 +12,7 @@ from qmp.integrator.dyn_tools import create_gaussian2D
 from qmp.tools.visualizations import wave_movie2D
 from qmp.potential.pot_tools import create_potential2D
 from qmp.potential.preset_potentials import Elbow
-from qmp.integrator.waveintegrators import SOFT_propagation
+from qmp.integrator.waveintegrators import SOFT_Propagator
 
 
 cell = [[0, 0.], [20., 20.]]
@@ -24,7 +24,7 @@ steps = 100
 elbow = Elbow(2)
 pot = Potential(cell, f=elbow())
 system = Grid2D(mass, cell[0], cell[1], N)
-integrator = SOFT_propagation(dt)
+integrator = SOFT_Propagator(dt)
 
 # INITIALIZE MODEL
 tik2d = Model(
