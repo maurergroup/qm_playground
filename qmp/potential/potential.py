@@ -85,6 +85,7 @@ class Potential:
         """
         calculate 1st derivative at point x or list of points x
         """
+        # Need to make these functions n-dimensional, very ugly right now
         firstd = self.firstd[n]
         if firstd is None:
             if self.dimension == 1:
@@ -95,7 +96,13 @@ class Potential:
                     d[i] = util.num_deriv_2D(self, point[0], point[1])
                 return d
         else:
-            return firstd(*points)
+            if self.dimension == 1:
+                return firstd(points)
+            elif self.dimension == 2:
+                d = np.empty_like(points)
+                for i, point in enumerate(points):
+                    d[i] = firstd(point[0], point[1])
+                return d
 
     def hess(self, points, n=0):
         """

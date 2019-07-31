@@ -19,10 +19,10 @@ class TullySimpleAvoidedCrossing(Potential):
 
     def get_f(self):
         def v11(x):
-            return math.copysign(self.A, x) * (1.0 - math.exp(-self.B*abs(x)))
+            return np.copysign(self.A, x) * (1.0 - np.exp(-self.B*abs(x)))
 
         def v12(x):
-            return self.C * math.exp(-self.D * x**2)
+            return self.C * np.exp(-self.D * x**2)
 
         def v22(x):
             return -v11(x)
@@ -31,10 +31,10 @@ class TullySimpleAvoidedCrossing(Potential):
 
     def get_deriv(self):
         def v11(x):
-            return self.A * self.B * math.exp(-self.B * abs(x))
+            return self.A * self.B * np.exp(-self.B * abs(x))
 
         def v12(x):
-            return -2.0 * self.C * self.D * x * math.exp(-self.D*x**2)
+            return -2.0 * self.C * self.D * x * np.exp(-self.D*x**2)
 
         def v22(x):
             return -v11(x)
