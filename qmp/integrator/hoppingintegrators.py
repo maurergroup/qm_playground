@@ -5,21 +5,12 @@ import copy
 
 class HoppingIntegrator(Integrator):
 
-    def __init__(self, **kwargs):
-        Integrator.__init__(self, **kwargs)
-
-        self.basis = self.data.hop.basis
-        self.initial_position = copy.copy(self.basis.x)
-        self.initial_velocity = copy.copy(self.basis.velocity)
-        self.initial_state = copy.copy(self.basis.current_state)
-
-        self.position = self.basis.x
-        self.velocity = self.basis.velocity
-        self.current_state = self.basis.current_state
+    def __init__(self, dt=20):
+        Integrator.__init__(self, dt)
 
     def propagate_density_matrix(self, density_matrix, dt):
 
-        V = self.basis.compute_propagating_hamiltonian()
+        V = self.system.compute_propagating_hamiltonian()
 
         def density_matrix_dot(A):
             summation = np.einsum('lj,kl', A, V) - np.einsum('kl,lj', A, V)
@@ -33,28 +24,30 @@ class HoppingIntegrator(Integrator):
         return density_matrix + 1/6 * (k1 + 2*k2 + 2*k3 + k4)
 
     def advance_position(self, dt):
-        self.position += self.velocity * dt
+        self.system.r += self.system.v * dt
 
     def advance_velocity(self, dt):
-        acceleration = self.basis.force[self.current_state] / self.basis.mass
-        self.last_velocity = self.velocity
-        self.velocity += acceleration * dt
+        acceleration = (self.system.force[self.system.current_state] /
+                        self.system.masses)
+        self.system.last_velocity = self.system.v
+        self.system.v += acceleration * dt
 
     def rescale_velocity(self, deltaV, desired_state):
-        d = self.basis.derivative_coupling[desired_state, self.current_state]
-        a = 0.5 * d ** 2 / self.basis.mass
-        b = np.dot(self.velocity, d)
+        d = self.system.derivative_coupling[desired_state,
+                                            self.system.current_state]
+        a = 0.5 * d ** 2 / self.system.masses
+        b = np.dot(self.system.v, d)
 
         roots = np.roots([a, b, -deltaV])
         gamma = min(roots, key=lambda x: abs(x))
-        self.velocity -= gamma * d / self.basis.mass
+        self.system.v -= np.real(gamma) * d / self.system.masses
 
         # This is the same I think
         # direction = d / np.sqrt(np.dot(d, d))
-        # Md = self.basis.mass * direction
+        # Md = self.system.mass * direction
         # a = np.dot(Md, Md)
-        # b = 2.0 * np.dot(self.basis.mass * self.velocity, Md)
-        # c = -2.0 * self.basis.mass * -deltaV
+        # b = 2.0 * np.dot(self.system.mass * self.velocity, Md)
+        # c = -2.0 * self.system.mass * -deltaV
         # roots = np.roots([a, b, c])
         # scal = min(roots, key=lambda x: abs(x))
         # self.velocity += scal * direction
@@ -62,18 +55,18 @@ class HoppingIntegrator(Integrator):
     def execute_hopping(self):
 
         def get_probabilities(velocity):
-            A = self.density_matrix.conj().T
+            A = self.system.density_matrix.conj().T
             R = velocity
-            d = self.basis.derivative_coupling
-            V = self.basis.V
+            d = self.system.derivative_coupling
+            V = self.system.V
 
             imag = np.imag(A * V)
             real = np.real(A * R * d)
             B = 2*imag - 2*real
 
-            n = self.current_state
+            n = self.system.current_state
             B = B[:, n]
-            g = self.dt * B / self.density_matrix[n, n]
+            g = self.dt * B / self.system.density_matrix[n, n]
             g[n] = 0.0
             g.clip(0.0, 1.0)
 
@@ -87,19 +80,19 @@ class HoppingIntegrator(Integrator):
             return False, -1
 
         def attempt_hop(desired_state, velocity):
-            hamiltonian = self.basis.hamiltonian
-            old = hamiltonian[self.current_state, self.current_state]
+            hamiltonian = self.system.hamiltonian
+            old = hamiltonian[self.system.current_state, self.system.current_state]
             new = hamiltonian[desired_state, desired_state]
             deltaV = new - old
-            kinetic = 0.5 * self.basis.mass * velocity ** 2
+            kinetic = 0.5 * self.system.masses * velocity ** 2
 
             if kinetic >= deltaV:
                 self.rescale_velocity(deltaV, desired_state)
-                self.current_state = desired_state
+                self.system.current_state = desired_state
             else:
-                self.velocity = -1.0 * self.velocity
+                self.system.v = -1.0 * self.system.v
 
-        velocity = 0.5 * (self.velocity + self.last_velocity)
+        velocity = 0.5 * (self.system.v + self.system.last_velocity)
         g = get_probabilities(velocity)
         can_hop, desired_state = check_possible_hop(g)
 
@@ -112,41 +105,46 @@ class HoppingIntegrator(Integrator):
         if self.current_step > steps:
             print('Steps exceeded')
             exit = True
-        elif self.position < self.data.cell[0][0]:
+        elif self.system.r < self.system.potential.cell[0][0]:
             # print('reflect, state: ' + str(self.current_state))
-            outcome[0, self.current_state] = 1
+            outcome[0, self.system.current_state] = 1
             exit = True
-        elif self.position > self.data.cell[0][1]:
+        elif self.system.r > self.system.potential.cell[0][1]:
             # print('transmit, state: ' + str(self.current_state))
-            outcome[1, self.current_state] = 1
+            outcome[1, self.system.current_state] = 1
             exit = True
         return exit, outcome
 
-    def run_single_trajectory(self, steps=1e5, dt=20.0):
+    def store_result(self, count):
+        self.r_t[count, self.current_step] = self.system.r
+        self.v_t[count, self.current_step] = self.system.v
+
+    def run_single_trajectory(self, ntraj, steps=1e5, dt=20.0):
 
         self.dt = dt
         self.current_step = 0
-        acceleration = self.basis.force[self.current_state] / self.basis.mass
+        acceleration = (self.system.force[self.system.current_state]
+                        / self.system.masses)
 
         dv = 0.5 * acceleration * dt
-        self.last_velocity = self.velocity - dv
-        self.velocity = self.velocity + dv
+        self.system.last_velocity = self.system.v - dv
+        self.system.v = self.system.v + dv
 
-        self.density_matrix = self.propagate_density_matrix(
-                                    self.basis.density_matrix,
-                                    dt*0.5)
+        self.system.density_matrix = self.propagate_density_matrix(
+                                         self.system.density_matrix,
+                                         dt*0.5)
 
         while(True):
 
             self.advance_position(dt)
 
-            self.basis.update_electronics(self.position)
+            self.system.update_electronics()
 
             self.advance_velocity(dt)
 
-            self.density_matrix = self.propagate_density_matrix(
-                                        self.basis.density_matrix,
-                                        dt)
+            self.system.density_matrix = self.propagate_density_matrix(
+                                             self.system.density_matrix,
+                                             dt)
 
             self.execute_hopping()
 
@@ -154,21 +152,43 @@ class HoppingIntegrator(Integrator):
 
             exit, outcome = self.check_finished(steps)
 
-            if exit:
-                return outcome
+            self.store_result(ntraj)
 
-    def run(self, steps=1e5, dt=20.0):
+            if exit:
+                self.r_t[ntraj, self.current_step:] = self.system.r
+                self.v_t[ntraj, self.current_step:] = self.system.v
+                break
+
+        return outcome
+
+    def initialise_zero_arrays(self, ntraj, steps, N, ndim, data):
+        self.r_t = np.zeros((ntraj, steps, N, ndim))
+        self.v_t = np.zeros((ntraj, steps, N, ndim))
+        self.r_t[:, 0] = self.system.r
+        self.v_t[:, 0] = self.system.v
+
+    def run(self, system, steps, potential, data, **kwargs):
+
+        dt = kwargs.get('dt', self.dt)
+        ntraj = kwargs.get('ntraj', 2000)
+
+        self.system = system
+        ndim = self.system.ndim
+        N = self.system.n_particles
+
+        self.initialise_zero_arrays(ntraj, steps, N, ndim, data)
 
         result = np.zeros((2, 2))
-        ntraj = 2000
-        for i in range(2000):
+        for i in range(ntraj):
 
-            self.basis.reset_system(self.initial_position,
-                                    self.initial_velocity, self.initial_state)
-            self.position = self.basis.x
-            self.velocity = self.basis.velocity
-            self.current_state = self.basis.current_state
+            self.system.reset_system()
 
-            result += self.run_single_trajectory(steps=steps, dt=dt)
+            result += self.run_single_trajectory(i, steps=steps, dt=dt)
 
-        self.data.result = result / ntraj
+        result = result / ntraj
+        data.reflect_lower = result[0, 0]
+        data.reflect_upper = result[0, 1]
+        data.transmit_lower = result[1, 0]
+        data.transmit_upper = result[1, 1]
+        data.r_t = self.r_t
+        data.v_t = self.v_t

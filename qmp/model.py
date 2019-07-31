@@ -67,16 +67,19 @@ class Model:
         return string
 
     def prepare_data(self):
-        mode = self.mode
         return Data()
-        if mode == 'wave':
-            return WaveData()
-        elif mode == 'traj':
-            return TrajData()
-        elif mode == 'rpmd':
-            return RpmdData()
-        elif mode == 'hop':
-            return HopData()
+        # could consider putting this back in to make things a little more
+        # transparent but I'm fairly happy with how it currently works.
+
+        # mode = self.mode
+        # if mode == 'wave':
+        #     return WaveData()
+        # elif mode == 'traj':
+        #     return TrajData()
+        # elif mode == 'rpmd':
+        #     return RpmdData()
+        # elif mode == 'hop':
+        #     return HopData()
 
     def solve(self):
         """
