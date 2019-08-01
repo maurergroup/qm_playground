@@ -59,7 +59,7 @@ class TullyDualAvoidedCrossing(Potential):
 
     def get_f(self):
         def v11(x):
-            return 0
+            return 0 * x
 
         def v12(x):
             return self.C * np.exp(-self.D * x**2)
@@ -71,7 +71,7 @@ class TullyDualAvoidedCrossing(Potential):
 
     def get_deriv(self):
         def v11(x):
-            return 0
+            return 0 * x
 
         def v12(x):
             return -2.0 * self.C * self.D * x * np.exp(-self.D * x**2)
