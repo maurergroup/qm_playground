@@ -52,11 +52,11 @@ class Hopping(PhaseSpace):
 
     def compute_hamiltonian(self):
         # computes <psi|V|psi>
-        return np.einsum('ji,jk,km->jm', self.coeffs, self.V, self.coeffs)
+        return np.einsum('ji,jk,km->im', self.coeffs, self.V, self.coeffs)
 
     def compute_derivative_coupling(self):
         # compute <psi|D|psi>
-        out = np.einsum('ji,jk,km->jm', self.coeffs, self.D, self.coeffs)
+        out = np.einsum('ji,jk,km->im', self.coeffs, self.D, self.coeffs)
 
         # I do not know the purpose of this section but will steal it from the
         # other code for now.
