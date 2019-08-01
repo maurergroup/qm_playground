@@ -102,8 +102,8 @@ class HoppingIntegrator(Integrator):
     def check_finished(self, steps):
         exit = False
         outcome = np.zeros((2, 2))
-        if self.current_step > steps:
-            print('Steps exceeded')
+        if self.current_step >= steps:
+            print('Max steps exceeded, trajectory discarded.')
             exit = True
         elif self.system.r < self.system.potential.cell[0][0]:
             # print('reflect, state: ' + str(self.current_state))
@@ -136,6 +136,8 @@ class HoppingIntegrator(Integrator):
 
         while(True):
 
+            self.current_step += 1
+
             self.advance_position(dt)
 
             self.system.update_electronics()
@@ -147,8 +149,6 @@ class HoppingIntegrator(Integrator):
                                              dt)
 
             self.execute_hopping()
-
-            self.current_step += 1
 
             exit, outcome = self.check_finished(steps)
 
@@ -162,8 +162,8 @@ class HoppingIntegrator(Integrator):
         return outcome
 
     def initialise_zero_arrays(self, ntraj, steps, N, ndim, data):
-        self.r_t = np.zeros((ntraj, steps, N, ndim))
-        self.v_t = np.zeros((ntraj, steps, N, ndim))
+        self.r_t = np.zeros((ntraj, steps+1, N, ndim))
+        self.v_t = np.zeros((ntraj, steps+1, N, ndim))
         self.r_t[:, 0] = self.system.r
         self.v_t[:, 0] = self.system.v
 
@@ -179,6 +179,8 @@ class HoppingIntegrator(Integrator):
         self.initialise_zero_arrays(ntraj, steps, N, ndim, data)
 
         result = np.zeros((2, 2))
+        momentum = self.system.initial_v * self.system.masses
+        print(f'Running {ntraj} surface hopping trajectories for momentum = {momentum}')
         for i in range(ntraj):
 
             self.system.reset_system()
