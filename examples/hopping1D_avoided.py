@@ -14,7 +14,7 @@ initial_state = 0
 pot = tullymodels.TullySimpleAvoidedCrossing()
 integ = HoppingIntegrator()
 
-momenta = np.linspace(0, 20, 50)
+momenta = np.linspace(3, 30, 20)
 velocities = momenta / mass
 
 results = np.zeros((len(momenta), 5))
@@ -22,7 +22,7 @@ results = np.zeros((len(momenta), 5))
 for i, vel in enumerate(velocities):
     system = Hopping(x, [vel], mass, initial_state, pot)
     surfhop = Model(potential=pot, mode='hop', system=system, integrator=integ)
-    surfhop.run(max_steps, dt=dt, ntraj=2000)
+    surfhop.run(max_steps, dt=dt, ntraj=200)
     dat = surfhop.data
     results[i, 0] = momenta[i]
     results[i, 1] = dat.reflect_lower

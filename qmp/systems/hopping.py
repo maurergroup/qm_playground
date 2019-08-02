@@ -46,13 +46,13 @@ class Hopping(PhaseSpace):
         return np.linalg.eigh(self.V)
 
     def compute_force(self):
-        force_matrix = -np.einsum('ij,jk,km->im', self.coeffs.T.conj(),
+        force_matrix = -np.einsum('ji,jk,km->im', self.coeffs.conj(),
                                   self.D, self.coeffs)
         return np.diag(force_matrix)
 
     def compute_hamiltonian(self):
         # computes <psi|V|psi>
-        return np.einsum('ji,jk,km->im', self.coeffs, self.V, self.coeffs)
+        return np.dot(self.coeffs.T, np.dot(self.V, self.coeffs))
 
     def compute_derivative_coupling(self):
         # compute <psi|D|psi>

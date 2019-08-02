@@ -51,11 +51,6 @@ class HoppingTestCase(unittest.TestCase):
         test.assert_array_almost_equal(d, correct)
 
     def test_compute_propagating_hamiltonian(self):
-        # This function has a slight discrepancy with the smparker version, it
-        # appears that the numerical precision of einsum and np.dot is
-        # different and leads to a few of these matrix operations to give
-        # different results. In theory, einsum that I have used gives the
-        # better results.
         h = self.hop.compute_propagating_hamiltonian()
         correct = [[-5.00000000e-03+0.j, 0+0.016j],
                    [0-0.016j, 5.00000000e-03+0.j]]
