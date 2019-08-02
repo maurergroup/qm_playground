@@ -121,7 +121,10 @@ class HoppingIntegrator(Integrator):
             self.rescale_velocity(deltaV, desired_state)
             self.system.current_state = desired_state
         else:
-            self.system.v = -1.0 * self.system.v
+            # Paper I read suggested you reverse the velocity after rejected
+            # hops but I'm not so sure about this.
+            # self.system.v = -1 * self.system.v
+            self.system.v = self.system.v
 
     def execute_hopping(self):
         """ Carries out surface hopping.
@@ -147,11 +150,9 @@ class HoppingIntegrator(Integrator):
             self.ntraj -= 1
             exit = True
         elif self.system.r < self.system.potential.cell[0][0]:
-            # print('reflect, state: ' + str(self.current_state))
             outcome[0, self.system.current_state] = 1
             exit = True
         elif self.system.r > self.system.potential.cell[0][1]:
-            # print('transmit, state: ' + str(self.current_state))
             outcome[1, self.system.current_state] = 1
             exit = True
         return exit, outcome
