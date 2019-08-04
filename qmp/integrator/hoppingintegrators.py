@@ -22,10 +22,10 @@ class HoppingIntegrator(Integrator):
         U = np.linalg.multi_dot([coeff, prop, coeff.T.conj()])
         return np.dot(U, np.dot(density_matrix, U.T.conj()))
 
+        # This bit doesn't quite work.
         # def density_matrix_dot(A):
-        #     # I think this function is the problem
         #     summation = np.einsum('lj,kl', A, V) - np.einsum('kl,lj', A, V)
-        #     return 1.0 / 1.0j * summation
+        #     return -1j * summation
 
         # k1 = dt * density_matrix_dot(density_matrix)
         # k2 = dt * density_matrix_dot(density_matrix + k1/2)
@@ -45,19 +45,11 @@ class HoppingIntegrator(Integrator):
 
     def rescale_velocity(self, deltaV, desired_state):
         """ Rescales velocity.
-        Rescaling is carried out in the direction of the derivate coupling
+        Rescaling is carried out in the direction of the derivative coupling
         after a successful hop.
         """
         d = self.system.derivative_coupling[desired_state,
                                             self.system.current_state]
-
-        # This is supposed to do the same thing but of course does not work.
-        # a = 0.5 * d ** 2 / self.system.masses
-        # b = np.dot(self.system.v, d)
-
-        # roots = np.roots([a, b, -deltaV])
-        # gamma = min(roots, key=lambda x: abs(x))
-        # self.system.v -= np.real(gamma) * d / self.system.masses
 
         direction = d / np.sqrt(np.dot(d, d))
         Md = self.system.masses * direction
@@ -70,28 +62,20 @@ class HoppingIntegrator(Integrator):
 
     def get_probabilities(self, velocity):
         """ Calculates the hopping probability.
+        Returns an array where prob[i] is the probability of hopping from the
+        current state to state i.
         """
-        A = self.system.density_matrix.conj().T
+        A = self.system.density_matrix
         R = velocity
         d = self.system.derivative_coupling
-
-        real = np.real(A * R * d)
-
-        # I have changed B to be equal to the postive real part to match the
-        # other code. Not sure why this needs to be done.
-        # V = self.system.V
-        # imag = np.imag(A * V)
-        # B = 2*imag - 2*real
-
-        B = 2*real
-
         n = self.system.current_state
-        B = B[n, :]
-        g = self.dt * B / self.system.density_matrix[n, n]
-        g[n] = 0.0
-        g = g.clip(0.0, 1.0)
 
-        return g
+        prob = 2 * np.real(A[n] * R * d[n] / A[n, n]) * self.dt
+
+        prob[n] = 0.0
+        prob = prob.clip(0.0, 1.0)
+
+        return prob
 
     def check_possible_hop(self, g):
         """ Determines whether a hop should occur.
@@ -121,8 +105,9 @@ class HoppingIntegrator(Integrator):
             self.rescale_velocity(deltaV, desired_state)
             self.system.current_state = desired_state
         else:
-            # Paper I read suggested you reverse the velocity after rejected
-            # hops but I'm not so sure about this.
+            # Chem. Phys. 349, 334 (2008) suggests reversing the velocity
+            # during a frustrated hop but I see not mention of this elsewhere,
+            # I'll leave in here in case someone else wants to try it.
             # self.system.v = -1 * self.system.v
             self.system.v = self.system.v
 

@@ -5,7 +5,7 @@ import numpy as np
 
 class TullySimpleAvoidedCrossing(Potential):
 
-    def __init__(self, cell=[[-5, 5]], a=0.01, b=1.6, c=0.005, d=1.0):
+    def __init__(self, cell=[[-10, 10]], a=0.01, b=1.6, c=0.005, d=1.0):
 
         Potential.__init__(self, cell=cell, n=2)
 
@@ -44,7 +44,7 @@ class TullySimpleAvoidedCrossing(Potential):
 
 class TullyDualAvoidedCrossing(Potential):
 
-    def __init__(self, cell=[[-5, 5]], a=0.1, b=0.28, c=0.015, d=0.06, e=0.05):
+    def __init__(self, cell=[[-10, 10]], a=0.1, b=0.28, c=0.015, d=0.06, e=0.05):
 
         Potential.__init__(self, cell=cell, n=2)
 
