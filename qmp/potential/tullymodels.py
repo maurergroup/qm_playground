@@ -80,3 +80,43 @@ class TullyDualAvoidedCrossing(Potential):
             return 2.0 * self.A * self.B * x * np.exp(-self.B * x**2)
 
         return np.array([v11, v12, v12, v22])
+
+class TullyExtendedCoupling(Potential):
+    def __init__(self, cell=[[-10, 10]], a=0.0006, b=0.10, c=0.90):
+
+        Potential.__init__(self, cell=cell, n=2)
+
+        self.A = a
+        self.B = b
+        self.C = c
+
+        self.f = self.get_f()
+        self.firstd = self.get_deriv()
+
+    def get_f(self):
+        def v11(x):
+            return self.A
+
+        def v12(x):
+            v12 = np.exp(-abs(x) * self.C)
+            if x < 0:
+                return self.B * v12
+            else:
+                return self.B * (2 - v12)
+
+        def v22(x):
+            return -self.A
+
+        return np.array([v11, v12, v12, v22])
+
+    def get_deriv(self):
+        def v11(x):
+            return 0 * x
+
+        def v12(x):
+            return self.B * self.C * np.exp(-self.C * abs(x))
+
+        def v22(x):
+            return 0 * x
+
+        return np.array([v11, v12, v12, v22])

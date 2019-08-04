@@ -1,3 +1,5 @@
+import sys
+sys.path.append('..')
 from qmp.potential import tullymodels
 from qmp.model import Model
 from qmp.systems.hopping import Hopping
@@ -11,12 +13,10 @@ dt = 20.0
 mass = np.array([2000.])
 initial_state = 0
 
-pot = tullymodels.TullyDualAvoidedCrossing()
+pot = tullymodels.TullyExtendedCoupling()
 integ = HoppingIntegrator()
 
-log_e = np.linspace(-3.8, 0.8, 50)
-ke = np.exp(log_e)
-momenta = np.sqrt(2 * 2000 * ke)
+momenta = np.arange(4, 32, 0.5)
 velocities = momenta / mass
 
 results = np.zeros((len(momenta), 5))
@@ -32,4 +32,4 @@ for i, vel in enumerate(velocities):
     results[i, 3] = dat.transmit_lower
     results[i, 4] = dat.transmit_upper
 
-np.savetxt('dualavoided.txt', results)
+np.savetxt('extended_coupling.txt', results)
