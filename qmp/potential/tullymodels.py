@@ -95,17 +95,17 @@ class TullyExtendedCoupling(Potential):
 
     def get_f(self):
         def v11(x):
-            return self.A
+            return np.array([self.A])
 
         def v12(x):
-            v12 = np.exp(-abs(x) * self.C)
+            v12 = np.exp(-np.abs(x) * self.C)
             if x < 0:
                 return self.B * v12
             else:
                 return self.B * (2 - v12)
 
         def v22(x):
-            return -self.A
+            return -np.array([self.A])
 
         return np.array([v11, v12, v12, v22])
 
@@ -114,7 +114,7 @@ class TullyExtendedCoupling(Potential):
             return 0 * x
 
         def v12(x):
-            return self.B * self.C * np.exp(-self.C * abs(x))
+            return self.B * self.C * np.exp(-self.C * np.abs(x))
 
         def v22(x):
             return 0 * x
