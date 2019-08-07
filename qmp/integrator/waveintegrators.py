@@ -145,6 +145,7 @@ class PrimitivePropagator(Integrator):
 class SOFT_Propagator(Integrator):
     """
     Split operator propagator for psi(x,0)
+        Pretty sure this still doesn't work.
         Trotter series: exp(iHt) ~= exp(iVt/2)*exp(iTt)*exp(iVt/2)
         => exp(iHt)*psi(x) ~= exp(iTt/2)*exp(iVt)*exp(iTt/2)*psi(x)
         => use spatial representation for exp(iVt) and momentum representation for exp(iTt/2)
@@ -197,8 +198,8 @@ class SOFT_Propagator(Integrator):
         ndim = self.system.ndim
 
         if ndim == 1:
-            p = np.pi*FTp(N, dx)
-            p = p*p
+            p = 2 * np.pi * FTp(N, dx)
+
         elif ndim == 2:
             p = FTp(nx, dx).conj()*FTp(nx, dx)
             p = np.pi*np.pi*(np.kron(np.ones(nx), p)
@@ -208,23 +209,33 @@ class SOFT_Propagator(Integrator):
 
         return p
 
-    def compute_operators(self, potential, dt):
+    def expV(self, dt):
+        return np.exp(-1j * self.V * dt)
+
+    def expT(self, dt):
         m = self.system.mass
+        return np.exp(-1j * (self.p**2) * dt / (2 * m))
+
+    def compute_operators(self, potential, dt):
         self.V = self.system.compute_potential_flat(potential)
-        N = self.V.size
+        self.p = self.compute_p(self.V.size)
 
-        self.expV = np.exp(-1j*self.V*dt / hbar)
-
-        self.p = self.compute_p(N)
-        self.expT = np.exp(-1j*(dt/hbar)*self.p/m)
+        self.prop_V = self.expV(dt/2)
+        self.prop_T = self.expT(dt)
 
     def propagate_psi(self, i):
         from numpy.fft import fft as FT
         from numpy.fft import ifft as iFT
 
-        psi1 = iFT(self.expT*FT(self.psi[i]))
-        psi2 = FT(self.expV*psi1)
-        psi3 = iFT(self.expT*psi2)
+        psi1 = self.prop_V*self.psi[i]
+        psi2 = self.prop_T*FT(psi1)
+        psi3 = self.prop_V*iFT(psi2)
+
+        # this way can be used instead but you have to switch the operator that
+        # uses a half timestep.
+        # psi1 = iFT(self.prop_T*FT(self.psi[i]))
+        # psi2 = FT(self.prop_V*psi1)
+        # psi3 = iFT(self.prop_T*psi2)
         return psi3
 
     def store_result(self, psi, e_kin, e_pot):
@@ -289,7 +300,7 @@ class SOFT_Propagator(Integrator):
             self.counter += 1
 
             psi = self.propagate_psi(i)
-            e_kin = (np.conjugate(psi).dot(iFT(2.*self.p/m * FT(psi))))
+            e_kin = (np.conjugate(psi).dot(iFT(self.p ** 2 / (2*m) * FT(psi))))
             e_pot = np.conjugate(psi).dot(self.V*psi)
 
             self.store_result(psi, e_kin, e_pot)
