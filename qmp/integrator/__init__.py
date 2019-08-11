@@ -30,7 +30,7 @@ integrator_type = {
     'primitive': wave.PrimitivePropagator,
     'eigen': wave.EigenPropagator,
     'SOFT': wave.SOFT_Propagator,
-    'SOFT_scatter': wave.SOFT_Scattering,
+    # 'SOFT_scatter': wave.SOFT_Scattering,
     'SOFT_averages': wave.SOFT_AverageProperties,
     'velocity_verlet': traj.VelocityVerlet,
     'langevin': traj.Langevin,

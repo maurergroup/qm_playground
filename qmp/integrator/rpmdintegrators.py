@@ -182,18 +182,6 @@ class RPMD_VelocityVerlet(Integrator):
         data.prob_bins = self.rbins
         data.omega_t = self.omega_t
 
-    def write_output(self, data):
-        out = open('rpmd_dyn.end', 'wb')
-        rpmd_data = {'rb_t': data.rb_t, 'r_t': data.r_t, 'vb_t': data.vb_t,
-                     'v_t': data.v_t, 'E_kin': data.E_kin_t,
-                     'E_pot': data.E_pot_t,
-                     'E_tot': data.E_t, 'Eb_kin': data.Eb_kin_t,
-                     'Eb_pot': data.Eb_pot_t,
-                     'Eb_tot': data.Eb_t, 'bins': data.prob_bins,
-                     'prob_vals': data.prob_vals,
-                     'prob_tot': data.prob_tot, 'omega_t': data.omega_t}
-        pick.dump(rpmd_data, out)
-
     def run(self, system, steps, potential, data, **kwargs):
 
         dt = kwargs.get('dt', self.dt)
@@ -227,7 +215,6 @@ class RPMD_VelocityVerlet(Integrator):
         print('INTEGRATED')
 
         self.assign_data(data, i_step)
-        self.write_output(data)
         remove_restart()
 
 
@@ -276,17 +263,6 @@ class RPMD_EquilibriumProperties(RPMD_VelocityVerlet):
         # data.prob_tot = self.vals_tot
         # data.prob_bins = self.rbins
 
-    def write_output(self, data):
-        out = open('rpmd_avgs.end', 'wb')
-        rpmd_data = {
-                     'E_pot': data.E_pot,
-                     'E_tot': data.E_t, 'E_kin': data.E_kin,
-                     # 'bins': data.prob_bins,
-                     # 'prob_vals': data.prob_vals,
-                     # 'prob_tot': data.prob_tot,
-                     'r_mean': data.r_mean}
-        pick.dump(rpmd_data, out)
-
 
 class RPMD_Scattering(RPMD_VelocityVerlet):
     """
@@ -328,19 +304,6 @@ class RPMD_Scattering(RPMD_VelocityVerlet):
         data.p_refl = self.p_refl
         data.p_trans = self.p_trans
         data.omega_t = self.omega_t
-
-    def write_output(self, data):
-        out = open('rpmd_scatter.end', 'wb')
-        rpmd_data = {'rb_t': data.rb_t, 'r_t': data.r_t, 'vb_t': data.vb_t,
-                     'v_t': data.v_t, 'E_kin': data.E_kin_t,
-                     'E_pot': data.E_pot_t,
-                     'E_tot': data.E_t, 'Eb_kin': data.Eb_kin_t,
-                     'Eb_pot': data.Eb_pot_t,
-                     'Eb_tot': data.Eb_t,
-                     'E_mean': data.E_mean,
-                     'dErel_max': data.dErel_max,
-                     'omega_t': data.omega_t}
-        pick.dump(rpmd_data, out)
 
     def run(self, system, steps, potential, data, **kwargs):
 
@@ -400,4 +363,3 @@ class RPMD_Scattering(RPMD_VelocityVerlet):
             print('It seems like one or more particles are located exactly at the dividing surface.')
 
         self.assign_data(data)
-        self.write_output(data)

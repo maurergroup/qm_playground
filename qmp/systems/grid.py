@@ -40,7 +40,7 @@ class Grid1D:
         return potential(self.x)
 
     def set_initial_wvfn(self, psi):
-        self.psi = psi
+        self.psi = np.array(psi)
 
 
 class Grid2D:
@@ -53,7 +53,7 @@ class Grid2D:
 
         self.mass = mass
         self.N = N
-        self.ndim = 1
+        self.ndim = 2
         self.solved = False
 
         # Initial wavefunction all zeros
@@ -86,4 +86,4 @@ class Grid2D:
         return potential(self.xgrid, self.ygrid).flatten()
 
     def set_initial_wvfn(self, psi):
-        self.psi = psi
+        self.psi = np.array(psi).flatten()

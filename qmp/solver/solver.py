@@ -62,7 +62,6 @@ class ScipySolver(Solver):
 
         print('Solving...')
         evals, evecs = eigsh(H, self.states, sigma=0., which='LM')
-        print(self.states, np.shape(evecs))
         print('SOLVED\n')
 
         self.system.E = np.array(evals)
