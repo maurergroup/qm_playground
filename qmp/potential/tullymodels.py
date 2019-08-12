@@ -1,5 +1,4 @@
 from qmp.potential import Potential
-import math
 import numpy as np
 
 
@@ -7,15 +6,15 @@ class TullySimpleAvoidedCrossing(Potential):
 
     def __init__(self, cell=[[-10, 10]], a=0.01, b=1.6, c=0.005, d=1.0):
 
-        Potential.__init__(self, cell=cell, n=2)
-
         self.A = a
         self.B = b
         self.C = c
         self.D = d
 
-        self.f = self.get_f()
-        self.firstd = self.get_deriv()
+        f = self.get_f()
+        firstd = self.get_deriv()
+
+        Potential.__init__(self, cell=cell, n=2, f=f, firstd=firstd)
 
     def get_f(self):
         def v11(x):
@@ -46,16 +45,16 @@ class TullyDualAvoidedCrossing(Potential):
 
     def __init__(self, cell=[[-10, 10]], a=0.1, b=0.28, c=0.015, d=0.06, e=0.05):
 
-        Potential.__init__(self, cell=cell, n=2)
-
         self.A = a
         self.B = b
         self.C = c
         self.D = d
         self.E_0 = e
 
-        self.f = self.get_f()
-        self.firstd = self.get_deriv()
+        f = self.get_f()
+        firstd = self.get_deriv()
+
+        Potential.__init__(self, cell=cell, n=2, f=f, firstd=firstd)
 
     def get_f(self):
         def v11(x):
@@ -81,17 +80,18 @@ class TullyDualAvoidedCrossing(Potential):
 
         return np.array([v11, v12, v12, v22])
 
+
 class TullyExtendedCoupling(Potential):
     def __init__(self, cell=[[-10, 10]], a=0.0006, b=0.10, c=0.90):
-
-        Potential.__init__(self, cell=cell, n=2)
 
         self.A = a
         self.B = b
         self.C = c
 
-        self.f = self.get_f()
-        self.firstd = self.get_deriv()
+        f = self.get_f()
+        firstd = self.get_deriv()
+
+        Potential.__init__(self, cell=cell, n=2, f=f, firstd=firstd)
 
     def get_f(self):
         def v11(x):

@@ -33,17 +33,12 @@ class Hopping(PhaseSpace):
         self.density_matrix[self.current_state, self.current_state] = 1.0
 
     def construct_V_matrix(self):
-        """ Constructs an n by n matrix for V from the potential.
-        This requires the potential to have been given a list of the matrix
-        elements. I'm not entirely happy with how this is set up but I do not
-        believe there is currently a better way to represent the system in a
-        diabatic representation. In truth, the adiabatic representation should
-        be used, this would better match Tully's initial paper.
+        """ Constructs an n by n matrix for V evaluated at position r.
         """
-        flat = np.array(
-            [self.potential(self.r, n=i) for i in range(self.nstates**2)]
-            )
-        V = flat.reshape((self.nstates, self.nstates))
+        V = np.zeros((self.nstates, self.nstates))
+        for i in range(self.nstates):
+            for j in range(self.nstates):
+                V[i, j] = self.potential(self.r, i=i, j=j)
         return V
 
     def construct_Nabla_matrix(self):

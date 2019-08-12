@@ -49,14 +49,17 @@ class Potential:
 
         self.cell = cell
         self.dimension = len(self.cell)
-
-        if not isinstance(f, list):
-            f = [f]
-        self.f = f
-
         self.states = n
 
-        if not isinstance(firstd, list):
+        try:
+            self.f = np.array(f).reshape((self.states, self.states))
+        except ValueError:
+            print('The list of functions given to the potential is not of '
+                  + 'the correct size to match the number of states.'
+                  + ' You must provide n**2 elements.')
+            raise
+
+        if not isinstance(firstd, (list, np.ndarray)):
             firstd = [firstd]
         self.firstd = firstd
 
@@ -74,11 +77,11 @@ class Potential:
 
         self.data = None
 
-    def __call__(self, *points, n=0):
+    def __call__(self, *points, i=0, j=0):
         """
         calculate potential at point x or list of points x
         """
-        f = self.f[n]
+        f = self.f[i, j]
         return f(*points)
 
     def deriv(self, points, n=0):
@@ -104,11 +107,11 @@ class Potential:
                     d[i] = firstd(point[0], point[1])
                 return d
 
-    def hess(self, points, n=0):
+    def hess(self, points, i=0, j=0):
         """
         calculate 2nd derivative at point x or list of points x
         """
-        secondd = self.secondd[n]
+        secondd = self.secondd[i]
         if secondd is None:
             if self.dimension == 1:
                 return util.num_deriv2(self, points)
