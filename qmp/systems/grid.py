@@ -5,19 +5,19 @@ from qmp.tools.utilities import hbar
 
 class Grid1D:
 
-    def __init__(self, mass=1, start=0.0, end=1.0, N=100, psi0=None):
+    def __init__(self, mass=1, start=0.0, end=1.0, N=100, psi0=None, states=1):
 
         self.x, self.dx = np.linspace(start, end, N, retstep=True)
         self.mass = mass
         self.N = N
         self.ndim = 1
         self.solved = False
+        self.nstates = states
 
         # Initial wavefunction all zeros
-        if psi0 is None:
-            self.psi = np.zeros_like(self.x)
-        else:
-            self.psi = psi0
+        self.psi = np.zeros((self.nstates, self.N), dtype=complex)
+        if psi0 is not None:
+            self.psi[0] = psi0
 
         self.L = self.define_laplacian()
 
@@ -34,13 +34,17 @@ class Grid1D:
         return - (hbar**2) * self.L / (2 * self.mass)
 
     def construct_V_matrix(self, potential):
-        return np.diag(potential(self.x))
+        V = np.empty((self.nstates, self.nstates, self.N))
+        for i in range(self.nstates):
+            for j in range(self.nstates):
+                V[i, j] = potential(self.x, i=i, j=j)
+        return V
 
     def compute_potential_flat(self, potential):
         return potential(self.x)
 
     def set_initial_wvfn(self, psi):
-        self.psi = np.array(psi)
+        self.psi[0] = np.array(psi)
 
 
 class Grid2D:

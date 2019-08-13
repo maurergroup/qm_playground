@@ -121,7 +121,7 @@ class PrimitivePropagator(Integrator):
         print('Integrating...')
         for i in range(steps):
 
-            self.system.psi = prop.dot(self.system.psi)
+            self.system.psi = np.einsum('ij,...j', prop, self.system.psi)
 
             if (i+1) % output_freq == 0:
                 output_index += 1
@@ -197,15 +197,15 @@ class SOFT_Propagator(Integrator):
         self.system.psi = iFT(self.expT(dt)*FT(self.system.psi))
         self.system.psi = self.expV(dt/2)*self.system.psi
 
-    def compute_energies(self, psi_t):
+    def compute_energies(self):
         from numpy.fft import fft as FT
         from numpy.fft import ifft as iFT
 
         m = self.system.mass
-        conj = np.conj(psi_t)
-        K_dot_psi = iFT(np.multiply(self.k**2/(2*m), FT(psi_t)))
+        conj = np.conj(self.psi_t)
+        K_dot_psi = iFT(np.multiply(self.k**2/(2*m), FT(self.psi_t)))
         self.E_kin_t = np.einsum('ik,ik->i', conj, K_dot_psi)
-        self.E_pot_t = np.einsum('ik,ik->i', conj, self.V*psi_t)
+        self.E_pot_t = np.einsum('ik,ik->i', conj, self.V*self.psi_t)
 
     def store_result(self, add_info):
 
@@ -219,7 +219,7 @@ class SOFT_Propagator(Integrator):
         if add_info == 'coefficients':
             data.c_t = np.array(self.c_t)
 
-        data.psi_t = np.array(self.psi_t)
+        data.psi_t = self.psi_t
         data.rho_t = np.conjugate(data.psi_t)*data.psi_t
         data.E_kin_t = self.E_kin_t
         data.E_pot_t = self.E_pot_t
@@ -260,8 +260,127 @@ class SOFT_Propagator(Integrator):
 
         print('INTEGRATED\n')
 
-        self.compute_energies(np.array(self.psi_t))
+        self.psi_t = np.array(self.psi_t)
+        self.compute_energies()
         self.assign_data(data, i, add_info)
+
+
+class SOFT_NonAdiabatic(SOFT_Propagator):
+
+    def run(self, system, steps, potential, data, **kwargs):
+        """
+        Propagates the system for 'steps' timesteps of length 'dt'.
+        """
+
+        self.read_kwargs(kwargs)
+        self.initialise_start(system, potential)
+
+        self.integrate(steps)
+
+        self.compute_energies()
+        self.assign_data(data)
+
+    def read_kwargs(self, kwargs):
+        self.dt = kwargs.get('dt', self.dt)
+        self.output_freq = kwargs.get('output_freq', 200)
+
+    def initialise_start(self, system, potential):
+        self.system = system
+        self.V = self.system.construct_V_matrix(potential)
+        self.k = self.compute_k()
+
+        self.psi_t = [self.system.psi]
+        self.propT = self.expT(self.dt/2)
+        self.propV = self.expV(self.dt)
+
+    def expV(self, dt):
+        try:
+            v1 = self.V[0, 0]
+            v2 = self.V[1, 1]
+            v12 = self.V[0, 1]
+            v21 = self.V[1, 0]
+
+            D = (v1 - v2)**2 + 4*v21**2
+            diagonal = np.exp(-1.0j * (v1+v2) * dt/2)
+
+            cos = np.einsum('i,jk->jki', np.cos(np.sqrt(D)*dt/2), np.eye(2))
+
+            sin = 1.0j * np.sin(np.sqrt(D)*dt/2)/np.sqrt(D)
+
+            v_matrix = np.array([[v2-v1, -2*v12],
+                                 [-2*v21, v1-v2]])
+
+            return diagonal * (cos + sin * v_matrix)
+
+        except IndexError:
+            print('Single energy surface')
+
+            exp = np.exp(-1.0j * self.V[0, 0] * dt)
+            return np.array([[exp]])
+
+    def expT(self, dt):
+        T = self.get_T()
+        return np.exp(-1.0j * T * dt)
+
+    def get_T(self):
+        m = self.system.mass
+        T = self.k**2 / (2.0 * m)
+        return T
+
+    def integrate(self, steps):
+        output_index = 0
+        print('Integrating...')
+        for i in range(steps):
+
+            self.propagate_psi()
+
+            if (i+1) % self.output_freq == 0:
+                output_index += 1
+                self.store_result()
+
+        print('INTEGRATED\n')
+        self.psi_t = np.array(self.psi_t)
+
+    def propagate_psi(self):
+        self.propagate_momentum()
+        self.system.psi = np.einsum('ij...,j...->j...',
+                                    self.propV, self.system.psi)
+        self.propagate_momentum()
+
+    def propagate_momentum(self):
+        from numpy.fft import fft as FT
+        from numpy.fft import ifft as iFT
+
+        psi_p = FT(self.system.psi)
+        psi_p = self.propT * psi_p
+        self.system.psi = iFT(psi_p)
+
+    def store_result(self):
+        self.psi_t.append(self.system.psi)
+
+    def compute_energies(self):
+        from numpy.fft import fft as FT
+        from numpy.fft import ifft as iFT
+
+        conj = self.psi_t.conj()
+        T = self.get_T()
+
+        T_dot_psi = iFT(T * FT(self.psi_t))
+        self.E_kin_t = np.real(np.einsum('tjx,tjx->tj', conj, T_dot_psi))
+
+        V_dot_psi = np.einsum('ijx,tjx->tj', self.V, self.psi_t)
+        self.E_pot_t = np.real(np.einsum('tjx,tj->tj', conj, V_dot_psi))
+
+    def assign_data(self, data):
+        data.psi_t = np.array(self.psi_t)
+        data.rho_t = np.conjugate(data.psi_t)*data.psi_t
+        data.E_kin_t = self.E_kin_t
+        data.E_pot_t = self.E_pot_t
+        data.E_t = self.E_kin_t + self.E_pot_t
+        # data.E_mean = np.mean(data.E_t)
+        # data.E_k_mean = np.mean(data.E_kin_t)
+        # data.E_p_mean = np.mean(data.E_pot_t)
+        # data.rho_mean = np.mean(data.rho_t, 0)
 
 
 class SOFT_AverageProperties(SOFT_Propagator):
