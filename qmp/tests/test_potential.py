@@ -15,7 +15,7 @@ class PotentialTestCase(unittest.TestCase):
     def test_call_one_dimension(self):
         point = 5
         self.assertEqual(self.one_dimension(point), 5)
-        point = np.linspace(0, 5, 1)
+        point = np.linspace(0, 5, 10)
         test.assert_array_equal(self.one_dimension(point), point)
 
     def test_call_two_dimension(self):

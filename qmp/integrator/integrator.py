@@ -36,7 +36,7 @@ class Integrator:
 
     """
 
-    def __init__(self, dt):
+    def __init__(self, dt=1):
 
         self.dt = dt
 

@@ -25,13 +25,87 @@ from qmp.tools.utilities import hbar
 from qmp.integrator.integrator import Integrator
 from qmp.integrator.dyn_tools import project_wvfn
 import numpy as np
+from abc import ABC, abstractmethod
 
 
-class EigenPropagator(Integrator):
+class AbstractWavePropagator(ABC):
+    """
+    Abstract base class for other wave integrators to implement.
+    """
+    def __init__(self, dt=1):
+        self.dt = dt
+
+    def run(self, system, steps, potential, data, **kwargs):
+        """
+        Propagates the system for 'steps' timesteps of length 'dt'.
+        """
+
+        self.read_kwargs(kwargs)
+        self.initialise_start(system, potential)
+
+        self.integrate(steps)
+
+        self.compute_energies()
+        self.assign_data(data)
+
+    def read_kwargs(self, kwargs):
+        self.dt = kwargs.get('dt', self.dt)
+        self.output_freq = kwargs.get('output_freq', 200)
+
+    @abstractmethod
+    def initialise_start(self, system, potential):
+        pass
+
+    def integrate(self, steps):
+        output_index = 0
+        print('Integrating...')
+        for i in range(steps):
+
+            self.propagate_psi()
+
+            if (i+1) % self.output_freq == 0:
+                output_index += 1
+                self.store_result()
+
+        print('INTEGRATED\n')
+        self.psi_t = np.array(self.psi_t)
+
+    @abstractmethod
+    def propagate_psi(self):
+        pass
+
+    def store_result(self):
+        self.psi_t.append(self.system.psi)
+
+    @abstractmethod
+    def compute_energies(self):
+        pass
+
+    def assign_data(self, data):
+        data.x = np.array(self.system.x)
+        data.psi_t = np.array(self.psi_t)
+        data.rho_t = np.conjugate(data.psi_t)*data.psi_t
+
+
+class EigenPropagator(AbstractWavePropagator):
     """
     Projects initial wavefunction onto eigenbasis,
     propagates expansion coefficients.
+    Currently limited to a single energy level.
     """
+    def initialise_start(self, system, potential):
+
+        self.system = system
+        self.system.c = self.prepare_coefficients()
+
+        self.prop = np.diag(np.exp(-1j*self.system.E*self.dt))
+        self.psi_t = [self.system.basis.dot(self.system.c)]
+        self.c_t = [self.system.c]
+
+        if np.all(self.system.psi) == 0.:
+            raise ValueError('Please provide initial wave function'
+                             + ' on appropriate grid')
+
     def prepare_coefficients(self):
         states = self.system.basis.shape[1]
         print('Projecting wavefunction onto basis of '
@@ -42,44 +116,20 @@ class EigenPropagator(Integrator):
 
         return project_wvfn(self.system.psi, self.system.basis)
 
-    def run(self, system, steps, potential, data, **kwargs):
-        """
-        Propagates psi_0 for 'steps' timesteps of length 'dt'.
-        """
+    def propagate_psi(self):
+        self.system.c = self.prop.dot(self.system.c)
+        self.system.psi = self.system.basis.dot(self.system.c)
 
-        self.system = system
-        dt = kwargs.get('dt', self.dt)
-        output_freq = kwargs.get('output_freq', 200)
-        psi_0 = self.system.psi
+    def store_result(self):
+        self.psi_t.append(self.system.psi)
+        self.c_t.append(self.system.c)
 
-        if np.all(psi_0) == 0.:
-            raise ValueError('Please provide initial wave function'
-                             + ' on appropriate grid')
-
-        self.system.c = self.prepare_coefficients()
-
-        prop = np.diag(np.exp(-1j*self.system.E*dt/hbar))  # (states,states)
-        self.psi_t = [self.system.basis.dot(self.system.c)]
-        self.c_t = [self.system.c]
-
-        output_index = 0
-
-        print('Integrating...')
-        for i in range(1, steps+1):
-            self.system.c = prop.dot(self.system.c)
-            self.system.psi = self.system.basis.dot(self.system.c)
-            if (i+1) % output_freq == 0:
-                output_index += 1
-                self.psi_t.append(self.system.psi.flatten())
-                self.c_t.append(self.system.c)
-
-        print('INTEGRATED\n')
-
-        self.psi_t = np.array(self.psi_t)
+    def compute_energies(self):
         self.c_t = np.array(self.c_t)
         E_times_c = self.system.E * self.c_t
         self.E = np.einsum('ik,ik->i', self.c_t.conj(), E_times_c)
 
+    def assign_data(self, data):
         data.psi_t = self.psi_t
         data.rho_t = np.conj(data.psi_t)*data.psi_t
         data.rho_mean = np.mean(data.rho_t, 0)
@@ -87,77 +137,64 @@ class EigenPropagator(Integrator):
         data.E_t = np.array(self.E)
 
 
-class PrimitivePropagator(Integrator):
+class PrimitivePropagator(AbstractWavePropagator):
     """
     Primitive exp(-iHt) propagator for psi in arbitrary
-    basis in spatial representation
+    basis in spatial representation.
+    Could look at J. Chem. Phys. 127, 044109 (2007)
     """
-
-    def run(self, system, steps, potential, data, **kwargs):
-        """
-        Propagates the system for 'steps' timesteps of length 'dt'.
-        """
-        import scipy.linalg as la
+    def initialise_start(self, system, potential):
 
         self.system = system
-        dt = kwargs.get('dt', self.dt)
-        output_freq = kwargs.get('output_freq', 200)
-        psi_0 = self.system.psi
-
-        # construct H
-        T = self.system.construct_T_matrix()
-        V = self.system.construct_V_matrix(potential)
-        H = np.array(T+V)
-
-        if (not psi_0.any() != 0.) or (len(psi_0.flatten()) != T.shape[1]):
+        self.psi_t = [self.system.psi]
+        if (not self.system.psi.any() != 0.):
             raise ValueError('Please provide initial wave function'
                              + ' on appropriate grid')
+        self.prepare_electronics(potential)
 
-        prop = la.expm(-1j*H*dt/hbar)
-        self.psi_t = [self.system.psi.flatten()]
+    def prepare_electronics(self, potential):
+        import scipy.sparse.linalg as la
 
-        output_index = 0
+        V = self.system.construct_V_matrix(potential)
+        T = self.system.construct_T_matrix()
 
-        print('Integrating...')
-        for i in range(steps):
+        self.H = T + V
 
-            self.system.psi = np.einsum('ij,...j', prop, self.system.psi)
+        self.prop = la.expm(-1j * self.H * self.dt)
 
-            if (i+1) % output_freq == 0:
-                output_index += 1
-                self.psi_t.append(self.system.psi.flatten())
+    def propagate_psi(self):
 
-        print('INTEGRATED\n')
+        self.system.psi = self.prop.dot(self.system.psi)
 
-        self.psi_t = np.array(self.psi_t)
-        H_dot_psi = np.einsum('ij,xj->xi', H, self.psi_t)
-        self.E = np.einsum('ik,ik->i', self.psi_t.conj(), H_dot_psi)
+    def compute_energies(self):
 
-        data.psi_t = self.psi_t
-        data.rho_t = np.conj(data.psi_t)*data.psi_t
-        data.rho_mean = np.mean(data.rho_t, 0)
+        E_t = np.zeros((len(self.psi_t)))
+        for t, time in enumerate(self.psi_t):
+            E_t[t] = np.real(time.conj().dot(self.H.dot(time)))
+        self.E = E_t
+
+    def assign_data(self, data):
+        data.x = np.array(self.system.x)
+        data.psi_t = np.array(self.psi_t)
+        data.rho_t = np.conjugate(data.psi_t)*data.psi_t
         data.E_t = self.E
 
 
-class SOFT_Propagator(Integrator):
+class SOFT_Propagator(AbstractWavePropagator):
     """
-    Split operator propagator for psi(x,0)
-        Trotter series: exp(iHt) ~= exp(iVt/2)*exp(iTt)*exp(iVt/2)
-        => exp(iHt)*psi(x) ~= exp(iTt/2)*exp(iVt)*exp(iTt/2)*psi(x)
-        => use spatial representation for exp(iVt) and momentum representation for exp(iTt/2)
-        => psi(x,t) = iFT(exp(t*p**2/4m) * FT(exp(iVt) * iFT(exp(t*p**2/4m) * FT(psi(x,0)))))
+    Split operator Fourier transform propagator
+    Follows approach detailed in section 11.7 of David J. Tannor's
+    "Introduction to Quantum Mechanics".
     """
 
-    def prepare_coefficients(self):
-        self.psi_basis = self.system.psi
-        states = self.psi_basis.shape[1]
-        print('Projecting wavefunction onto basis of '
-              + str(states) + ' eigenstates')
-        if self.psi_basis.shape[0] != states:
-            print('** WARNING: This basis is incomplete, \
-                  coefficients might contain errors **')
+    def initialise_start(self, system, potential):
+        self.system = system
+        self.V = self.system.construct_V_matrix(potential)
+        self.k = self.compute_k()
 
-        return [project_wvfn(self.psi, self.psi_basis)]
+        self.psi_t = [self.system.psi]
+        self.propT = self.expT(self.dt/2)
+        self.propV = self.expV(self.dt)
 
     def compute_k(self):
         from numpy.fft import fftfreq as FTp
@@ -178,257 +215,145 @@ class SOFT_Propagator(Integrator):
         return k
 
     def expV(self, dt):
-        return np.exp(-1.0j * self.V * dt)
-
-    def expT(self, dt):
-        m = self.system.mass
-        return np.exp(-1.0j * (self.k**2) * dt / (2.0 * m))
-
-    def propagate_psi(self, dt):
-        from numpy.fft import fft as FT
-        from numpy.fft import ifft as iFT
-
-        # Can use this as an alternative, should give the same result.
-        # psi = iFT(self.expT(dt/2)*FT(psi))
-        # psi = self.expV(dt)*psi
-        # psi = iFT(self.expT(dt/2)*FT(psi))
-
-        self.system.psi = self.expV(dt/2)*self.system.psi
-        self.system.psi = iFT(self.expT(dt)*FT(self.system.psi))
-        self.system.psi = self.expV(dt/2)*self.system.psi
-
-    def compute_energies(self):
-        from numpy.fft import fft as FT
-        from numpy.fft import ifft as iFT
-
-        m = self.system.mass
-        conj = np.conj(self.psi_t)
-        K_dot_psi = iFT(np.multiply(self.k**2/(2*m), FT(self.psi_t)))
-        self.E_kin_t = np.einsum('ik,ik->i', conj, K_dot_psi)
-        self.E_pot_t = np.einsum('ik,ik->i', conj, self.V*self.psi_t)
-
-    def store_result(self, add_info):
-
-        self.psi_t.append(self.system.psi.flatten())
-
-        if add_info == 'coefficients':
-            self.c_t.append(project_wvfn(self.system.psi, self.psi_basis))
-
-    def assign_data(self, data, i, add_info):
-        # TODO RETHINK c_t -- Why? (MS) -- what's happening? (JG)
-        if add_info == 'coefficients':
-            data.c_t = np.array(self.c_t)
-
-        data.psi_t = self.psi_t
-        data.rho_t = np.conjugate(data.psi_t)*data.psi_t
-        data.E_kin_t = self.E_kin_t
-        data.E_pot_t = self.E_pot_t
-        data.E_t = self.E_kin_t + self.E_pot_t
-        data.E_mean = np.mean(data.E_t)
-        data.E_k_mean = np.mean(data.E_kin_t)
-        data.E_p_mean = np.mean(data.E_pot_t)
-        data.rho_mean = np.mean(data.rho_t, 0)
-
-    def run(self, system, steps, potential, data, **kwargs):
-        """
-        Propagates the system for 'steps' timesteps of length 'dt'.
-        """
-
-        dt = kwargs.get('dt', self.dt)
-        output_freq = kwargs.get('output_freq', 200)
-        add_info = kwargs.get('additional', None)
-
-        self.system = system
-        self.V = self.system.compute_potential_flat(potential)
-        self.k = self.compute_k()
-
-        self.psi_t = [self.system.psi.flatten()]
-
-        if (add_info == 'coefficients'):
-            self.c_t = self.prepare_coefficients()
-
-        output_index = 0
-
-        print('Integrating...')
-        for i in range(steps):
-
-            self.propagate_psi(dt)
-
-            if (i+1) % output_freq == 0:
-                output_index += 1
-                self.store_result(add_info)
-
-        print('INTEGRATED\n')
-
-        self.psi_t = np.array(self.psi_t)
-        self.compute_energies()
-        self.assign_data(data, i, add_info)
-
-
-class SOFT_NonAdiabatic(SOFT_Propagator):
-
-    def run(self, system, steps, potential, data, **kwargs):
-        """
-        Propagates the system for 'steps' timesteps of length 'dt'.
-        """
-
-        self.read_kwargs(kwargs)
-        self.initialise_start(system, potential)
-
-        self.integrate(steps)
-
-        self.compute_energies()
-        self.assign_data(data)
-
-    def read_kwargs(self, kwargs):
-        self.dt = kwargs.get('dt', self.dt)
-        self.output_freq = kwargs.get('output_freq', 200)
-
-    def initialise_start(self, system, potential):
-        self.system = system
-        self.V = self.system.construct_V_matrix(potential)
-        self.k = self.compute_k()
-
-        self.psi_t = [self.system.psi]
-        self.propT = self.expT(self.dt/2)
-        self.propV = self.expV(self.dt)
-
-    def expV(self, dt):
+        import scipy.linalg as la
         try:
-            v1 = self.V[0, 0]
-            v2 = self.V[1, 1]
-            v12 = self.V[0, 1]
-            v21 = self.V[1, 0]
+            N = self.system.N
+            v1 = np.diag(self.V[:N, :N])
+            v2 = np.diag(self.V[N:, N:])
+            v12 = np.diag(self.V[:N, N:])
+            v21 = np.diag(self.V[N:, :N])
 
             D = (v1 - v2)**2 + 4*v21**2
+
             diagonal = np.exp(-1.0j * (v1+v2) * dt/2)
 
-            cos = np.einsum('i,jk->jki', np.cos(np.sqrt(D)*dt/2), np.eye(2))
+            cos = np.cos(np.sqrt(D)*dt/2)
+            x = diagonal * cos
+            left = la.block_diag(np.diag(x), np.diag(x))
 
-            sin = 1.0j * np.sin(np.sqrt(D)*dt/2)/np.sqrt(D)
+            sin = 1.0j * np.sin(np.sqrt(D)*dt/2)/np.sqrt(D) * diagonal
+            v_matrix = np.block([[np.diag(sin*(v2-v1)), -2*np.diag(sin*v12)],
+                                 [-2*np.diag(sin*v21), np.diag(sin*(v1-v2))]])
 
-            v_matrix = np.array([[v2-v1, -2*v12],
-                                 [-2*v21, v1-v2]])
+            return left + v_matrix
 
-            return diagonal * (cos + sin * v_matrix)
-
-        except IndexError:
+        except ValueError:
             print('Single energy surface')
 
-            exp = np.exp(-1.0j * self.V[0, 0] * dt)
-            return np.array([[exp]])
+            exp = np.zeros_like(self.V, dtype=complex)
+            for i in range(self.system.N):
+                exp[i, i] = np.exp(-1.0j * self.V[i, i] * dt)
+            return exp
 
     def expT(self, dt):
         T = self.get_T()
-        return np.exp(-1.0j * T * dt)
+        exp = np.zeros_like(T, dtype=complex)
+        for i in range(self.system.N * self.system.nstates):
+            exp[i, i] = np.exp(-1.0j * T[i, i] * dt)
+        return exp
 
     def get_T(self):
+        import scipy.linalg as la
         m = self.system.mass
         T = self.k**2 / (2.0 * m)
+        T = np.diag(T)
+        if self.system.nstates == 2:
+            T = la.block_diag(T, T)
         return T
-
-    def integrate(self, steps):
-        output_index = 0
-        print('Integrating...')
-        for i in range(steps):
-
-            self.propagate_psi()
-
-            if (i+1) % self.output_freq == 0:
-                output_index += 1
-                self.store_result()
-
-        print('INTEGRATED\n')
-        self.psi_t = np.array(self.psi_t)
 
     def propagate_psi(self):
         self.propagate_momentum()
-        self.system.psi = np.einsum('ij...,j...->j...',
-                                    self.propV, self.system.psi)
+        self.system.psi = self.propV.dot(self.system.psi)
         self.propagate_momentum()
+        pass
 
     def propagate_momentum(self):
-        from numpy.fft import fft as FT
-        from numpy.fft import ifft as iFT
+        from numpy.fft import fft
+        from numpy.fft import ifft
 
-        psi_p = FT(self.system.psi)
-        psi_p = self.propT * psi_p
-        self.system.psi = iFT(psi_p)
+        self.system.psi = self.transform(self.system.psi, fft)
+        self.system.psi = self.propT.dot(self.system.psi)
+        self.system.psi = self.transform(self.system.psi, ifft)
 
-    def store_result(self):
-        self.psi_t.append(self.system.psi)
+    def transform(self, psi, transform):
+        split = np.array(np.split(psi, self.system.nstates))
+        psi_transformed = transform(split).reshape(self.system.N
+                                                   * self.system.nstates)
+        return psi_transformed
 
     def compute_energies(self):
-        from numpy.fft import fft as FT
-        from numpy.fft import ifft as iFT
+        from numpy.fft import fft
+        from numpy.fft import ifft
 
-        conj = self.psi_t.conj()
         T = self.get_T()
 
-        T_dot_psi = iFT(T * FT(self.psi_t))
-        self.E_kin_t = np.real(np.einsum('tjx,tjx->tj', conj, T_dot_psi))
+        E_pot_t = np.zeros(len(self.psi_t))
+        E_kin_t = np.zeros(len(self.psi_t))
 
-        V_dot_psi = np.einsum('ijx,tjx->tj', self.V, self.psi_t)
-        self.E_pot_t = np.real(np.einsum('tjx,tj->tj', conj, V_dot_psi))
+        for t, time in enumerate(self.psi_t):
+            conj = time.conj()
+            T_dot_psi = T.dot(self.transform(time, fft))
+            E_kin_t[t] = np.real(conj.dot(self.transform(T_dot_psi, ifft)))
+            E_pot_t[t] = np.real(conj.dot(self.V.dot(time)))
+
+        self.E_pot_t = E_pot_t
+        self.E_kin_t = E_kin_t
 
     def assign_data(self, data):
+        data.x = np.array(self.system.x)
         data.psi_t = np.array(self.psi_t)
         data.rho_t = np.conjugate(data.psi_t)*data.psi_t
         data.E_kin_t = self.E_kin_t
         data.E_pot_t = self.E_pot_t
         data.E_t = self.E_kin_t + self.E_pot_t
-        # data.E_mean = np.mean(data.E_t)
-        # data.E_k_mean = np.mean(data.E_kin_t)
-        # data.E_p_mean = np.mean(data.E_pot_t)
-        # data.rho_mean = np.mean(data.rho_t, 0)
 
 
-class SOFT_AverageProperties(SOFT_Propagator):
-    """
-    SOFT propagator for psi(r,0) to determine expectation values
+# class SOFT_AverageProperties(SOFT_Propagator):
+#     """
+#     SOFT propagator for psi(r,0) to determine expectation values
 
-    output:
-    =======
-        rho:   average density at r, \sum_{steps} |psi(r,step)|^2/steps
-        E_tot: average total energy, \sum_{steps} E_tot/steps (should be constant)
-        E_kin: average kinetic energy, \sum_{steps} E_kin/steps
-        E_pot: average potential energy, \sum+{steps} E_pot/steps
-    """
+#     output:
+#     =======
+#         rho:   average density at r, \sum_{steps} |psi(r,step)|^2/steps
+#         E_tot: average total energy, \sum_{steps} E_tot/steps (should be constant)
+#         E_kin: average kinetic energy, \sum_{steps} E_kin/steps
+#         E_pot: average potential energy, \sum+{steps} E_pot/steps
+#     """
 
-    def store_result(self, add_info):
-        from numpy.fft import fft as FT
-        from numpy.fft import ifft as iFT
+#     def store_result(self, add_info):
+#         from numpy.fft import fft as FT
+#         from numpy.fft import ifft as iFT
 
-        psi = self.system.psi
-        m = self.system.mass
+#         psi = self.system.psi
+#         m = self.system.mass
 
-        e_kin = np.conj(psi).dot(iFT(self.k**2/(2*m) * FT(psi)))
-        e_pot = np.conj(psi).dot(self.V*psi)
+#         e_kin = np.conj(psi).dot(iFT(self.k**2/(2*m) * FT(psi)))
+#         e_pot = np.conj(psi).dot(self.V*psi)
 
-        try:
-            self.rho += np.conj(psi)*psi
-            self.E_kin += e_kin
-            self.E_pot += e_pot
-        except AttributeError:
-            self.rho = np.conj(psi)*psi
-            self.e_kin = e_kin
-            self.e_pot = e_pot
+#         try:
+#             self.rho += np.conj(psi)*psi
+#             self.E_kin += e_kin
+#             self.E_pot += e_pot
+#         except AttributeError:
+#             self.rho = np.conj(psi)*psi
+#             self.e_kin = e_kin
+#             self.e_pot = e_pot
 
-        if add_info == 'coefficients':
-            try:
-                self.c_mean += project_wvfn(self.psi, self.psi_basis)
-            except AttributeError:
-                self.c_mean = project_wvfn(self.psi, self.psi_basis)
+#         if add_info == 'coefficients':
+#             try:
+#                 self.c_mean += project_wvfn(self.psi, self.psi_basis)
+#             except AttributeError:
+#                 self.c_mean = project_wvfn(self.psi, self.psi_basis)
 
-    def assign_data(self, data, i, add_info):
-        if add_info == 'coefficients':
-            data.c_mean = np.array(self.c_mean/i)
+#     def assign_data(self, data, i, add_info):
+#         if add_info == 'coefficients':
+#             data.c_mean = np.array(self.c_mean/i)
 
-        data.E_kin = np.real(self.e_kin / i)
-        data.E_pot = np.real(self.e_pot / i)
-        data.rho = np.real(self.rho/i)
+#         data.E_kin = np.real(self.e_kin / i)
+#         data.E_pot = np.real(self.e_pot / i)
+#         data.rho = np.real(self.rho/i)
 
-        data.E = data.E_kin + data.E_pot
+#         data.E = data.E_kin + data.E_pot
 
 
 # TODO I think there is a better, more general way of doing this.

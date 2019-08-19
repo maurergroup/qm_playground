@@ -5,7 +5,8 @@ from qmp.tools.utilities import hbar
 
 class Grid1D:
 
-    def __init__(self, mass=1, start=0.0, end=1.0, N=100, psi0=None, states=1):
+    def __init__(self, mass=1800, start=-10, end=10, N=128,
+                 psi0=None, states=1):
 
         self.x, self.dx = np.linspace(start, end, N, retstep=True)
         self.mass = mass
@@ -15,9 +16,7 @@ class Grid1D:
         self.nstates = states
 
         # Initial wavefunction all zeros
-        self.psi = np.zeros((self.nstates, self.N), dtype=complex)
-        if psi0 is not None:
-            self.psi[0] = psi0
+        self.psi = np.zeros((self.nstates * self.N), dtype=complex)
 
         self.L = self.define_laplacian()
 
@@ -28,23 +27,33 @@ class Grid1D:
 
         L[0, -1] = 1
         L[-1, 0] = 1
-        return sparse.lil_matrix(L / (self.dx*self.dx))
+        L = sparse.lil_matrix(L / (self.dx*self.dx)).A
+        if self.nstates == 1:
+            return L
+        elif self.nstates == 2:
+            return sparse.block_diag([L, L]).A
 
     def construct_T_matrix(self):
         return - (hbar**2) * self.L / (2 * self.mass)
 
     def construct_V_matrix(self, potential):
-        V = np.empty((self.nstates, self.nstates, self.N))
-        for i in range(self.nstates):
-            for j in range(self.nstates):
-                V[i, j] = potential(self.x, i=i, j=j)
-        return V
+
+        try:
+            v11 = np.diag(potential(self.x, i=0, j=0))
+            v12 = np.diag(potential(self.x, i=0, j=1))
+            v21 = np.diag(potential(self.x, i=1, j=0))
+            v22 = np.diag(potential(self.x, i=1, j=1))
+
+            return np.block([[v11, v12], [v21, v22]])
+
+        except IndexError:
+            return v11
 
     def compute_potential_flat(self, potential):
         return potential(self.x)
 
     def set_initial_wvfn(self, psi):
-        self.psi[0] = np.array(psi)
+        self.psi[:self.N] = np.array(psi).flatten()
 
 
 class Grid2D:
