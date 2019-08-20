@@ -21,8 +21,6 @@
 waveintegrators.py
 """
 
-from qmp.tools.utilities import hbar
-from qmp.integrator.integrator import Integrator
 from qmp.integrator.dyn_tools import project_wvfn
 import numpy as np
 from abc import ABC, abstractmethod
@@ -57,14 +55,12 @@ class AbstractWavePropagator(ABC):
         pass
 
     def integrate(self, steps):
-        output_index = 0
         print('Integrating...')
         for i in range(steps):
 
             self.propagate_psi()
 
             if (i+1) % self.output_freq == 0:
-                output_index += 1
                 self.store_result()
 
         print('INTEGRATED\n')
@@ -308,157 +304,69 @@ class SOFT_Propagator(AbstractWavePropagator):
         data.E_t = self.E_kin_t + self.E_pot_t
 
 
-# class SOFT_AverageProperties(SOFT_Propagator):
-#     """
-#     SOFT propagator for psi(r,0) to determine expectation values
+class SOFT_Scattering(SOFT_Propagator):
+    """
+    SOFT propagator for scattering processes
+                     _               ..
+       :            / \ ->          ;  ;                        :
+       :           /   \ ->         ;  ;                        :
+       :          /     \ ->        ;  ;                        :
+       :_________/       \__________;  ;________________________:
+      r_l                            rb                        r_r
+    (border)       (wave)         (barrier)                  (border)
 
-#     output:
-#     =======
-#         rho:   average density at r, \sum_{steps} |psi(r,step)|^2/steps
-#         E_tot: average total energy, \sum_{steps} E_tot/steps (should be constant)
-#         E_kin: average kinetic energy, \sum_{steps} E_kin/steps
-#         E_pot: average potential energy, \sum+{steps} E_pot/steps
-#     """
+    Stops if reflected or transmitted part of wave package hits
+    border at r_l or r_r, respectively (=> t_stop).
 
-#     def store_result(self, add_info):
-#         from numpy.fft import fft as FT
-#         from numpy.fft import ifft as iFT
+    Currently requires dividing surface to be located at the centre of the
+    cell.
 
-#         psi = self.system.psi
-#         m = self.system.mass
+    Returns data.probs where probs in an array containing the probability of
+    each outcome. Entry 1 is groundstate reflection, entry 2 is groundstate
+    transmission. Entry 3, if present is excited state reflection and the final
+    entry is excited state transmission.
+    """
 
-#         e_kin = np.conj(psi).dot(iFT(self.k**2/(2*m) * FT(psi)))
-#         e_pot = np.conj(psi).dot(self.V*psi)
+    def integrate(self, steps):
+        self.status = ('Wave did not exit the cell,'
+                       + ' consider adjusting the model parameters.')
 
-#         try:
-#             self.rho += np.conj(psi)*psi
-#             self.E_kin += e_kin
-#             self.E_pot += e_pot
-#         except AttributeError:
-#             self.rho = np.conj(psi)*psi
-#             self.e_kin = e_kin
-#             self.e_pot = e_pot
+        print('Integrating...')
+        for i in range(steps):
 
-#         if add_info == 'coefficients':
-#             try:
-#                 self.c_mean += project_wvfn(self.psi, self.psi_basis)
-#             except AttributeError:
-#                 self.c_mean = project_wvfn(self.psi, self.psi_basis)
+            self.propagate_psi()
 
-#     def assign_data(self, data, i, add_info):
-#         if add_info == 'coefficients':
-#             data.c_mean = np.array(self.c_mean/i)
+            if (i+1) % self.output_freq == 0:
+                self.store_result()
 
-#         data.E_kin = np.real(self.e_kin / i)
-#         data.E_pot = np.real(self.e_pot / i)
-#         data.rho = np.real(self.rho/i)
+            if self.is_finished():
+                break
 
-#         data.E = data.E_kin + data.E_pot
+        print('INTEGRATED\n')
+        print(self.status + '\n')
 
+    def is_finished(self):
+        psi = self.system.psi
+        self.rho_current = np.real(np.conjugate(psi)*psi)
 
-# TODO I think there is a better, more general way of doing this.
-# class SOFT_Scattering(SOFT_Propagator):
-#     """
-#     SOFT propagator for scattering processes
-#                      _               ..
-#        :            / \ ->          ;  ;                        :
-#        :           /   \ ->         ;  ;                        :
-#        :          /     \ ->        ;  ;                        :
-#        :_________/       \__________;  ;________________________:
-#       r_l                            rb                        r_r
-#     (border)       (wave)         (barrier)                  (border)
+        exit_points = [0, -1]
 
-#     Stops if reflected or transmitted part of wave package hits
-#     border at r_l or r_r, respectively (=> t_stop).
+        if self.system.nstates == 2:
+            exit_points += [self.system.N, self.system.N + 1]
 
-#     input:
-#     ======
-#         wave:     defined by psi_0 (incl. momentum!)
-#         barrier:  defined by potential class
-#         div_surf: dividing surface (1D: rb), given as keyword argument
+        exit_density = np.sum(self.rho_current[exit_points])
 
-#     output:
-#     =======
-#         psi_t:    final wave package at t_stop
-#         p_refl:   integrated reflected part of wave, \int rho(r,t_stop) for r<rb
-#         p_trans:  integrated transmitted part of wave, \int rho(r,t_stop) for r>rb
-#         energy:   E_kin, E_pot, E_tot as functions of simulation time
-#         status:   information whether scattering process should be complete
-#     """
+        if exit_density > 1e-3:
+            self.status = ('Wave reach cell limits.'
+                           + ' Simulation terminated.')
+            return True
 
-#     # get borders, r_l and r_b, and dividing surface (1D: rb)
-#     # TODO: 2D dividing surface?
+    def assign_data(self, data):
+        self.psi_t = np.array(self.psi_t)
 
-#     def store_result(self, psi, e_kin, e_pot):
+        super().assign_data(data)
 
-#         self.rho += np.conjugate(psi)*psi
-#         self.psi.append(psi)
-#         self.E_kin.append(e_kin)
-#         self.E_pot.append(e_pot)
-#         self.E.append(e_kin+e_pot)
-#         self.E_mean = np.mean(self.E)
-
-#     def assign_data(self, data, i, add_info):
-#         data.psi_t = np.array(self.psi)
-#         data.E_t = np.array(self.E)
-#         data.E_mean = np.array(self.E_mean)
-#         data.dErel_max = np.array(
-#                 abs(max(abs(self.E-self.E_mean))/self.E_mean))
-#         data.E_kin_t = np.array(self.E_kin)
-#         data.E_pot_t = np.array(self.E_pot)
-#         data.p_refl = np.array(self.p_refl)
-#         data.p_trans = np.array(self.p_trans)
-#         data.status = self.status
-#         if add_info == 'coefficients':
-#             data.c_t = np.array(self.c_t)
-
-#     def run(self, system, steps, potential, data, **kwargs):
-#         """
-#         Propagates the system for 'steps' timesteps of length 'dt'.
-#         Stops at (rho(r_l,t_stop) + rho(r_r,t_stop)) > 1E-8.
-#         """
-#         from numpy.fft import fft as FT
-#         from numpy.fft import ifft as iFT
-
-#         dt = kwargs.get('dt', self.dt)
-#         add_info = kwargs.get('additional', None)
-#         self.system = system
-#         self.prepare(add_info)
-
-#         grid = self.system.x
-#         x_Vmax = grid[np.argmax(potential(grid))]
-#         rb = kwargs.get('div_surf', x_Vmax)
-#         self.rb_idx = np.argmin(abs(grid-rb))
-
-#         self.status = 'Wave did not hit border(s). Scattering process might be incomplete.'
-#         m = system.mass
-
-#         self.V = self.system.compute_potential_flat(potential)
-#         self.k = self.compute_k(self.V.size)
-
-#         self.counter = 0
-
-#         print('Integrating...')
-#         for i in range(self.i_start, steps):
-#             self.counter += 1
-
-#             psi = self.propagate_psi(i, dt)
-#             e_kin = (np.conjugate(psi).dot(iFT(2.*self.k/m * FT(psi))))
-#             e_pot = np.conjugate(psi).dot(self.V*psi)
-
-#             self.store_result(psi, e_kin, e_pot)
-
-#             if add_info == 'coefficients':
-#                 self.c_t.append(project_wvfn(psi, self.psi_basis))
-
-#             rho_current = np.real(np.conjugate(psi)*psi)
-#             if (rho_current[0]+rho_current[-1] > 2E-3):
-#                 self.status = 'Wave hit border(s). Simulation terminated.'
-#                 break
-
-#         print('INTEGRATED')
-#         print(self.status+'\n')
-
-#         self.p_refl = np.sum(rho_current[:self.rb_idx])
-#         self.p_trans = np.sum(rho_current[(self.rb_idx+1):])
-#         self.assign_data(data, i, add_info)
+        splits = np.array(np.split(self.rho_current, self.system.nstates * 2))
+        data.probs = np.sum(splits, axis=1)
+        norm = np.sum(data.probs)
+        data.probs /= norm
