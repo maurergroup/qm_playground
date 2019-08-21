@@ -374,7 +374,6 @@ class SOFT_Scattering(SOFT_Propagator):
 
         active_density = np.sum(self.rho_current[self.active_indices])
         exit_density = np.sum(self.rho_current[self.exit_indices])
-        print(self.active)
 
         if (active_density < self.tolerance) and self.active:
             self.status = ('Wave exited interaction region.'
