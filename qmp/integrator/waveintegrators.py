@@ -327,10 +327,31 @@ class SOFT_Scattering(SOFT_Propagator):
     entry is excited state transmission.
     """
 
+    def read_kwargs(self, kwargs):
+        super().read_kwargs(kwargs)
+
+        self.region = kwargs.get('region', [-3, 3])
+        self.tolerance = kwargs.get('tolerance', 1e-1)
+
+    def initialise_start(self, system, potential):
+        super().initialise_start(system, potential)
+
+        active_region = ((self.system.x < self.region[1])
+                         * (self.system.x > self.region[0]))
+        self.active_indices = np.where(active_region)[0]
+        self.exit_indices = [0, -1]
+
+        if self.system.nstates == 2:
+            self.active_indices = np.append(self.active_indices,
+                                            self.active_indices+self.system.N)
+            self.exit_indices += [self.system.N, self.system.N + 1]
+
     def integrate(self, steps):
-        self.status = ('Wave did not exit the cell,'
+        self.status = ('Wave did not reach the interaction region,'
                        + ' consider adjusting the model parameters.')
 
+        self.active = False
+        self.finished = False
         print('Integrating...')
         for i in range(steps):
 
@@ -339,27 +360,34 @@ class SOFT_Scattering(SOFT_Propagator):
             if (i+1) % self.output_freq == 0:
                 self.store_result()
 
-            if self.is_finished():
+            self.determine_scattering_status()
+
+            if self.finished:
                 break
 
         print('INTEGRATED\n')
         print(self.status + '\n')
 
-    def is_finished(self):
+    def determine_scattering_status(self):
         psi = self.system.psi
         self.rho_current = np.real(np.conjugate(psi)*psi)
 
-        exit_points = [0, -1]
+        active_density = np.sum(self.rho_current[self.active_indices])
+        exit_density = np.sum(self.rho_current[self.exit_indices])
+        print(self.active)
 
-        if self.system.nstates == 2:
-            exit_points += [self.system.N, self.system.N + 1]
-
-        exit_density = np.sum(self.rho_current[exit_points])
-
-        if exit_density > 1e-3:
-            self.status = ('Wave reach cell limits.'
+        if (active_density < self.tolerance) and self.active:
+            self.status = ('Wave exited interaction region.'
                            + ' Simulation terminated.')
-            return True
+            self.finished = True
+        elif (active_density > self.tolerance) and (self.active is False):
+            self.status = ('Wave has entered the interaction region'
+                           + ' but is yet to exit.')
+            self.active = True
+        elif (exit_density > 1e-3):
+            self.status = ('Wave has reached the cell boundary before'
+                           + ' having left the interaction region.')
+            self.finished = True
 
     def assign_data(self, data):
         self.psi_t = np.array(self.psi_t)
