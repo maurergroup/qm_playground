@@ -1,4 +1,4 @@
-#qmp.__init__.py
+#    qmp.__init__.py
 #
 #    qm_playground - python package for dynamics simulations
 #    Copyright (C) 2016  Reinhard J. Maurer
@@ -23,10 +23,10 @@
 qm_playground package
 """
 
-from qmp.model import Model
-from qmp.potential.potential import Potential
-from qmp.systems import *
-from qmp import integrator
-from qmp.tools.utilities import *
-
-import numpy as np
+from .model import Model
+from .data_containers import Data
+from . import potential
+from . import systems
+from . import solver
+from . import integrator
+from . import tools

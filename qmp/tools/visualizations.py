@@ -1,4 +1,4 @@
-#qmp.tools.visualizations
+#    qmp.tools.visualizations
 #
 #    qm_playground - python package for dynamics simulations
 #    Copyright (C) 2016  Reinhard J. Maurer
@@ -22,7 +22,8 @@
 """
 
 import numpy as np
-from copy import copy
+
+
 def wave_movie1D(basis, psi_arr, pot, dt=1., E_arr=None, rho_tot_arr=None, E_kin_arr=None, E_pot_arr=None,save=False,filename='wave_dyn1D',pot_lims=None):
     if save:
         import matplotlib
@@ -190,6 +191,8 @@ def wave_movie2D(xgrid, ygrid, psi_arr, pot=0.):
             ax.collections.remove(oldframe)
 
         plt.pause(0.0005)
+
+    plt.show()
 
 
 
@@ -381,8 +384,8 @@ def contour_movie2D(xgrid, ygrid, pot, pos_arr, steps, npar=1, interval = 50, tr
 
             plt.show()
 
-def propability_distribution1D(model, plot_pot=True, show_all_particles=False, show_plot=False, \
-                               scale_potential=1., figname="propability_distribution1d.pdf"):
+def probability_distribution1D(model, plot_pot=True, show_all_particles=False, show_plot=False, \
+                               scale_potential=1., figname="probability_distribution1d.pdf"):
     import matplotlib.pyplot as plt
     from qmp.model import Model as mod_ref
     from matplotlib.lines import Line2D
@@ -390,25 +393,25 @@ def propability_distribution1D(model, plot_pot=True, show_all_particles=False, s
 
     assert type(model) == mod_ref, "Please, provide qmp model."
     sim_mode = model.mode
-    dummy_str = "hasattr(model.data."+sim_mode+", 'prop_tot')"
-    has_prop_tot =  eval(dummy_str)
-    err_msg = "Please, specify a model that provides propability distribution"
-    assert has_prop_tot, err_msg
+    dummy_str = "hasattr(model.data."+sim_mode+", 'prob_tot')"
+    # has_prob_tot =  eval(dummy_str)
+    err_msg = "Please, specify a model that provides probability distribution"
+    # assert has_prob_tot, err_msg
     if show_all_particles:
-        dummy_str = "hasattr(model.data."+sim_mode+", 'prop_vals')"
-        has_prop_vals =  eval(dummy_str)
-        err_msg = "Please, specify a model that provides propability distributions"
-        assert has_prop_vals, err_msg
+        dummy_str = "hasattr(model.data."+sim_mode+", 'prob_vals')"
+        # has_prob_vals =  eval(dummy_str)
+        err_msg = "Please, specify a model that provides probability distributions"
+        # assert has_prob_vals, err_msg
 
-    Ptot = eval("model.data."+sim_mode+".prop_tot")
-    bins = eval("model.data."+sim_mode+".prop_bins")
+    Ptot = model.data.prob_tot
+    bins = model.data.prob_bins
     assert len(bins) == 1, "Is this one-dimensional?"
     bins = bins[0]
     if plot_pot:
         xgrid = np.arange(bins[0], bins[-1]+0.1, 0.1)
-        pot = model.pot(xgrid)
+        pot = model.potential(xgrid)
 
-    if show_all_particles: Pvals = eval("model.data."+sim_mode+".prop_vals")
+    if show_all_particles: Pvals = model.data.prob_vals
     fig = plt.figure()
     ax = fig.gca()
     labs, lines = [], []
@@ -426,9 +429,9 @@ def propability_distribution1D(model, plot_pot=True, show_all_particles=False, s
         lines.append(Line2D([0.], [1.], c='k', alpha=0.5))
         labs.append("individual particle density")
 
-    prop_label = 'total propability density'
-    ax.plot(bins[:-1], Ptot, c='b', lw=1.75, label=prop_label)
-    labs.append(prop_label)
+    prob_label = 'total probability density'
+    ax.plot(bins[:-1], Ptot, c='b', lw=1.75, label=prob_label)
+    labs.append(prob_label)
     lines.append(Line2D([0.], [1.],  c='b', lw=1.75))
 
     ax.set_xlabel('x [a.u.]')

@@ -20,25 +20,4 @@
 """
 Solver
 """
-
-from qmp.solver.solver import ScipySolver, AlglibSolver
-
-solver_type = {
-        'scipy': ScipySolver,
-        'alglib': AlglibSolver,
-        # 'pimd': pimd_solver,
-        }
-
-
-def solver_init(data, potential):
-    param = data.parameters
-    solver = solver_type[param['solver']](data=data, potential=potential)
-
-    return solver
-
-
-def solver_help():
-    string = 'Solver types include: \n'
-    for key in solver_type.keys():
-        string += key+'\n'
-    return string
+from .solver import ScipySolver, AlglibSolver

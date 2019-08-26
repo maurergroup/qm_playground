@@ -1,6 +1,5 @@
 import numpy as np
 import scipy.sparse as sparse
-from qmp.tools.utilities import hbar
 
 
 class Grid1D:
@@ -34,7 +33,7 @@ class Grid1D:
             return sparse.block_diag([L, L]).A
 
     def construct_T_matrix(self):
-        return - (hbar**2) * self.L / (2 * self.mass)
+        return - self.L / (2 * self.mass)
 
     def construct_V_matrix(self, potential):
 
@@ -60,8 +59,9 @@ class Grid2D:
 
     def __init__(self, mass=1, start=[0.0, 0], end=[1, 1], N=100, psi0=None):
 
+        print(start, end)
         self.x, self.dx = np.linspace(start[0], end[0], N, retstep=True)
-        self.y, self.dy = np.linspace(start[0], end[0], N, retstep=True)
+        self.y, self.dy = np.linspace(start[1], end[1], N, retstep=True)
         self.xgrid, self.ygrid = np.meshgrid(self.x, self.y)
 
         self.mass = mass
@@ -89,7 +89,7 @@ class Grid2D:
         return sparse.lil_matrix(L/(self.dx**2*self.dy**2))
 
     def construct_T_matrix(self):
-        return - hbar ** 2 * self.L / (2 * self.mass)
+        return -self.L / (2 * self.mass)
 
     def construct_V_matrix(self, potential):
         Vflat = potential(self.xgrid, self.ygrid).flatten()

@@ -1,10 +1,10 @@
-#qmp.tools.termcolors
+#    qmp.systems.__init__.py
 #
 #    qm_playground - python package for dynamics simulations
-#    Copyright (C) 2016  Reinhard J. Maurer 
+#    Copyright (C) 2016  Reinhard J. Maurer
 #
 #    This file is part of qm_playground.
-#    
+#
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
@@ -17,18 +17,12 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>#
-"""
-Definitions for colors printing to Terminal
 
-USAGE: 'print {color} + {string}'
-"""
 
-gray = '\033[90m'
-red = '\033[91m'
-green = '\033[92m'
-yellow = '\033[93m'
-blue = '\033[94m'
-magenta = '\033[95m'
-cyan = '\033[96m'
-black = '\033[99m'
-endcolor = '\033[0m'
+"""
+qm_playground systems
+"""
+from .grid import Grid1D, Grid2D
+from .hopping import Hopping
+from .phasespace import PhaseSpace
+from .rpmd import RPMD

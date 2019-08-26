@@ -1,4 +1,4 @@
-#qmp.potential.potential
+#    qmp.potential.potential
 #
 #    qm_playground - python package for dynamics simulations
 #    Copyright (C) 2016  Reinhard J. Maurer
@@ -21,7 +21,7 @@
 class potential
 """
 
-from qmp.tools import utilities as util
+from qmp.tools import derivatives
 import numpy as np
 
 
@@ -75,8 +75,6 @@ class Potential:
             d2 = [d2]
         self.d2 = d2
 
-        self.data = None
-
     def __call__(self, *points, i=0, j=0):
         """
         calculate potential at point x or list of points x
@@ -92,11 +90,11 @@ class Potential:
         firstd = self.firstd[n]
         if firstd is None:
             if self.dimension == 1:
-                return util.num_deriv(self, points)
+                return derivatives.num_deriv(self, points)
             elif self.dimension == 2:
                 d = np.empty_like(points)
                 for i, point in enumerate(points):
-                    d[i] = util.num_deriv_2D(self, point[0], point[1])
+                    d[i] = derivatives.num_deriv_2D(self, point[0], point[1])
                 return d
         else:
             if self.dimension == 1:
@@ -114,9 +112,9 @@ class Potential:
         secondd = self.secondd[i]
         if secondd is None:
             if self.dimension == 1:
-                return util.num_deriv2(self, points)
+                return derivatives.num_deriv2(self, points)
             elif self.dimension == 2:
-                return util.num_deriv2_2D(self, points[:, 0], points[:, 1])
+                return derivatives.num_deriv2_2D(self, points[:, 0], points[:, 1])
         else:
             return secondd(*points)
 
@@ -141,30 +139,19 @@ class Potential:
         #else:
             #return d2(x)
 
-    def plot_pot(self, pts=50):
-        """
-        plot potential with matplotlib
-        """
-        try:
-            from matplotlib import pyplot as plt
-        except ImportError:
-            raise ImportError('cannot import matplotlib')
+    def compute_cell_potential(self, density=100):
 
-        x = np.linspace(self.cell[0][0], self.cell[0][1], pts)
-        y = self.f[0](x)
+        if self.dimension == 1:
+            x = np.linspace(self.cell[0][0], self.cell[0][1], density)
+            out = self(x)
 
-        plt.plot(x, y)
+        elif self.dimension == 2:
+            x = np.linspace(self.cell[0][0], self.cell[0][1], density)
+            y = np.linspace(self.cell[1][0], self.cell[1][1], density)
+            xx, yy = np.meshgrid(x, y)
+            out = self(xx, yy)
 
-    def plot_2d(self):
-        try:
-            from matplotlib import pyplot as plt
-        except ImportError:
-            raise ImportError('cannot import matplotlib')
+        else:
+            raise ValueError(self.dimension+', the dimension, must be 1 or 2.')
 
-        x = np.linspace(self.cell[0][0], self.cell[0][1], 50)
-        y = np.linspace(self.cell[1][0], self.cell[1][1], 50)
-
-        X, Y = np.meshgrid(x, y)
-        Z = self(X, Y)
-
-        plt.contourf(X, Y, Z, cmap='RdGy')
+        return out

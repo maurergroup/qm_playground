@@ -40,7 +40,7 @@ class Model:
 
     """
 
-    def __init__(self, system, potential, integrator, mode, solver=None,
+    def __init__(self, system, potential, mode, integrator=None, solver=None,
                  states=20, name='simulation'):
         """
         Initializes the calculation model using arbitrary keyword arguments
@@ -73,19 +73,7 @@ class Model:
         self.data.name = self.name
         self.data.mode = self.mode
         self.data.integrator = type(self.integrator).__name__
-
-        # could consider putting this back in to make things a little more
-        # transparent but I'm fairly happy with how it currently works.
-
-        # mode = self.mode
-        # if mode == 'wave':
-        #     return WaveData()
-        # elif mode == 'traj':
-        #     return TrajData()
-        # elif mode == 'rpmd':
-        #     return RpmdData()
-        # elif mode == 'hop':
-        #     return HopData()
+        self.data.cell = self.potential.cell
 
     def solve(self):
         """

@@ -1,4 +1,4 @@
-#    qmp.tools.utilities
+#    qmp.tools.derivatives
 #
 #    qm_playground - python package for dynamics simulations
 #    Copyright (C) 2016  Reinhard J. Maurer
@@ -18,17 +18,9 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>#
 """
-utilities including
-constants
-functions for numerical derivatives (1D: order incr^4)
+Functions for calculating various derivatives.
 """
-
-hbar = 1.
-mass = 1.
-kB = 3.16681E-6
-
 import numpy as np
-import scipy.special
 
 
 def num_deriv(f, x, incr=0.001):

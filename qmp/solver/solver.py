@@ -52,7 +52,8 @@ class ScipySolver(Solver):
 
         T = self.system.construct_T_matrix()
         V = self.system.construct_V_matrix(self.potential)
-        H = T + V     # (100,100)
+        H = T + V
+        print(H.A)
 
         if self.states >= H.shape[1]:
             print('Scipy solver only capable of solving for '

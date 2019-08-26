@@ -21,7 +21,7 @@
 waveintegrators.py
 """
 
-from qmp.integrator.dyn_tools import project_wvfn
+from qmp.tools.dyn_tools import project_wvfn
 import numpy as np
 from abc import ABC, abstractmethod
 
@@ -151,10 +151,10 @@ class PrimitivePropagator(AbstractWavePropagator):
     def prepare_electronics(self, potential):
         import scipy.sparse.linalg as la
 
-        V = self.system.construct_V_matrix(potential)
+        self.V = self.system.construct_V_matrix(potential)
         T = self.system.construct_T_matrix()
 
-        self.H = T + V
+        self.H = T + self.V
 
         self.prop = la.expm(-1j * self.H * self.dt)
 
@@ -174,6 +174,7 @@ class PrimitivePropagator(AbstractWavePropagator):
         data.psi_t = np.array(self.psi_t)
         data.rho_t = np.conjugate(data.psi_t)*data.psi_t
         data.E_t = self.E
+        data.V = self.V
 
 
 class SOFT_Propagator(AbstractWavePropagator):
@@ -302,6 +303,7 @@ class SOFT_Propagator(AbstractWavePropagator):
         data.E_kin_t = self.E_kin_t
         data.E_pot_t = self.E_pot_t
         data.E_t = self.E_kin_t + self.E_pot_t
+        data.V = self.V
 
 
 class SOFT_Scattering(SOFT_Propagator):

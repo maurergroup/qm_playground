@@ -179,3 +179,4 @@ class VelocityVerlet(Integrator):
         data.E_kin_t = E_kin
         data.E_pot_t = E_pot
         data.E_t = E_tot
+        data.potential = potential.compute_cell_potential(density=1000)

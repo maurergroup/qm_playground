@@ -22,7 +22,7 @@ rpmd integrators.py
 """
 
 from qmp.integrator.integrator import Integrator
-from qmp.integrator.dyn_tools import create_thermostat
+from qmp.tools.dyn_tools import create_thermostat
 import numpy as np
 import pickle as pick
 

@@ -1,18 +1,14 @@
 import numpy as np
-from qmp import Model
-from qmp.potential import Potential
-from qmp.integrator.rpmdintegrators import RPMD_VelocityVerlet
-from qmp.systems.rpmd import RPMD
-from qmp.potential.preset_potentials import Elbow
 from qmp.tools.visualizations import probability_distribution2D
 from qmp.tools.visualizations import contour_movie2D
+import qmp
 
 # SIMULATION CELL
 cell = [[0., 20.], [0., 20.]]
 
 # DYNAMICS PARAMETERS
-dt = 2.
-steps = 1E4
+dt = 5.
+steps = 1E3
 
 # SET INITIAL VALUES
 rs = [[15., 4.5], [15., 3.5], [2.5, 8.]]
@@ -22,7 +18,7 @@ n_beads = 8
 Temp = [300.] * 3
 
 # POTENTIAL
-f = Elbow(2, elbow_scale=0.005)
+f = qmp.potential.presets.Elbow(2, elbow_scale=0.005)
 
 # THERMOSTAT
 thermo = {
@@ -31,12 +27,12 @@ thermo = {
          'T_set': 100.,
          }
 
-pot = Potential(cell, f=f())
-integrator = RPMD_VelocityVerlet(dt)
-system = RPMD(rs, vs, masses, n_beads, init_type='velocity')
+pot = qmp.potential.Potential(cell, f=f())
+integrator = qmp.integrator.RPMD_VelocityVerlet(dt)
+system = qmp.systems.RPMD(rs, vs, masses, n_beads, init_type='velocity')
 
 # INITIALIZE MODEL
-rpmd2d = Model(
+rpmd2d = qmp.Model(
          mode='rpmd',
          integrator=integrator,
          system=system,
@@ -72,4 +68,4 @@ V_xy = rpmd2d.potential(xg, yg)
 probability_distribution2D(rpmd2d, show_plot=True,
                            nlines_pot=6, add_contour_labels=True)
 
-contour_movie2D(xg, yg, V_xy, r_t[:, 0], int(steps), npar=3, trace=False)
+# contour_movie2D(xg, yg, V_xy, r_t[:, 0], int(steps), npar=3, trace=False)

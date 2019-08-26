@@ -5,51 +5,35 @@ potentials
 """
 
 import numpy as np
-import sys
-sys.path.append('..')
-from qmp import *
-from qmp.basis.gridbasis import onedgrid
-from qmp.potential.pot_tools import create_potential
+import qmp
 from qmp.tools.visualizations import wave_slideshow1D
 
+N = 512
+cell = [[-10, 10]]
+mass = 1
+system = qmp.systems.Grid1D(mass, cell[0][0], cell[0][1], N)
 
-### SIMULATION CELL ###
-cell = [[0., 120.0]]
 
-### POTENTIAL ###
-pot = Potential( cell, f=create_potential(cell,
-                                          name='double_well',
-					  double_well_barrier=.008,
-					  double_well_asymmetry=0.,
-					  double_well_width=19.,
-                                          ) )
+# POTENTIAL
+f = qmp.potential.presets.Harmonic(1)
+pot = qmp.potential.Potential(cell, f=f())
 
-### INITIALIZE MDOEL ###
-## number of lowest eigenstates to be solved for
+# INITIALIZE MODEL
+# number of lowest eigenstates to be solved for
 states = 30
 
-tik1d = Model(
-        ndim=1,
-        mass=1.0,
-        mode='wave',
-        # basis='onedgrid',
-        solver='scipy',
-        states=states,
-        )
+wave_model = qmp.Model(
+            potential=pot,
+            system=system,
+            mode='wave',
+            states=states,
+            )
 
-### SET POTENTIAL ###
-tik1d.set_potential(pot)
+print(wave_model)
 
-### BASIS ###
-## spatial discretization
-N = 512
-b = onedgrid(cell[0][0], cell[0][1],N)
-tik1d.set_basis(b)
-print(tik1d)
+wave_model.solve()
 
-tik1d.solve()
+psi = wave_model.system.basis
 
-psi = tik1d.data.wvfn.psi
-
-### VISUALIZATION ###
-wave_slideshow1D(tik1d.basis.x, psi, tik1d.pot(tik1d.basis.x))
+# VISUALIZATION
+wave_slideshow1D(wave_model.system.x, psi, wave_model.potential(wave_model.system.x))

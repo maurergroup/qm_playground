@@ -1,11 +1,6 @@
+import qmp
 import numpy as np
-from qmp.systems.phasespace import PhaseSpace
-from qmp.potential import Potential
-from qmp import Model
 from qmp.tools.visualizations import contour_movie2D
-from qmp.potential.preset_potentials import Elbow
-from qmp.integrator.trajintegrators import VelocityVerlet
-
 
 # SIMULATION CELL
 cell = [[0., 20.], [0., 20.]]
@@ -13,16 +8,16 @@ cell = [[0., 20.], [0., 20.]]
 rs = [[15., 4.5], [15., 3.5], [2.5, 8.]]
 vs = [[-.001, -0.00001], [0., 0.], [1., -2.]]
 masses = [1., 1., 1.]
-dt = 0.1
+dt = 0.05
 
 # POTENTIAL
-elbow = Elbow(2)
-pot = Potential(cell, f=elbow())
-integ = VelocityVerlet(dt)
-sys = PhaseSpace(rs, vs, masses)
+elbow = qmp.potential.presets.Elbow(2)
+pot = qmp.potential.Potential(cell, f=elbow())
+integ = qmp.integrator.VelocityVerlet(dt)
+sys = qmp.systems.PhaseSpace(rs, vs, masses)
 
 # INITIALIZE MODEL
-traj2d = Model(
+traj2d = qmp.Model(
          system=sys,
          potential=pot,
          integrator=integ,
@@ -32,7 +27,7 @@ traj2d = Model(
 print(traj2d)
 
 # DYNAMICS PARAMETERS
-steps = 300
+steps = 3000
 
 # EVOLVE SYSTEM
 traj2d.run(steps)

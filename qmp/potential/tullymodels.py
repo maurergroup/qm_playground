@@ -95,21 +95,21 @@ class TullyExtendedCoupling(Potential):
 
     def get_f(self):
         def v11(x):
-            return np.full_like(x, self.A)
+            return np.full_like(x, self.A, dtype=float)
 
         def v12(x):
 
             def positive(x):
-                return self.B * (2 - np.exp(-np.abs(x) * self.C))
+                return self.B * (2 - np.exp(-self.C * x))
 
             def negative(x):
-                return self.B * np.exp(-np.abs(x) * self.C)
+                return self.B * np.exp(self.C * x)
 
-            return self.B * np.piecewise(x, [x < 0, x >= 0], [negative,
-                                                              positive])
+            return np.piecewise(x, [x < 0., x >= 0.], [negative,
+                                                       positive])
 
         def v22(x):
-            return np.full_like(x, -self.A)
+            return -v11(x)
 
         return np.array([v11, v12, v12, v22])
 

@@ -1,8 +1,8 @@
 import numpy as np
-from qmp.integrator.dyn_tools import create_real_gaussian2D
+from qmp.tools.dyn_tools import create_real_gaussian2D
 
 
-class ModelPotential(object):
+class ModelPotential:
 
     def __init__(self, dimension):
         self.function = None

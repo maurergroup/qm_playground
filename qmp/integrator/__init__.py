@@ -1,4 +1,4 @@
-#qmp.integrator.__init__
+#    qmp.integrator.__init__
 #
 #    qm_playground - python package for dynamics simulations
 #    Copyright (C) 2016  Reinhard J. Maurer
@@ -21,36 +21,22 @@
 Integrators
 """
 
-from qmp.integrator import waveintegrators as wave
-from qmp.integrator import trajintegrators as traj
-from qmp.integrator import rpmdintegrators as rpmd
-from qmp.integrator.hoppingintegrators import HoppingIntegrator
+from .waveintegrators import PrimitivePropagator, EigenPropagator
+from .waveintegrators import SOFT_Propagator, SOFT_Scattering
+from .trajintegrators import VelocityVerlet, Langevin
+from .rpmdintegrators import RPMD_VelocityVerlet
+from .hoppingintegrators import HoppingIntegrator
 
-integrator_type = {
-    'primitive': wave.PrimitivePropagator,
-    'eigen': wave.EigenPropagator,
-    'SOFT': wave.SOFT_Propagator,
-    # 'SOFT_scatter': wave.SOFT_Scattering,
-    # 'SOFT_averages': wave.SOFT_AverageProperties,
-    'velocity_verlet': traj.VelocityVerlet,
-    'langevin': traj.Langevin,
-    'RPMD_VelocityVerlet': rpmd.RPMD_VelocityVerlet,
-    'RPMD_averages': rpmd.RPMD_EquilibriumProperties,
-    'RPMD_scatter': rpmd.RPMD_Scattering,
-    'hopping': HoppingIntegrator
-    }
-
-
-def integrator_init(data, potential):
-
-    param = data.parameters
-    integrator = integrator_type[param['integrator']](data=data, potential=potential)
-
-    return integrator
-
-
-def integrator_help():
-    string = 'Integrator types include: \n'
-    for key in integrator_type.keys():
-        string += key + '\n'
-    return string
+# integrator_type = {
+#     'primitive': wave.PrimitivePropagator,
+#     'eigen': wave.EigenPropagator,
+#     'SOFT': wave.SOFT_Propagator,
+#     # 'SOFT_scatter': wave.SOFT_Scattering,
+#     # 'SOFT_averages': wave.SOFT_AverageProperties,
+#     'velocity_verlet': traj.VelocityVerlet,
+#     'langevin': traj.Langevin,
+#     'RPMD_VelocityVerlet': rpmd.RPMD_VelocityVerlet,
+#     'RPMD_averages': rpmd.RPMD_EquilibriumProperties,
+#     'RPMD_scatter': rpmd.RPMD_Scattering,
+#     'hopping': HoppingIntegrator
+#     }

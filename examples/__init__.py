@@ -1,10 +1,10 @@
-#examples/__init__.py
+#    examples/__init__.py
 #
 #    qm_playground - python package for dynamics simulations
-#    Copyright (C) 2016  Reinhard J. Maurer 
+#    Copyright (C) 2016  Reinhard J. Maurer
 #
 #    This file is part of qm_playground.
-#    
+#
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
@@ -20,22 +20,18 @@
 
 
 """
-example and test suite for qm playground
+examples for qm_playground
 
-List of tests
+List of examples
 -------------
 
 *wave_eigen1D.py
 *wave_eigen2D.py
 *wave_dyn1D.py
-*wave_dyn2D.py
-*TIK1D_eigen.py
-*TIK1D_TD.py
-*TIK2D_eigen.py
-*TIK2D_TD.py
-*traj_dyn1D.py
+*wave_nonadiabatic1D.py
+*wave_dyn2D.py - TODO
 *traj_dyn2D.py
-*rpmd_dyn1D.py
 *rpmd_dyn2D.py
+*hopping1D.py
 
 """

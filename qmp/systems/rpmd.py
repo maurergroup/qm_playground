@@ -1,6 +1,6 @@
 import numpy as np
 from qmp.systems.phasespace import PhaseSpace
-from qmp.tools.utilities import hbar, kB
+from qmp.tools.dyn_tools import kB
 from scipy.stats import maxwell
 import scipy.linalg as la
 
@@ -43,7 +43,7 @@ class RPMD(PhaseSpace):
 
         def position_init():
             for i_par in range(self.n_particles):
-                r_abs = (hbar/np.pi)*np.sqrt(
+                r_abs = (np.pi)*np.sqrt(
                     self.n_beads/(2.*self.masses[i_par]*kB*self.temp[i_par]))/400.
                 if self.ndim == 1:
                     self.r_beads[i_par, 0] = self.r[i_par] - r_abs
@@ -76,7 +76,7 @@ class RPMD(PhaseSpace):
             T = [293.15] * self.n_particles
 
         self.temp = np.array(T)
-        self.omega = self.temp * self.n_beads * kB / hbar
+        self.omega = self.temp * self.n_beads * kB
 
         # print('RPMD simulation using')
         # print('Np = '+str(self.n_particles)+' non-interacting particles in')
@@ -152,4 +152,4 @@ class RPMD(PhaseSpace):
         a = self.compute_hessian(potential)
         v = la.norm(self.v)
 
-        self.omega = (self.n_beads/hbar)*((A**2 + v**2)/(a+(self.ndim/self.masses)))
+        self.omega = (self.n_beads)*((A**2 + v**2)/(a+(self.ndim/self.masses)))

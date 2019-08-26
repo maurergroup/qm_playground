@@ -4,50 +4,36 @@ solutions to the 2D Particle in different
 potentials
 """
 
-import numpy as np
-import sys
-sys.path.append('..')
-from qmp import *
-from qmp.basis.gridbasis import twodgrid
-from qmp.potential import Potential, preset_potentials
+import qmp
 from qmp.tools.visualizations import wave_slideshow2D
 
+# SIMULATION CELL
+N = 512
+cell = [[-10, -10.], [10., 10.]]
+mass = 1
+system = qmp.systems.Grid2D(mass, cell[0], cell[1], N)
 
-### SIMULATION CELL ###
-cell = [[0, 0.], [20., 20.]]
+# POTENTIAL
+f = qmp.potential.presets.Harmonic(2)
+pot = qmp.potential.Potential(cell, f=f())
 
-### POTENTIAL ###
-f = preset_potentials.Harmonic(2, minimum=[10, 10])
-pot = Potential(cell, f=f())
-
-### INITIALIZE MODEL ###
-## number of lowest eigenstates to be solved for
+# INITIALIZE MODEL
+# number of lowest eigenstates to be solved for
 states = 20
 
-tik2d = Model(
-        ndim=2,
-        mass=1.0,
+tik2d = qmp.Model(
         mode='wave',
-        basis='twodgrid',
-        solver='scipy',
+        system=system,
+        potential=pot,
         states=states,
         )
 
-## set potential
-tik2d.set_potential(pot)
-
-### BASIS ###
-## spatial discretization
-N=200
-b = twodgrid(cell[0], cell[1], N)
-tik2d.set_basis(b)
 print(tik2d)
 
 tik2d.solve()
 
-# GATHER INFORMATION ###
-psi = tik2d.data.wvfn.psi
-V_xy = tik2d.pot(tik2d.basis.xgrid, tik2d.basis.ygrid)
+psi = tik2d.system.basis
+V_xy = tik2d.potential(tik2d.system.xgrid, tik2d.system.ygrid)
 
-# VISUALIZATION ###
-wave_slideshow2D(tik2d.basis.xgrid, tik2d.basis.ygrid, psi, pot=V_xy)
+# VISUALIZATION
+wave_slideshow2D(tik2d.system.xgrid, tik2d.system.ygrid, psi, pot=V_xy)
