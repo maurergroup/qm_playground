@@ -52,7 +52,7 @@ class WavePlot:
         return update
 
     def update_plot(self, i):
-        x = np.hstack((self.x, [np.min(self.x), np.max(self.x)]))
+        x = np.hstack((self.x, [np.max(self.x), np.min(self.x)]))
 
         rho = self.rho_t[i]
         rho_1 = rho[:self.N]

@@ -7,7 +7,7 @@ import numpy as np
 import itertools
 
 
-class TrajPlot:
+class TrajPlot2D:
 
     def __init__(self, data):
 

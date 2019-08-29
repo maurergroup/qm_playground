@@ -29,7 +29,7 @@ class PhaseSpace:
 
     def compute_potential_energy(self, potential):
         if self.ndim == 1:
-            return potential(self.r)
+            return potential(self.r).flatten()
         elif self.ndim == 2:
             return potential(self.r[:, 0], self.r[:, 1])
 

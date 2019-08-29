@@ -2,7 +2,8 @@ from bokeh.models import TextInput, Button
 from bokeh.plotting import curdoc
 from bokeh.layouts import column, grid
 from wave_plot import WavePlot
-from traj_plot import TrajPlot
+from traj_plot2D import TrajPlot2D
+from traj_plot1D import TrajPlot1D
 import pickle
 
 """
@@ -27,10 +28,16 @@ class FileReader():
 
         if self.data.mode == 'wave':
             self.plot = WavePlot(self.data)
+
         elif self.data.mode == 'traj':
-            self.plot = TrajPlot(self.data)
+            ndim = len(self.data.potential.shape)
+            if ndim == 1:
+                self.plot = TrajPlot1D(self.data)
+            elif ndim == 2:
+                self.plot = TrajPlot2D(self.data)
+
         elif self.data.mode == 'rpmd':
-            self.plot = TrajPlot(self.data)
+            self.plot = TrajPlot2D(self.data)
 
         self.layout.children.append((self.plot.get_layout(), self.i, self.j))
         if self.j == 1:

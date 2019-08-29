@@ -54,12 +54,14 @@ class Grid1D:
     def set_initial_wvfn(self, psi):
         self.psi[:self.N] = np.array(psi).flatten()
 
+    def compute_probability_density(self):
+        return self.system.psi.conj() * self.system.psi
+
 
 class Grid2D:
 
     def __init__(self, mass=1, start=[0.0, 0], end=[1, 1], N=100, psi0=None):
 
-        print(start, end)
         self.x, self.dx = np.linspace(start[0], end[0], N, retstep=True)
         self.y, self.dy = np.linspace(start[1], end[1], N, retstep=True)
         self.xgrid, self.ygrid = np.meshgrid(self.x, self.y)

@@ -3,7 +3,7 @@ import numpy as np
 from qmp.tools.visualizations import wave_movie1D
 
 # SIMULATION CELL
-cell = [[-10., 15.0]]
+cell = [[-5., 15.0]]
 N = 256
 mass = 1800
 dt = 5
@@ -19,14 +19,14 @@ pot = qmp.potential.Potential(cell, f=wall())
 system = qmp.systems.Grid1D(mass, cell[0][0], cell[0][1], N)
 
 # Choose an integrator:
-# integrator = qmp.integrator.SOFT_Propagator(dt)
+integrator = qmp.integrator.SOFT_Propagator(dt)
 # integrator = qmp.integrator.SOFT_Scattering(dt)
 # integrator = qmp.integrator.PrimitivePropagator(dt)
 # integrator = qmp.integrator.EigenPropagator(dt)
 
 # Prepare initial wavefunction:
 sigma = 1./2.
-psi_0 = qmp.tools.create_gaussian(system.x, x0=0., p0=2.0, sigma=sigma)
+psi_0 = qmp.tools.create_gaussian(system.x, x0=0., p0=-5.0, sigma=sigma)
 psi_0 /= np.sqrt(np.conjugate(psi_0).dot(psi_0))
 system.set_initial_wvfn(psi_0)
 
