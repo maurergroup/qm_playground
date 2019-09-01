@@ -13,8 +13,9 @@ class WavePlot:
 
         self.raw_data = data
 
-        self.x = self.raw_data['x']
-        self.N = len(self.x)
+        self.N = self.raw_data['N']
+        self.cell = self.raw_data['cell']
+        self.x = np.linspace(self.cell[0][0], self.cell[0][1], self.N)
         self.rho_t = self.raw_data['rho_t'].real
         self.nstates = int(len(self.rho_t[0]) / self.N)
 

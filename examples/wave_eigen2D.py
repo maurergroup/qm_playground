@@ -5,13 +5,14 @@ potentials
 """
 
 import qmp
+import numpy as np
 from qmp.tools.visualizations import wave_slideshow2D
 
 # SIMULATION CELL
 N = 512
-cell = [[-10, -10.], [10., 10.]]
+cell = np.array([[-10, 10], [-10., 10.]])
 mass = 1
-system = qmp.systems.Grid2D(mass, cell[0], cell[1], N)
+system = qmp.systems.Grid(mass, cell, N)
 
 # POTENTIAL
 f = qmp.potential.presets.Harmonic(2)
@@ -33,7 +34,7 @@ print(tik2d)
 tik2d.solve()
 
 psi = tik2d.system.basis
-V_xy = tik2d.potential(tik2d.system.xgrid, tik2d.system.ygrid)
+V_xy = tik2d.potential(*tik2d.system.mesh)
 
 # VISUALIZATION
-wave_slideshow2D(tik2d.system.xgrid, tik2d.system.ygrid, psi, pot=V_xy)
+wave_slideshow2D(*tik2d.system.mesh, psi, pot=V_xy)

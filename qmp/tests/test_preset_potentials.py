@@ -1,14 +1,14 @@
 import unittest
-from qmp.potential import preset_potentials
+from qmp.potential import presets
 import numpy as np
 
 
-class PresetPotentialTestCase(unittest.TestCase):
+class PresetsTestCase(unittest.TestCase):
 
     def test_free(self):
         for dimension in range(1, 3):
             with self.subTest(dimension=dimension):
-                free = preset_potentials.Free(dimension)
+                free = presets.Free(dimension)
                 function = free()
                 self.assertEqual(function(10), 0)
                 x = np.linspace(0, 10)
@@ -19,9 +19,9 @@ class PresetPotentialTestCase(unittest.TestCase):
                                               np.zeros_like(xx))
 
     def test_harmonic_one_dimension(self):
-        harmonic = preset_potentials.Harmonic(1,
-                                              omega=[1],
-                                              minimum=[0])
+        harmonic = presets.Harmonic(1,
+                                    omega=[1],
+                                    minimum=[0])
         function = harmonic()
 
         self.assertEqual(function(0), 0)
@@ -30,9 +30,9 @@ class PresetPotentialTestCase(unittest.TestCase):
         np.testing.assert_array_equal(function(point), point**2)
 
     def test_harmonic_two_dimension(self):
-        harmonic = preset_potentials.Harmonic(2,
-                                              omega=[1, 1],
-                                              minimum=[0, 0])
+        harmonic = presets.Harmonic(2,
+                                    omega=[1, 1],
+                                    minimum=[0, 0])
         function = harmonic()
 
         self.assertEqual(function(0, 0), 0)
@@ -44,10 +44,10 @@ class PresetPotentialTestCase(unittest.TestCase):
         np.testing.assert_array_equal(function(xx, yy), xx**2 + yy**2)
 
     def test_wall_one_dimension(self):
-        wall = preset_potentials.Wall(1,
-                                      position=np.array([0]),
-                                      width=np.array([1]),
-                                      height=1)
+        wall = presets.Wall(1,
+                            position=np.array([0]),
+                            width=np.array([1]),
+                            height=1)
         function = wall()
 
         self.assertEqual(function(0), 1)
@@ -56,10 +56,10 @@ class PresetPotentialTestCase(unittest.TestCase):
         np.testing.assert_array_equal(function(point), [1, 0])
 
     def test_wall_two_dimension(self):
-        wall = preset_potentials.Wall(2,
-                                      position=np.array([0, 0]),
-                                      width=np.array([1, 1]),
-                                      height=1)
+        wall = presets.Wall(2,
+                            position=np.array([0, 0]),
+                            width=np.array([1, 1]),
+                            height=1)
         function = wall()
 
         np.testing.assert_array_equal(function(0, 0), 1)
@@ -71,10 +71,10 @@ class PresetPotentialTestCase(unittest.TestCase):
         np.testing.assert_array_equal(function(xx, yy), [[1, 0], [0, 0]])
 
     def test_box_one_dimension(self):
-        box = preset_potentials.Box(1,
-                                    position=np.array([0]),
-                                    width=np.array([1]),
-                                    height=10000)
+        box = presets.Box(1,
+                          position=np.array([0]),
+                          width=np.array([1]),
+                          height=10000)
         function = box()
 
         self.assertEqual(function(0), 0)
@@ -83,10 +83,10 @@ class PresetPotentialTestCase(unittest.TestCase):
         np.testing.assert_array_equal(function(point), [0, 10000])
 
     def test_box_two_dimension(self):
-        box = preset_potentials.Box(2,
-                                    position=np.array([0, 0]),
-                                    width=np.array([1, 1]),
-                                    height=10000)
+        box = presets.Box(2,
+                          position=np.array([0, 0]),
+                          width=np.array([1, 1]),
+                          height=10000)
         function = box()
 
         np.testing.assert_array_equal(function(0, 0), 0)
@@ -99,12 +99,12 @@ class PresetPotentialTestCase(unittest.TestCase):
                                                          [10000, 10000]])
 
     def test_double_box_one_dimension(self):
-        double_box = preset_potentials.DoubleBox(1,
-                                                 position1=np.array([0]),
-                                                 position2=np.array([5]),
-                                                 width1=np.array([1]),
-                                                 width2=np.array([1]),
-                                                 height=10000)
+        double_box = presets.DoubleBox(1,
+                                       position1=np.array([0]),
+                                       position2=np.array([5]),
+                                       width1=np.array([1]),
+                                       width2=np.array([1]),
+                                       height=10000)
         function = double_box()
 
         self.assertEqual(function(0), 0)
@@ -114,12 +114,12 @@ class PresetPotentialTestCase(unittest.TestCase):
         np.testing.assert_array_equal(function(point), [0, 10000, 0])
 
     def test_double_box_two_dimension(self):
-        double_box = preset_potentials.DoubleBox(2,
-                                                 position1=np.array([0, 0]),
-                                                 position2=np.array([5, 5]),
-                                                 width1=np.array([1, 1]),
-                                                 width2=np.array([1, 1]),
-                                                 height=10000)
+        double_box = presets.DoubleBox(2,
+                                       position1=np.array([0, 0]),
+                                       position2=np.array([5, 5]),
+                                       width1=np.array([1, 1]),
+                                       width2=np.array([1, 1]),
+                                       height=10000)
         function = double_box()
 
         np.testing.assert_array_equal(function(0, 0), 0)
@@ -133,10 +133,10 @@ class PresetPotentialTestCase(unittest.TestCase):
                                                          [10000, 10000]])
 
     def test_morse_one_dimension(self):
-        morse = preset_potentials.Morse(1,
-                                        morse_a=np.array([1]),
-                                        morse_D=np.array([1]),
-                                        morse_p=np.array([1]))
+        morse = presets.Morse(1,
+                              morse_a=np.array([1]),
+                              morse_D=np.array([1]),
+                              morse_p=np.array([1]))
         function = morse()
 
         self.assertEqual(function(1), 0)
@@ -145,10 +145,10 @@ class PresetPotentialTestCase(unittest.TestCase):
         np.testing.assert_array_equal(function(point), [0, 1])
 
     def test_morse_two_dimension(self):
-        morse = preset_potentials.Morse(2,
-                                        morse_a=np.array([1, 1]),
-                                        morse_D=np.array([1, 1]),
-                                        morse_p=np.array([1, 1]))
+        morse = presets.Morse(2,
+                              morse_a=np.array([1, 1]),
+                              morse_D=np.array([1, 1]),
+                              morse_p=np.array([1, 1]))
         function = morse()
 
         np.testing.assert_array_equal(function(1, 1), 0)
@@ -163,5 +163,5 @@ class PresetPotentialTestCase(unittest.TestCase):
 
 if __name__ == "__main__":
     suite = unittest.TestLoader().loadTestsFromTestCase(
-            PresetPotentialTestCase)
+            PresetsTestCase)
     unittest.TextTestRunner(verbosity=2).run(suite)

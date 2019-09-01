@@ -22,7 +22,7 @@
 """
 qm_playground systems
 """
-from .grid import Grid1D, Grid2D
+from .grid import Grid
 from .hopping import Hopping
 from .phasespace import PhaseSpace
 from .rpmd import RPMD

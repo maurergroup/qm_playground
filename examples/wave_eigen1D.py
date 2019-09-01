@@ -9,9 +9,9 @@ import qmp
 from qmp.tools.visualizations import wave_slideshow1D
 
 N = 512
-cell = [[-10, 10]]
+cell = np.array([[-10, 10]])
 mass = 1
-system = qmp.systems.Grid1D(mass, cell[0][0], cell[0][1], N)
+system = qmp.systems.Grid(mass, cell, N)
 
 
 # POTENTIAL
@@ -34,6 +34,7 @@ print(wave_model)
 wave_model.solve()
 
 psi = wave_model.system.basis
+x = wave_model.system.mesh[0]
 
 # VISUALIZATION
-wave_slideshow1D(wave_model.system.x, psi, wave_model.potential(wave_model.system.x))
+wave_slideshow1D(x, psi, wave_model.potential(x))

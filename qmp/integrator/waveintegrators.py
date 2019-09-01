@@ -24,11 +24,23 @@ waveintegrators.py
 from qmp.tools.dyn_tools import project_wvfn
 import numpy as np
 from abc import ABC, abstractmethod
+import scipy.sparse as sp
+from numpy.fft import fft
+from numpy.fft import ifft
 
 
 class AbstractWavePropagator(ABC):
     """
     Abstract base class for other wave integrators to implement.
+    Had to leave this little picture in, someone obviously put of lot of work
+    into it.
+                     _               ..
+       :            / \ ->          ;  ;                        :
+       :           /   \ ->         ;  ;                        :
+       :          /     \ ->        ;  ;                        :
+       :_________/       \__________;  ;________________________:
+      r_l                            rb                        r_r
+    (border)       (wave)         (barrier)                  (border)
     """
     def __init__(self, dt=1):
         self.dt = dt
@@ -52,18 +64,25 @@ class AbstractWavePropagator(ABC):
 
     @abstractmethod
     def initialise_start(self, system, potential):
-        pass
+        self.system = system
+        self.status = ("Wave has not reached the cell boundary.")
 
     def integrate(self, steps):
         print('Integrating...')
         for i in range(steps):
 
             self.propagate_psi()
+            self.system.absorb_boundary(self.dt)
 
             if (i+1) % self.output_freq == 0:
                 self.store_result()
 
+            if self.is_finished():
+                break
+
         print('INTEGRATED\n')
+        print(self.status)
+        self.system.absorb_all()
         self.psi_t = np.array(self.psi_t)
 
     @abstractmethod
@@ -73,14 +92,25 @@ class AbstractWavePropagator(ABC):
     def store_result(self):
         self.psi_t.append(self.system.psi)
 
+    def is_finished(self):
+        total_absorbed = np.sum(self.system.absorbed_density)
+        fraction_absorbed = total_absorbed / self.system.total_initial_density
+        exit = False
+        if fraction_absorbed > 0.8:
+            self.status = "Success, all is well."
+            exit = True
+        return exit
+
     @abstractmethod
     def compute_energies(self):
         pass
 
     def assign_data(self, data):
-        data.x = np.array(self.system.x)
         data.psi_t = np.array(self.psi_t)
+        data.N = self.system.N
         data.rho_t = np.conjugate(data.psi_t)*data.psi_t
+        self.system.normalise_probabilities()
+        data.outcome = self.system.absorbed_density
 
 
 class EigenPropagator(AbstractWavePropagator):
@@ -88,10 +118,11 @@ class EigenPropagator(AbstractWavePropagator):
     Projects initial wavefunction onto eigenbasis,
     propagates expansion coefficients.
     Currently limited to a single energy level.
+    Also, seems to be pretty dodgy, not sure what I did to break it.
     """
     def initialise_start(self, system, potential):
 
-        self.system = system
+        super().initialise_start(system, potential)
         self.system.c = self.prepare_coefficients()
 
         self.prop = np.diag(np.exp(-1j*self.system.E*self.dt))
@@ -126,8 +157,7 @@ class EigenPropagator(AbstractWavePropagator):
         self.E = np.einsum('ik,ik->i', self.c_t.conj(), E_times_c)
 
     def assign_data(self, data):
-        data.psi_t = self.psi_t
-        data.rho_t = np.conj(data.psi_t)*data.psi_t
+        super().assign_data(data)
         data.rho_mean = np.mean(data.rho_t, 0)
         data.c_t = np.array(self.c_t)
         data.E_t = np.array(self.E)
@@ -137,11 +167,10 @@ class PrimitivePropagator(AbstractWavePropagator):
     """
     Primitive exp(-iHt) propagator for psi in arbitrary
     basis in spatial representation.
-    Could look at J. Chem. Phys. 127, 044109 (2007)
     """
     def initialise_start(self, system, potential):
 
-        self.system = system
+        super().initialise_start(system, potential)
         self.psi_t = [self.system.psi]
         if (not self.system.psi.any() != 0.):
             raise ValueError('Please provide initial wave function'
@@ -149,32 +178,23 @@ class PrimitivePropagator(AbstractWavePropagator):
         self.prepare_electronics(potential)
 
     def prepare_electronics(self, potential):
-        import scipy.sparse.linalg as la
 
-        self.V = self.system.construct_V_matrix(potential)
-        T = self.system.construct_T_matrix()
-
-        self.H = T + self.V
-
-        self.prop = la.expm(-1j * self.H * self.dt)
+        self.system.construct_hamiltonian(potential)
+        self.prop = -1j * self.system.H * self.dt
 
     def propagate_psi(self):
-
-        self.system.psi = self.prop.dot(self.system.psi)
+        self.system.psi = sp.linalg.expm_multiply(self.prop, self.system.psi)
 
     def compute_energies(self):
-
         E_t = np.zeros((len(self.psi_t)))
         for t, time in enumerate(self.psi_t):
-            E_t[t] = np.real(time.conj().dot(self.H.dot(time)))
+            E_t[t] = np.real(time.conj().dot(self.system.H.dot(time)))
         self.E = E_t
 
     def assign_data(self, data):
-        data.x = np.array(self.system.x)
-        data.psi_t = np.array(self.psi_t)
-        data.rho_t = np.conjugate(data.psi_t)*data.psi_t
+        super().assign_data(data)
         data.E_t = self.E
-        data.V = self.V
+        data.V = self.system.V.A
 
 
 class SOFT_Propagator(AbstractWavePropagator):
@@ -185,8 +205,8 @@ class SOFT_Propagator(AbstractWavePropagator):
     """
 
     def initialise_start(self, system, potential):
-        self.system = system
-        self.V = self.system.construct_V_matrix(potential)
+        super().initialise_start(system, potential)
+        self.system.construct_V_matrix(potential)
         self.k = self.compute_k()
 
         self.psi_t = [self.system.psi]
@@ -196,14 +216,14 @@ class SOFT_Propagator(AbstractWavePropagator):
     def compute_k(self):
         from numpy.fft import fftfreq as FTp
 
-        dx = self.system.dx
+        steps = self.system.steps
         nx = self.system.N
         ndim = self.system.ndim
 
         if ndim == 1:
-            k = 2 * np.pi * FTp(nx, dx)
+            k = 2 * np.pi * FTp(nx, steps[0])
         elif ndim == 2:
-            k = FTp(nx, dx).conj()*FTp(nx, dx)
+            k = FTp(nx, steps[0]).conj()*FTp(nx, steps[0])
             k = np.pi*np.pi*(np.kron(np.ones(nx), k)
                              + np.kron(k, np.ones(nx)))
         else:
@@ -212,61 +232,49 @@ class SOFT_Propagator(AbstractWavePropagator):
         return k
 
     def expV(self, dt):
-        import scipy.linalg as la
-        try:
-            N = self.system.N
-            v1 = np.diag(self.V[:N, :N])
-            v2 = np.diag(self.V[N:, N:])
-            v12 = np.diag(self.V[:N, N:])
-            v21 = np.diag(self.V[N:, :N])
+
+        if self.system.nstates == 2:
+            col1, col2 = np.array_split(self.system.V.A, 2)
+            v1, v21 = np.array_split(col1, 2, axis=1)
+            v12, v2 = np.array_split(col2, 2, axis=1)
+            v1 = np.diag(v1)
+            v2 = np.diag(v2)
+            v12 = np.diag(v12)
+            v21 = np.diag(v21)
 
             D = (v1 - v2)**2 + 4*v21**2
 
             diagonal = np.exp(-1.0j * (v1+v2) * dt/2)
 
             cos = np.cos(np.sqrt(D)*dt/2)
-            x = diagonal * cos
-            left = la.block_diag(np.diag(x), np.diag(x))
+            x = np.tile(diagonal * cos, self.system.nstates)
+            left = sp.diags(x)
 
             sin = 1.0j * np.sin(np.sqrt(D)*dt/2)/np.sqrt(D) * diagonal
-            v_matrix = np.block([[np.diag(sin*(v2-v1)), -2*np.diag(sin*v12)],
-                                 [-2*np.diag(sin*v21), np.diag(sin*(v1-v2))]])
+            v_matrix = sp.bmat([[sp.diags(sin*(v2-v1)), -2*sp.diags(sin*v12)],
+                                [-2*sp.diags(sin*v21), sp.diags(sin*(v1-v2))]])
 
             return left + v_matrix
 
-        except ValueError:
-            print('Single energy surface')
-
-            exp = np.zeros_like(self.V, dtype=complex)
-            for i in range(self.system.N):
-                exp[i, i] = np.exp(-1.0j * self.V[i, i] * dt)
-            return exp
+        elif self.system.nstates == 1:
+            return sp.diags(np.exp(-1j * self.system.V.diagonal() * dt))
 
     def expT(self, dt):
         T = self.get_T()
-        exp = np.zeros_like(T, dtype=complex)
-        for i in range(self.system.N * self.system.nstates):
-            exp[i, i] = np.exp(-1.0j * T[i, i] * dt)
-        return exp
+        return sp.diags(np.exp(-1j * T.diagonal() * dt))
 
     def get_T(self):
-        import scipy.linalg as la
         m = self.system.mass
-        T = self.k**2 / (2.0 * m)
-        T = np.diag(T)
-        if self.system.nstates == 2:
-            T = la.block_diag(T, T)
+        T = sp.diags(self.k**2 / (2.0 * m))
+        T = sp.block_diag([T] * self.system.nstates)
         return T
 
     def propagate_psi(self):
         self.propagate_momentum()
         self.system.psi = self.propV.dot(self.system.psi)
         self.propagate_momentum()
-        pass
 
     def propagate_momentum(self):
-        from numpy.fft import fft
-        from numpy.fft import ifft
 
         self.system.psi = self.transform(self.system.psi, fft)
         self.system.psi = self.propT.dot(self.system.psi)
@@ -279,8 +287,6 @@ class SOFT_Propagator(AbstractWavePropagator):
         return psi_transformed
 
     def compute_energies(self):
-        from numpy.fft import fft
-        from numpy.fft import ifft
 
         T = self.get_T()
 
@@ -291,111 +297,14 @@ class SOFT_Propagator(AbstractWavePropagator):
             conj = time.conj()
             T_dot_psi = T.dot(self.transform(time, fft))
             E_kin_t[t] = np.real(conj.dot(self.transform(T_dot_psi, ifft)))
-            E_pot_t[t] = np.real(conj.dot(self.V.dot(time)))
+            E_pot_t[t] = np.real(conj.dot(self.system.V.dot(time)))
 
         self.E_pot_t = E_pot_t
         self.E_kin_t = E_kin_t
 
     def assign_data(self, data):
-        data.x = np.array(self.system.x)
-        data.psi_t = np.array(self.psi_t)
-        data.rho_t = np.conjugate(data.psi_t)*data.psi_t
+        super().assign_data(data)
         data.E_kin_t = self.E_kin_t
         data.E_pot_t = self.E_pot_t
         data.E_t = self.E_kin_t + self.E_pot_t
-        data.V = self.V
-
-
-class SOFT_Scattering(SOFT_Propagator):
-    """
-    SOFT propagator for scattering processes
-                     _               ..
-       :            / \ ->          ;  ;                        :
-       :           /   \ ->         ;  ;                        :
-       :          /     \ ->        ;  ;                        :
-       :_________/       \__________;  ;________________________:
-      r_l                            rb                        r_r
-    (border)       (wave)         (barrier)                  (border)
-
-    Stops if reflected or transmitted part of wave package hits
-    border at r_l or r_r, respectively (=> t_stop).
-
-    Currently requires dividing surface to be located at the centre of the
-    cell.
-
-    Returns data.probs where probs in an array containing the probability of
-    each outcome. Entry 1 is groundstate reflection, entry 2 is groundstate
-    transmission. Entry 3, if present is excited state reflection and the final
-    entry is excited state transmission.
-    """
-
-    def read_kwargs(self, kwargs):
-        super().read_kwargs(kwargs)
-
-        self.region = kwargs.get('region', [-3, 3])
-        self.tolerance = kwargs.get('tolerance', 1e-1)
-
-    def initialise_start(self, system, potential):
-        super().initialise_start(system, potential)
-
-        active_region = ((self.system.x < self.region[1])
-                         * (self.system.x > self.region[0]))
-        self.active_indices = np.where(active_region)[0]
-        self.exit_indices = [0, -1]
-
-        if self.system.nstates == 2:
-            self.active_indices = np.append(self.active_indices,
-                                            self.active_indices+self.system.N)
-            self.exit_indices += [self.system.N, self.system.N + 1]
-
-    def integrate(self, steps):
-        self.status = ('Wave did not reach the interaction region,'
-                       + ' consider adjusting the model parameters.')
-
-        self.active = False
-        self.finished = False
-        print('Integrating...')
-        for i in range(steps):
-
-            self.propagate_psi()
-
-            if (i+1) % self.output_freq == 0:
-                self.store_result()
-
-            self.determine_scattering_status()
-
-            if self.finished:
-                break
-
-        print('INTEGRATED\n')
-        print(self.status + '\n')
-
-    def determine_scattering_status(self):
-        psi = self.system.psi
-        self.rho_current = np.real(np.conjugate(psi)*psi)
-
-        active_density = np.sum(self.rho_current[self.active_indices])
-        exit_density = np.sum(self.rho_current[self.exit_indices])
-
-        if (active_density < self.tolerance) and self.active:
-            self.status = ('Wave exited interaction region.'
-                           + ' Simulation terminated.')
-            self.finished = True
-        elif (active_density > self.tolerance) and (self.active is False):
-            self.status = ('Wave has entered the interaction region'
-                           + ' but is yet to exit.')
-            self.active = True
-        elif (exit_density > 1e-3):
-            self.status = ('Wave has reached the cell boundary before'
-                           + ' having left the interaction region.')
-            self.finished = True
-
-    def assign_data(self, data):
-        self.psi_t = np.array(self.psi_t)
-
-        super().assign_data(data)
-
-        splits = np.array(np.split(self.rho_current, self.system.nstates * 2))
-        data.probs = np.sum(splits, axis=1)
-        norm = np.sum(data.probs)
-        data.probs /= norm
+        data.V = self.system.V.A

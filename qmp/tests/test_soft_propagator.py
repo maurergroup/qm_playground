@@ -1,5 +1,5 @@
 import unittest
-from qmp.systems.grid import Grid1D
+from qmp.systems.grid import Grid
 import numpy as np
 import numpy.testing as test
 from qmp.potential import tullymodels
@@ -12,14 +12,13 @@ class SOFT_PropagatorTestCase(unittest.TestCase):
 
     def setUp(self):
         self.mass = 1
-        self.start = -10
-        self.end = 10
+        self.cell = np.array([[-10, 10]])
         self.N = 256
         self.nstates = 2
         self.size = self.N * self.nstates
 
-        self.system = Grid1D(self.mass, self.start, self.end, self.N,
-                             states=self.nstates)
+        self.system = Grid(self.mass, self.cell, self.N,
+                           states=self.nstates)
         self.pot = tullymodels.TullySimpleAvoidedCrossing()
         self.dt = 0.5
         self.integrator = SOFT_Propagator(self.dt)
@@ -33,7 +32,7 @@ class SOFT_PropagatorTestCase(unittest.TestCase):
 
     def test_initialise_start(self):
         self.integrator.initialise_start(self.system, self.pot)
-        test.assert_equal(self.integrator.V.shape,
+        test.assert_equal(self.system.V.shape,
                           (self.size, self.size))
         test.assert_equal(self.integrator.k.shape, (self.N,))
         test.assert_equal(np.shape(self.integrator.psi_t),
@@ -43,7 +42,8 @@ class SOFT_PropagatorTestCase(unittest.TestCase):
         # Currently tests only 1D
         k = self.integrator.compute_k()
         dk = abs(k[0] - k[1])
-        test.assert_almost_equal(2*np.pi/(self.end-self.start), dk, decimal=1)
+        test.assert_almost_equal(2*np.pi/(self.system.end-self.system.start),
+                                 dk, decimal=1)
 
     def test_expT(self):
         expT = self.integrator.expT(self.dt)
@@ -71,6 +71,7 @@ class SOFT_PropagatorTestCase(unittest.TestCase):
 
     def test_assign_data(self):
         # No assertions but runs without error.
+        self.system.absorbed_density = [0.2, 0.8]
         self.integrator.psi_t = np.array([self.system.psi])
         self.integrator.compute_energies()
         data = Data()

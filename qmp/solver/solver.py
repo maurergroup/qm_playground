@@ -50,9 +50,8 @@ class ScipySolver(Solver):
 
         from scipy.sparse.linalg import eigsh
 
-        T = self.system.construct_T_matrix()
-        V = self.system.construct_V_matrix(self.potential)
-        H = T + V
+        self.system.construct_hamiltonian(self.potential)
+        H = self.system.H
 
         if self.states >= H.shape[1]:
             print('Scipy solver only capable of solving for '
@@ -87,9 +86,8 @@ class AlglibSolver(Solver):
 
         from scipy.sparse import issparse
 
-        T = self.system.construct_Tmatrix()
-        V = self.system.construct_Vmatrix(self.potential)
-        H = (T + V)
+        self.system.construct_hamiltonian(self.potential)
+        H = self.system.H
         if issparse(H):
             H = H.todense()
 
