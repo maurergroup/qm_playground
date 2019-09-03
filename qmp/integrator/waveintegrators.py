@@ -25,8 +25,8 @@ from qmp.tools.dyn_tools import project_wvfn
 import numpy as np
 from abc import ABC, abstractmethod
 import scipy.sparse as sp
-from numpy.fft import fft
-from numpy.fft import ifft
+from numpy.fft import fftn
+from numpy.fft import ifftn
 
 
 class AbstractWavePropagator(ABC):
@@ -217,18 +217,15 @@ class SOFT_Propagator(AbstractWavePropagator):
         from numpy.fft import fftfreq as FTp
 
         steps = self.system.steps
-        nx = self.system.N
+        N = self.system.N
         ndim = self.system.ndim
 
-        if ndim == 1:
-            k = 2 * np.pi * FTp(nx, steps[0])
-        elif ndim == 2:
-            k = FTp(nx, steps[0]).conj()*FTp(nx, steps[0])
-            k = np.pi*np.pi*(np.kron(np.ones(nx), k)
-                             + np.kron(k, np.ones(nx)))
-        else:
+        k = 2 * np.pi * FTp(N, steps[0])
+        if ndim == 2:
+            k = k ** 2
+            k = np.kron(np.ones(N), k) + np.kron(k, np.ones(N))
+        elif ndim > 2:
             raise NotImplementedError('Only 1D and 2D systems implemented')
-
         return k
 
     def expV(self, dt):
@@ -276,14 +273,19 @@ class SOFT_Propagator(AbstractWavePropagator):
 
     def propagate_momentum(self):
 
-        self.system.psi = self.transform(self.system.psi, fft)
+        self.system.psi = self.transform(self.system.psi, fftn)
         self.system.psi = self.propT.dot(self.system.psi)
-        self.system.psi = self.transform(self.system.psi, ifft)
+        self.system.psi = self.transform(self.system.psi, ifftn)
 
     def transform(self, psi, transform):
+        N = self.system.N
+        size = self.system.nstates * N ** self.system.ndim
         split = np.array(np.split(psi, self.system.nstates))
-        psi_transformed = transform(split).reshape(self.system.N
-                                                   * self.system.nstates)
+        axes = [-1]
+        if self.system.ndim == 2:
+            split = split.reshape((self.system.nstates, N, N))
+            axes = [-2, -1]
+        psi_transformed = transform(split, axes=axes).reshape(size)
         return psi_transformed
 
     def compute_energies(self):
@@ -295,8 +297,8 @@ class SOFT_Propagator(AbstractWavePropagator):
 
         for t, time in enumerate(self.psi_t):
             conj = time.conj()
-            T_dot_psi = T.dot(self.transform(time, fft))
-            E_kin_t[t] = np.real(conj.dot(self.transform(T_dot_psi, ifft)))
+            T_dot_psi = T.dot(self.transform(time, fftn))
+            E_kin_t[t] = np.real(conj.dot(self.transform(T_dot_psi, ifftn)))
             E_pot_t[t] = np.real(conj.dot(self.system.V.dot(time)))
 
         self.E_pot_t = E_pot_t
