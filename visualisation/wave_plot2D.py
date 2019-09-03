@@ -17,7 +17,7 @@ class WavePlot2D:
         # self.x = self.raw_data['x']
         # self.N = len(self.x)
         # self.rho_t = self.raw_data['rho_t'].real
-        self.psi_t = self.raw_data['psi_t'].real
+        self.rho_t = self.raw_data['rho_t'].real
         # self.nstates = int(len(self.rho_t[0]) / self.N)
 
         self.setup_plot()
@@ -27,7 +27,7 @@ class WavePlot2D:
 
     def get_update_function(self):
 
-        t = range(len(self.raw_data['psi_t']))
+        t = range(len(self.raw_data['rho_t']))
 
         @repeat(sequence=t)
         def update(i):
@@ -39,10 +39,10 @@ class WavePlot2D:
 
         size = self.raw_data['N']
         cell = self.raw_data['cell']
-        x = np.linspace(cell[0][0], cell[1][0], size)
-        y = np.linspace(cell[0][1], cell[1][1], size)
+        x = np.linspace(cell[0][0], cell[0][1], size)
+        y = np.linspace(cell[1][0], cell[1][1], size)
         xx, yy = np.meshgrid(x, y)
-        z = self.psi_t[i]
+        z = self.rho_t[i]
         z = z.reshape((size, size))
         self.source.data = dict(x=xx, y=yy, z=z)
 

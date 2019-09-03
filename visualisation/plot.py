@@ -28,8 +28,11 @@ class FileReader():
         self.load_data()
 
         if self.data.mode == 'wave':
-            self.plot = WavePlot(self.data)
-            # self.plot = WavePlot2D(self.data)
+            ndim = len(self.data.cell)
+            if ndim == 1:
+                self.plot = WavePlot(self.data)
+            elif ndim == 2:
+                self.plot = WavePlot2D(self.data)
 
         elif self.data.mode == 'traj':
             ndim = len(self.data.potential.shape)
