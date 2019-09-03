@@ -16,7 +16,6 @@ class Grid:
         self.solved = False
 
         self.delta = kwargs.get('delta', 0.2)
-        self.E_min = kwargs.get('E_min', 0.01)
 
         self.create_mesh()
 
@@ -25,9 +24,6 @@ class Grid:
         self.psi = np.zeros(size, dtype=complex)
         self.imag = np.zeros_like(self.psi)
         self.rho = np.zeros(size)
-
-        if self.ndim == 1:
-            self.construct_imaginary_potential()
 
         self.absorbed_density = np.zeros((self.nstates * 2))
 
@@ -123,10 +119,18 @@ class Grid:
 
     def set_initial_wvfn(self, psi):
         self.psi[:self.N**self.ndim] = np.array(psi).flatten()
+
         self.total_initial_density = np.sum(self.compute_probability_density())
+        self.compute_initial_kinetic_energy()
+        if self.ndim == 1:
+            self.construct_imaginary_potential()
 
     def compute_probability_density(self):
         return np.real(self.psi.conj() * self.psi)
+
+    def compute_initial_kinetic_energy(self):
+        self.construct_T_matrix()
+        self.E_min = np.real(self.psi.conj().dot(self.T.dot(self.psi))) / 3
 
     def absorb_boundary(self, dt):
         """ Applies absorbing boundaries as described by Kosloff and Kosloff
