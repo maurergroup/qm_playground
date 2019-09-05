@@ -21,7 +21,8 @@
 Integrators
 """
 
-from .waveintegrators import PrimitivePropagator, EigenPropagator
+from .waveintegrators import PrimitivePropagator
+# from .waveintegrators import EigenPropagator
 from .waveintegrators import SOFT_Propagator
 from .trajintegrators import VelocityVerlet, Langevin
 from .rpmdintegrators import RPMD_VelocityVerlet

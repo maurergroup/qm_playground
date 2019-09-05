@@ -24,7 +24,8 @@ class SOFT_PropagatorTestCase(unittest.TestCase):
         self.integrator = SOFT_Propagator(self.dt)
         self.integrator.system = self.system
         self.integrator.V = self.system.construct_V_matrix(self.pot)
-        self.integrator.k = self.integrator.compute_k()
+        self.integrator.compute_k()
+        self.integrator.compute_T()
         psi = signal.gaussian(self.N, 0.5)
         self.system.set_initial_wvfn(psi)
         self.integrator.propT = self.integrator.expT(self.dt/2)
@@ -40,7 +41,8 @@ class SOFT_PropagatorTestCase(unittest.TestCase):
 
     def test_compute_k(self):
         # Currently tests only 1D
-        k = self.integrator.compute_k()
+        self.integrator.compute_k()
+        k = self.integrator.k
         dk = abs(k[0] - k[1])
         test.assert_almost_equal(2*np.pi/(self.system.end-self.system.start),
                                  dk, decimal=1)
@@ -58,22 +60,25 @@ class SOFT_PropagatorTestCase(unittest.TestCase):
         shape_after = self.system.psi.shape
         test.assert_equal(shape_after, (self.size,))
 
-    def test_compute_energies(self):
-        self.integrator.psi_t = np.array([self.system.psi, self.system.psi])
-        self.integrator.compute_energies()
-        test.assert_equal(self.integrator.E_kin_t.shape, (2,))
+    def test_compute_current_energy(self):
+        E = self.integrator.compute_current_energy()
+        test.assert_equal(type(E), np.float64)
 
     def test_store_result(self):
         self.integrator.psi_t = [self.system.psi]
+        self.integrator.E_t = []
         self.integrator.store_result()
         shape = np.shape(self.integrator.psi_t)
         test.assert_equal(shape, (2, self.size))
+        shape = np.shape(self.integrator.E_t)
+        test.assert_equal(shape, (1,))
 
     def test_assign_data(self):
         # No assertions but runs without error.
         self.system.absorbed_density = [0.2, 0.8]
         self.integrator.psi_t = np.array([self.system.psi])
-        self.integrator.compute_energies()
+        self.integrator.E_t = np.array([5.02])
+        self.integrator.compute_current_energy()
         data = Data()
         self.integrator.assign_data(data)
 

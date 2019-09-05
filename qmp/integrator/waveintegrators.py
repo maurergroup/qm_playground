@@ -55,7 +55,6 @@ class AbstractWavePropagator(ABC):
 
         self.integrate(steps)
 
-        self.compute_energies()
         self.assign_data(data)
 
     def read_kwargs(self, kwargs):
@@ -90,77 +89,31 @@ class AbstractWavePropagator(ABC):
         pass
 
     def store_result(self):
-        self.psi_t.append(self.system.psi)
+        self.E_t.append(self.compute_current_energy())
+
+        psi = self.system.psi
+        if self.system.nstates == 2:
+            psi = self.system.get_adiabatic_wavefunction()
+        self.psi_t.append(psi)
 
     def is_finished(self):
         total_absorbed = np.sum(self.system.absorbed_density)
         fraction_absorbed = total_absorbed / self.system.total_initial_density
         exit = False
-        if fraction_absorbed > 0.8:
+        if fraction_absorbed > 0.2:
             self.status = "Success, all is well."
             exit = True
         return exit
 
     @abstractmethod
-    def compute_energies(self):
+    def compute_current_energy(self):
         pass
 
     def assign_data(self, data):
-        data.psi_t = np.array(self.psi_t)
+        data.psi_t = np.real(self.psi_t)
         data.N = self.system.N
-        data.rho_t = np.conjugate(data.psi_t)*data.psi_t
-        self.system.normalise_probabilities()
+        data.rho_t = np.real(np.conjugate(self.psi_t)*self.psi_t)
         data.outcome = self.system.absorbed_density
-
-
-class EigenPropagator(AbstractWavePropagator):
-    """
-    Projects initial wavefunction onto eigenbasis,
-    propagates expansion coefficients.
-    Currently limited to a single energy level.
-    Also, seems to be pretty dodgy, not sure what I did to break it.
-    """
-    def initialise_start(self, system, potential):
-
-        super().initialise_start(system, potential)
-        self.system.c = self.prepare_coefficients()
-
-        self.prop = np.diag(np.exp(-1j*self.system.E*self.dt))
-        self.psi_t = [self.system.basis.dot(self.system.c)]
-        self.c_t = [self.system.c]
-
-        if np.all(self.system.psi) == 0.:
-            raise ValueError('Please provide initial wave function'
-                             + ' on appropriate grid')
-
-    def prepare_coefficients(self):
-        states = self.system.basis.shape[1]
-        print('Projecting wavefunction onto basis of '
-              + str(states) + ' eigenstates')
-        if self.system.basis.shape[0] != states:
-            print('** WARNING: This basis is incomplete,'
-                  + ' coefficients might contain errors **')
-
-        return project_wvfn(self.system.psi, self.system.basis)
-
-    def propagate_psi(self):
-        self.system.c = self.prop.dot(self.system.c)
-        self.system.psi = self.system.basis.dot(self.system.c)
-
-    def store_result(self):
-        self.psi_t.append(self.system.psi)
-        self.c_t.append(self.system.c)
-
-    def compute_energies(self):
-        self.c_t = np.array(self.c_t)
-        E_times_c = self.system.E * self.c_t
-        self.E = np.einsum('ik,ik->i', self.c_t.conj(), E_times_c)
-
-    def assign_data(self, data):
-        super().assign_data(data)
-        data.rho_mean = np.mean(data.rho_t, 0)
-        data.c_t = np.array(self.c_t)
-        data.E_t = np.array(self.E)
 
 
 class PrimitivePropagator(AbstractWavePropagator):
@@ -171,11 +124,13 @@ class PrimitivePropagator(AbstractWavePropagator):
     def initialise_start(self, system, potential):
 
         super().initialise_start(system, potential)
+        self.prepare_electronics(potential)
+
         self.psi_t = [self.system.psi]
+        self.E_t = [self.compute_current_energy()]
         if (not self.system.psi.any() != 0.):
             raise ValueError('Please provide initial wave function'
                              + ' on appropriate grid')
-        self.prepare_electronics(potential)
 
     def prepare_electronics(self, potential):
 
@@ -185,15 +140,13 @@ class PrimitivePropagator(AbstractWavePropagator):
     def propagate_psi(self):
         self.system.psi = sp.linalg.expm_multiply(self.prop, self.system.psi)
 
-    def compute_energies(self):
-        E_t = np.zeros((len(self.psi_t)))
-        for t, time in enumerate(self.psi_t):
-            E_t[t] = np.real(time.conj().dot(self.system.H.dot(time)))
-        self.E = E_t
+    def compute_current_energy(self):
+        psi = self.system.psi
+        return np.real(psi.conj().dot(self.system.H.dot(psi)))
 
     def assign_data(self, data):
         super().assign_data(data)
-        data.E_t = self.E
+        data.E_t = np.array(self.E_t)
         data.V = self.system.V.A
 
 
@@ -207,9 +160,11 @@ class SOFT_Propagator(AbstractWavePropagator):
     def initialise_start(self, system, potential):
         super().initialise_start(system, potential)
         self.system.construct_V_matrix(potential)
-        self.k = self.compute_k()
+        self.compute_k()
+        self.compute_T()
 
         self.psi_t = [self.system.psi]
+        self.E_t = [self.compute_current_energy()]
         self.propT = self.expT(self.dt/2)
         self.propV = self.expV(self.dt)
 
@@ -226,7 +181,13 @@ class SOFT_Propagator(AbstractWavePropagator):
             k = np.kron(np.ones(N), k) + np.kron(k, np.ones(N))
         elif ndim > 2:
             raise NotImplementedError('Only 1D and 2D systems implemented')
-        return k
+        self.k = k
+
+    def compute_T(self):
+        m = self.system.mass
+        T = sp.diags(self.k**2 / (2.0 * m))
+        T = sp.block_diag([T] * self.system.nstates)
+        self.T = T
 
     def expV(self, dt):
 
@@ -257,14 +218,7 @@ class SOFT_Propagator(AbstractWavePropagator):
             return sp.diags(np.exp(-1j * self.system.V.diagonal() * dt))
 
     def expT(self, dt):
-        T = self.get_T()
-        return sp.diags(np.exp(-1j * T.diagonal() * dt))
-
-    def get_T(self):
-        m = self.system.mass
-        T = sp.diags(self.k**2 / (2.0 * m))
-        T = sp.block_diag([T] * self.system.nstates)
-        return T
+        return sp.diags(np.exp(-1j * self.T.diagonal() * dt))
 
     def propagate_psi(self):
         self.propagate_momentum()
@@ -288,25 +242,74 @@ class SOFT_Propagator(AbstractWavePropagator):
         psi_transformed = transform(split, axes=axes).reshape(size)
         return psi_transformed
 
-    def compute_energies(self):
+    def compute_current_energy(self):
+        E_kin = self.compute_kinetic_energy()
+        E_pot = self.compute_potential_energy()
+        return E_pot + E_kin
 
-        T = self.get_T()
+    def compute_potential_energy(self):
+        psi = self.system.psi
+        E_pot = np.real(psi.conj().dot(self.system.V.dot(psi)))
+        return E_pot
 
-        E_pot_t = np.zeros(len(self.psi_t))
-        E_kin_t = np.zeros(len(self.psi_t))
-
-        for t, time in enumerate(self.psi_t):
-            conj = time.conj()
-            T_dot_psi = T.dot(self.transform(time, fftn))
-            E_kin_t[t] = np.real(conj.dot(self.transform(T_dot_psi, ifftn)))
-            E_pot_t[t] = np.real(conj.dot(self.system.V.dot(time)))
-
-        self.E_pot_t = E_pot_t
-        self.E_kin_t = E_kin_t
+    def compute_kinetic_energy(self):
+        psi = self.system.psi
+        T_dot_psi = self.T.dot(self.transform(psi, fftn))
+        E_kin = np.real(psi.conj().dot(self.transform(T_dot_psi, ifftn)))
+        return E_kin
 
     def assign_data(self, data):
         super().assign_data(data)
-        data.E_kin_t = self.E_kin_t
-        data.E_pot_t = self.E_pot_t
-        data.E_t = self.E_kin_t + self.E_pot_t
+        # data.E_kin_t = self.E_kin_t
+        # data.E_pot_t = self.E_pot_t
+        data.E_t = np.array(self.E_t)
         data.V = self.system.V.A
+
+
+# class EigenPropagator(AbstractWavePropagator):
+#     """
+#     Projects initial wavefunction onto eigenbasis,
+#     propagates expansion coefficients.
+#     Currently limited to a single energy level.
+#     Also, seems to be pretty dodgy, not sure what I did to break it.
+#     """
+#     def initialise_start(self, system, potential):
+
+#         super().initialise_start(system, potential)
+#         self.system.c = self.prepare_coefficients()
+
+#         self.prop = np.diag(np.exp(-1j*self.system.E*self.dt))
+#         self.psi_t = [self.system.basis.dot(self.system.c)]
+#         self.c_t = [self.system.c]
+#         self.E_t = [self.compute_current_energy()]
+
+#         if np.all(self.system.psi) == 0.:
+#             raise ValueError('Please provide initial wave function'
+#                              + ' on appropriate grid')
+
+#     def prepare_coefficients(self):
+#         states = self.system.basis.shape[1]
+#         print('Projecting wavefunction onto basis of '
+#               + str(states) + ' eigenstates')
+#         if self.system.basis.shape[0] != states:
+#             print('** WARNING: This basis is incomplete,'
+#                   + ' coefficients might contain errors **')
+
+#         return project_wvfn(self.system.psi, self.system.basis)
+
+#     def propagate_psi(self):
+#         self.system.c = self.prop.dot(self.system.c)
+#         self.system.psi = self.system.basis.dot(self.system.c)
+
+#     def store_result(self):
+#         self.psi_t.append(self.system.psi)
+#         self.c_t.append(self.system.c)
+
+#     def compute_current_energy(self):
+#         return self.system.c.conj() * self.system.E * self.system.c
+
+#     def assign_data(self, data):
+#         super().assign_data(data)
+#         data.rho_mean = np.mean(data.rho_t, 0)
+#         data.c_t = np.array(self.c_t)
+#         data.E_t = np.array(self.E)

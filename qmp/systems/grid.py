@@ -1,5 +1,5 @@
 import numpy as np
-import scipy.sparse as sparse
+import scipy.sparse as sp
 
 
 class Grid:
@@ -47,14 +47,22 @@ class Grid:
             v11 = self.compute_diagonal_potential(potential, i=0, j=0)
             v12 = self.compute_diagonal_potential(potential, i=0, j=1)
             v22 = self.compute_diagonal_potential(potential, i=1, j=1)
-            self.V = sparse.bmat([[v11, v12], [v12, v22]])
+            self.V = sp.bmat([[v11, v12], [v12, v22]])
+
+            V = self.V.A
+            self.U = np.zeros((self.N, 2, 2))
+            for i in range(self.N):
+                mat = [[V[i, i], V[i, i+self.N]],
+                       [V[i+self.N, i], V[i+self.N, i+self.N]]]
+                w, v = np.linalg.eigh(mat)
+                self.U[i] = v
 
         except IndexError:
             self.V = v11
 
     def compute_diagonal_potential(self, potential, i, j):
         vflat = potential(*self.mesh, i=i, j=j).flatten()
-        return sparse.diags(vflat)
+        return sp.diags(vflat)
 
     def construct_T_matrix(self):
         self.define_laplacian()
@@ -64,17 +72,17 @@ class Grid:
         L = self.get_1D_laplacian()
 
         if self.ndim == 2:
-            L = sparse.kronsum(L, L, format='lil')
+            L = sp.kronsum(L, L, format='lil')
 
         L[0, -1] = 1.
         L[-1, 0] = 1.
         self.L = L / (self.steps ** 2).prod()
-        self.L = sparse.block_diag([self.L] * self.nstates)
+        self.L = sp.block_diag([self.L] * self.nstates)
 
     def get_1D_laplacian(self):
         off_diagonal = np.ones(self.N-1)
         diagonal = np.full(self.N, -2)
-        L = sparse.diags([off_diagonal, diagonal, off_diagonal], [-1, 0, 1])
+        L = sp.diags([off_diagonal, diagonal, off_diagonal], [-1, 0, 1])
         return L.tolil()
 
     def construct_imaginary_potential(self):
@@ -130,15 +138,15 @@ class Grid:
 
     def compute_initial_kinetic_energy(self):
         self.construct_T_matrix()
-        self.E_min = np.real(self.psi.conj().dot(self.T.dot(self.psi))) / 3
+        self.E_min = np.real(self.psi.conj().dot(self.T.dot(self.psi))) / 10
 
     def absorb_boundary(self, dt):
         """ Applies absorbing boundaries as described by Kosloff and Kosloff
         in JCP 63, 363-367 (1986).
         """
-        density_before = self.compute_probability_density()
+        density_before = self.compute_adiabatic_density()
         self.psi = (1 - self.imag * dt) * self.psi
-        density_after = self.compute_probability_density()
+        density_after = self.compute_adiabatic_density()
         absorbed_density = density_before - density_after
 
         self.store_absorption_increase(absorbed_density)
@@ -147,8 +155,9 @@ class Grid:
         """ After the simulation has finished, "absorb" the remaining density
         to give a result for transmission and reflection probabilities.
         """
-        current_density = self.compute_probability_density()
+        current_density = self.compute_adiabatic_density()
         self.store_absorption_increase(current_density)
+        self.normalise_probabilities()
 
     def store_absorption_increase(self, density):
         splits = np.array(np.split(density, self.nstates * 2))
@@ -158,3 +167,15 @@ class Grid:
     def normalise_probabilities(self):
         norm = np.sum(self.absorbed_density)
         self.absorbed_density /= norm
+
+    def get_adiabatic_wavefunction(self):
+        psi = np.zeros_like(self.psi)
+        for i in range(self.N):
+            psi_current = np.array([self.psi[i],
+                                   self.psi[i+self.N]])
+            psi[i], psi[i+self.N] = self.U[i].dot(psi_current)
+        return psi
+
+    def compute_adiabatic_density(self):
+        psi = self.get_adiabatic_wavefunction()
+        return np.real(psi.conj() * psi)
