@@ -128,13 +128,10 @@ class Grid:
     def set_initial_wvfn(self, psi):
         self.psi[:self.N**self.ndim] = np.array(psi).flatten()
 
-        self.total_initial_density = np.sum(self.compute_probability_density())
+        self.total_initial_density = np.sum(self.compute_adiabatic_density())
         self.compute_initial_kinetic_energy()
         if self.ndim == 1:
             self.construct_imaginary_potential()
-
-    def compute_probability_density(self):
-        return np.real(self.psi.conj() * self.psi)
 
     def compute_initial_kinetic_energy(self):
         self.construct_T_matrix()
@@ -177,5 +174,7 @@ class Grid:
         return psi
 
     def compute_adiabatic_density(self):
-        psi = self.get_adiabatic_wavefunction()
+        psi = self.psi
+        if self.nstates == 2:
+            psi = self.get_adiabatic_wavefunction()
         return np.real(psi.conj() * psi)

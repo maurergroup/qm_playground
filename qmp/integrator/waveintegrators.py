@@ -71,7 +71,8 @@ class AbstractWavePropagator(ABC):
         for i in range(steps):
 
             self.propagate_psi()
-            self.system.absorb_boundary(self.dt)
+            if self.system.ndim == 1:
+                self.system.absorb_boundary(self.dt)
 
             if (i+1) % self.output_freq == 0:
                 self.store_result()
@@ -81,7 +82,8 @@ class AbstractWavePropagator(ABC):
 
         print('INTEGRATED\n')
         print(self.status)
-        self.system.absorb_all()
+        if self.system.ndim == 1:
+            self.system.absorb_all()
         self.psi_t = np.array(self.psi_t)
 
     @abstractmethod
@@ -92,7 +94,7 @@ class AbstractWavePropagator(ABC):
         self.E_t.append(self.compute_current_energy())
 
         psi = self.system.psi
-        if self.system.nstates == 2:
+        if (self.system.nstates == 2) and self.system.ndim == 1:
             psi = self.system.get_adiabatic_wavefunction()
         self.psi_t.append(psi)
 
