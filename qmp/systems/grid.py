@@ -1,5 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
+from numpy.fft import fftn
+from numpy.fft import ifftn
 
 
 class Grid:
@@ -22,10 +24,9 @@ class Grid:
         # Initial wavefunction all zeros
         size = (self.nstates * self.N ** self.ndim)
         self.psi = np.zeros(size, dtype=complex)
-        self.imag = np.zeros_like(self.psi)
         self.rho = np.zeros(size)
 
-        self.absorbed_density = np.zeros((self.nstates * 2))
+        self.exit_flux = np.zeros((self.nstates, 2))
 
     def create_mesh(self):
 
@@ -38,8 +39,8 @@ class Grid:
 
     def construct_hamiltonian(self, potential):
         self.construct_V_matrix(potential)
-        self.construct_T_matrix()
-        self.H = self.V + self.T
+        self.construct_coordinate_T()
+        self.H = self.V + self.coordinate_T
 
     def construct_V_matrix(self, potential):
 
@@ -64,9 +65,9 @@ class Grid:
         vflat = potential(*self.mesh, i=i, j=j).flatten()
         return sp.diags(vflat)
 
-    def construct_T_matrix(self):
+    def construct_coordinate_T(self):
         self.define_laplacian()
-        self.T = - self.L / (2 * self.mass)
+        self.coordinate_T = - self.L / (2 * self.mass)
 
     def define_laplacian(self):
         L = self.get_1D_laplacian()
@@ -90,80 +91,67 @@ class Grid:
         Calculates imaginary potential as described by Manolopoulos
         in JCP 117, 9552 (2002).
         Currently only implemented for 1D.
-        Clipping added at the end to allow for Kosloff implementation instead
-        of adding to the hamiltonian as an imaginary potential, this allows for
-        easier recording of the transmission/reflection probabilities.
         """
 
         def imaginary_potential(r):
 
+            c = 2.62206
+            a = 1 - 16/c**3
+            b = (1 - 17/c**3) / c**2
+
             def y(x):
                 return a*x - b*x**3 + 4/(c-x)**2 - 4/(c+x)**2
 
-            def result(x):
-                return self.E_min * y(x)
-
-            c = 2.62206
-            a = 1 - 16/c**3
-            b = 1 - 17/c**3
-
-            k_min = np.sqrt(2 * self.mass * self.E_min)
             r2 = self.end[0]
-            r1 = r2 - c / (2 * self.delta * k_min)
-            x = 2 * self.delta * k_min * (r - r1)
+            r1 = r2 - c / (2 * self.delta * self.k_min)
+            x = 2 * self.delta * self.k_min * (r - r1)
 
             after_start = r1 < r
             before_end = r2 > r
             is_inside_region = np.logical_and(after_start, before_end)
-            end_zone = np.piecewise(x.astype(dtype=np.complex),
+            function = np.piecewise(x.astype(dtype=np.complex),
                                     is_inside_region,
-                                    [result])
+                                    [y])
+            function[-1] = 1000
+            end_zone = -1j * self.E_min * function
 
             start_zone = end_zone[::-1]
 
-            return np.clip(start_zone + end_zone, 0, 1)
+            return start_zone + end_zone
 
+        self.compute_absorption_parameters()
         self.imag = np.tile(imaginary_potential(self.mesh[0]), self.nstates)
 
-    def set_initial_wvfn(self, psi):
-        self.psi[:self.N**self.ndim] = np.array(psi).flatten()
+    def compute_absorption_parameters(self):
+        self.compute_k()
+        self.E_min = self.compute_kinetic_energy() / 3
+        self.k_min = np.sqrt(2 * self.mass * self.E_min)
 
-        self.total_initial_density = np.sum(self.compute_adiabatic_density())
-        self.compute_initial_kinetic_energy()
-        if self.ndim == 1:
-            self.construct_imaginary_potential()
+    def set_initial_wvfn(self, psi, n=1):
+        if n == 1:
+            self.psi[:self.N**self.ndim] = np.array(psi).flatten()
+        elif n == 2:
+            self.psi[self.N**self.ndim:] = np.array(psi).flatten()
+        self.total_initial_density = np.sum(self.compute_diabatic_density())
 
-    def compute_initial_kinetic_energy(self):
-        self.construct_T_matrix()
-        self.E_min = np.real(self.psi.conj().dot(self.T.dot(self.psi))) / 10
+    def compute_diabatic_density(self):
+        return np.real(self.psi.conj() * self.psi)
 
-    def absorb_boundary(self, dt):
-        """ Applies absorbing boundaries as described by Kosloff and Kosloff
-        in JCP 63, 363-367 (1986).
-        """
-        density_before = self.compute_adiabatic_density()
-        self.psi = (1 - self.imag * dt) * self.psi
-        density_after = self.compute_adiabatic_density()
-        absorbed_density = density_before - density_after
-
-        self.store_absorption_increase(absorbed_density)
-
-    def absorb_all(self):
-        """ After the simulation has finished, "absorb" the remaining density
+    def detect_all(self):
+        """ After the simulation has finished, detect the remaining density
         to give a result for transmission and reflection probabilities.
         """
         current_density = self.compute_adiabatic_density()
-        self.store_absorption_increase(current_density)
-        self.normalise_probabilities()
+        self.detect_flux(current_density)
 
-    def store_absorption_increase(self, density):
-        splits = np.array(np.split(density, self.nstates * 2))
-        probabilities = np.sum(splits, axis=1).real
-        self.absorbed_density += probabilities
+    def detect_flux(self, density):
+        splits = np.array(np.split(density, 2*self.nstates))
+        probabilities = np.sum(splits, axis=1).reshape(self.nstates, 2)
+        self.exit_flux += probabilities
 
     def normalise_probabilities(self):
-        norm = np.sum(self.absorbed_density)
-        self.absorbed_density /= norm
+        norm = np.sum(self.exit_flux)
+        self.exit_flux /= norm
 
     def get_adiabatic_wavefunction(self):
         psi = np.zeros_like(self.psi)
@@ -178,3 +166,34 @@ class Grid:
         if self.nstates == 2:
             psi = self.get_adiabatic_wavefunction()
         return np.real(psi.conj() * psi)
+
+    def compute_k(self):
+        from numpy.fft import fftfreq as FTp
+
+        k = 2 * np.pi * FTp(self.N, self.steps[0])
+        if self.ndim == 2:
+            k = k ** 2
+            k = np.kron(np.ones(self.N), k) + np.kron(k, np.ones(self.N))
+        elif self.ndim > 2:
+            raise NotImplementedError('Only 1D and 2D systems implemented')
+        self.k = np.tile(k, self.nstates)
+        self.momentum_T = self.k**2 / (2*self.mass)
+
+    def compute_kinetic_energy(self):
+        T_dot_psi = self.momentum_T * self.transform(self.psi, fftn)
+        E_kin = np.real(self.psi.conj().dot(self.transform(T_dot_psi, ifftn)))
+        return E_kin
+
+    def compute_potential_energy(self):
+        E_pot = np.real(self.psi.conj().dot(self.V.dot(self.psi)))
+        return E_pot
+
+    def transform(self, psi, transform):
+        size = self.nstates * self.N ** self.ndim
+        split = np.array(np.split(psi, self.nstates))
+        axes = [-1]
+        if self.ndim == 2:
+            split = split.reshape((self.nstates, self.N, self.N))
+            axes = [-2, -1]
+        psi_transformed = transform(split, axes=axes).reshape(size)
+        return psi_transformed

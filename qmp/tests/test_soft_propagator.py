@@ -24,8 +24,7 @@ class SOFT_PropagatorTestCase(unittest.TestCase):
         self.integrator = SOFT_Propagator(self.dt)
         self.integrator.system = self.system
         self.integrator.V = self.system.construct_V_matrix(self.pot)
-        self.integrator.compute_k()
-        self.integrator.compute_T()
+        self.system.compute_k()
         psi = signal.gaussian(self.N, 0.5)
         self.system.set_initial_wvfn(psi)
         self.integrator.propT = self.integrator.expT(self.dt/2)
@@ -35,21 +34,13 @@ class SOFT_PropagatorTestCase(unittest.TestCase):
         self.integrator.initialise_start(self.system, self.pot)
         test.assert_equal(self.system.V.shape,
                           (self.size, self.size))
-        test.assert_equal(self.integrator.k.shape, (self.N,))
+        test.assert_equal(self.system.k.shape, (self.size,))
         test.assert_equal(np.shape(self.integrator.psi_t),
                           (1, self.size))
 
-    def test_compute_k(self):
-        # Currently tests only 1D
-        self.integrator.compute_k()
-        k = self.integrator.k
-        dk = abs(k[0] - k[1])
-        test.assert_almost_equal(2*np.pi/(self.system.end-self.system.start),
-                                 dk, decimal=1)
-
     def test_expT(self):
         expT = self.integrator.expT(self.dt)
-        test.assert_equal(expT.shape, (self.size, self.size))
+        test.assert_equal(expT.shape, (self.size,))
 
     def test_expV(self):
         expV = self.integrator.expV(self.dt)

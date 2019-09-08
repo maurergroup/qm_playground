@@ -65,14 +65,16 @@ class AbstractWavePropagator(ABC):
     def initialise_start(self, system, potential):
         self.system = system
         self.status = ("Wave has not reached the cell boundary.")
+        self.system.construct_imaginary_potential()
+        self.propI = np.exp(-1j * self.system.imag * self.dt)
 
     def integrate(self, steps):
         print('Integrating...')
         for i in range(steps):
 
             self.propagate_psi()
-            if self.system.ndim == 1:
-                self.system.absorb_boundary(self.dt)
+
+            self.absorb_boundary()
 
             if (i+1) % self.output_freq == 0:
                 self.store_result()
@@ -82,13 +84,22 @@ class AbstractWavePropagator(ABC):
 
         print('INTEGRATED\n')
         print(self.status)
-        if self.system.ndim == 1:
-            self.system.absorb_all()
+
+        self.system.detect_all()
+        self.system.normalise_probabilities()
         self.psi_t = np.array(self.psi_t)
 
     @abstractmethod
     def propagate_psi(self):
         pass
+
+    def absorb_boundary(self):
+        density_before = self.system.compute_adiabatic_density()
+        self.system.psi = self.propI * self.system.psi
+        density_after = self.system.compute_adiabatic_density()
+
+        absorbed_density = density_before - density_after
+        self.system.detect_flux(absorbed_density)
 
     def store_result(self):
         self.E_t.append(self.compute_current_energy())
@@ -99,10 +110,10 @@ class AbstractWavePropagator(ABC):
         self.psi_t.append(psi)
 
     def is_finished(self):
-        total_absorbed = np.sum(self.system.absorbed_density)
-        fraction_absorbed = total_absorbed / self.system.total_initial_density
+        absorbed = np.sum(self.system.exit_flux)
+        absorbed_fraction = absorbed / self.system.total_initial_density
         exit = False
-        if fraction_absorbed > 0.2:
+        if absorbed_fraction > 0.9:
             self.status = "Success, all is well."
             exit = True
         return exit
@@ -115,7 +126,7 @@ class AbstractWavePropagator(ABC):
         data.psi_t = np.real(self.psi_t)
         data.N = self.system.N
         data.rho_t = np.real(np.conjugate(self.psi_t)*self.psi_t)
-        data.outcome = self.system.absorbed_density
+        data.outcome = self.system.exit_flux
 
 
 class PrimitivePropagator(AbstractWavePropagator):
@@ -149,7 +160,7 @@ class PrimitivePropagator(AbstractWavePropagator):
     def assign_data(self, data):
         super().assign_data(data)
         data.E_t = np.array(self.E_t)
-        data.V = self.system.V.A
+        data.V = np.real(self.system.V.A)
 
 
 class SOFT_Propagator(AbstractWavePropagator):
@@ -162,34 +173,12 @@ class SOFT_Propagator(AbstractWavePropagator):
     def initialise_start(self, system, potential):
         super().initialise_start(system, potential)
         self.system.construct_V_matrix(potential)
-        self.compute_k()
-        self.compute_T()
+        self.system.compute_k()
 
         self.psi_t = [self.system.psi]
         self.E_t = [self.compute_current_energy()]
         self.propT = self.expT(self.dt/2)
         self.propV = self.expV(self.dt)
-
-    def compute_k(self):
-        from numpy.fft import fftfreq as FTp
-
-        steps = self.system.steps
-        N = self.system.N
-        ndim = self.system.ndim
-
-        k = 2 * np.pi * FTp(N, steps[0])
-        if ndim == 2:
-            k = k ** 2
-            k = np.kron(np.ones(N), k) + np.kron(k, np.ones(N))
-        elif ndim > 2:
-            raise NotImplementedError('Only 1D and 2D systems implemented')
-        self.k = k
-
-    def compute_T(self):
-        m = self.system.mass
-        T = sp.diags(self.k**2 / (2.0 * m))
-        T = sp.block_diag([T] * self.system.nstates)
-        self.T = T
 
     def expV(self, dt):
 
@@ -220,7 +209,7 @@ class SOFT_Propagator(AbstractWavePropagator):
             return sp.diags(np.exp(-1j * self.system.V.diagonal() * dt))
 
     def expT(self, dt):
-        return sp.diags(np.exp(-1j * self.T.diagonal() * dt))
+        return np.exp(-1j * self.system.momentum_T * dt)
 
     def propagate_psi(self):
         self.propagate_momentum()
@@ -228,44 +217,21 @@ class SOFT_Propagator(AbstractWavePropagator):
         self.propagate_momentum()
 
     def propagate_momentum(self):
-
-        self.system.psi = self.transform(self.system.psi, fftn)
-        self.system.psi = self.propT.dot(self.system.psi)
-        self.system.psi = self.transform(self.system.psi, ifftn)
-
-    def transform(self, psi, transform):
-        N = self.system.N
-        size = self.system.nstates * N ** self.system.ndim
-        split = np.array(np.split(psi, self.system.nstates))
-        axes = [-1]
-        if self.system.ndim == 2:
-            split = split.reshape((self.system.nstates, N, N))
-            axes = [-2, -1]
-        psi_transformed = transform(split, axes=axes).reshape(size)
-        return psi_transformed
+        self.system.psi = self.system.transform(self.system.psi, fftn)
+        self.system.psi = self.propT * self.system.psi
+        self.system.psi = self.system.transform(self.system.psi, ifftn)
 
     def compute_current_energy(self):
-        E_kin = self.compute_kinetic_energy()
-        E_pot = self.compute_potential_energy()
+        E_kin = self.system.compute_kinetic_energy()
+        E_pot = self.system.compute_potential_energy()
         return E_pot + E_kin
-
-    def compute_potential_energy(self):
-        psi = self.system.psi
-        E_pot = np.real(psi.conj().dot(self.system.V.dot(psi)))
-        return E_pot
-
-    def compute_kinetic_energy(self):
-        psi = self.system.psi
-        T_dot_psi = self.T.dot(self.transform(psi, fftn))
-        E_kin = np.real(psi.conj().dot(self.transform(T_dot_psi, ifftn)))
-        return E_kin
 
     def assign_data(self, data):
         super().assign_data(data)
         # data.E_kin_t = self.E_kin_t
         # data.E_pot_t = self.E_pot_t
         data.E_t = np.array(self.E_t)
-        data.V = self.system.V.A
+        data.V = np.real(self.system.V.A)
 
 
 # class EigenPropagator(AbstractWavePropagator):
