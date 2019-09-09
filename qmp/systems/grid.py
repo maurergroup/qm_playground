@@ -92,35 +92,24 @@ class Grid:
         in JCP 117, 9552 (2002).
         Currently only implemented for 1D.
         """
-
-        def imaginary_potential(r):
-
-            c = 2.62206
-            a = 1 - 16/c**3
-            b = (1 - 17/c**3) / c**2
-
-            def y(x):
-                return a*x - b*x**3 + 4/(c-x)**2 - 4/(c+x)**2
-
-            r2 = self.end[0]
-            r1 = r2 - c / (2 * self.delta * self.k_min)
-            x = 2 * self.delta * self.k_min * (r - r1)
-
-            after_start = r1 < r
-            before_end = r2 > r
-            is_inside_region = np.logical_and(after_start, before_end)
-            function = np.piecewise(x.astype(dtype=np.complex),
-                                    is_inside_region,
-                                    [y])
-            function[-1] = 1000
-            end_zone = -1j * self.E_min * function
-
-            start_zone = end_zone[::-1]
-
-            return start_zone + end_zone
-
         self.compute_absorption_parameters()
-        self.imag = np.tile(imaginary_potential(self.mesh[0]), self.nstates)
+
+        c = 2.62206
+        r2 = self.end[0]
+        r1 = r2 - c / (2 * self.delta * self.k_min)
+
+        r = self.mesh[0]
+        if self.ndim == 2:
+            r = r[0]
+        imag = Grid.imaginary_potential(r, r1, r2, self.delta,
+                                        self.k_min, self.E_min)
+
+        if self.ndim == 2:
+            stacked = np.vstack([imag] * self.N)
+            transpose = stacked.T
+            new = stacked + transpose
+            imag = new.flatten()
+        self.imag = np.tile(imag, self.nstates)
 
     def compute_absorption_parameters(self):
         self.compute_k()
@@ -197,3 +186,28 @@ class Grid:
             axes = [-2, -1]
         psi_transformed = transform(split, axes=axes).reshape(size)
         return psi_transformed
+
+    @staticmethod
+    def imaginary_potential(r, r1, r2, delta, k_min, E_min):
+
+        c = 2.62206
+        a = 1 - 16/c**3
+        b = (1 - 17/c**3) / c**2
+
+        def y(x):
+            return a*x - b*x**3 + 4/(c-x)**2 - 4/(c+x)**2
+
+        x = 2 * delta * k_min * (r - r1)
+
+        after_start = r1 < r
+        before_end = r2 > r
+        is_inside_region = np.logical_and(after_start, before_end)
+        function = np.piecewise(x.astype(dtype=np.complex),
+                                is_inside_region,
+                                [y])
+        function[-1] = 1000
+        end_zone = -1j * E_min * function
+
+        start_zone = end_zone[::-1]
+
+        return start_zone + end_zone

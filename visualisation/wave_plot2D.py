@@ -52,7 +52,12 @@ class WavePlot2D:
 
     def setup_wave_movie(self):
         self.source = ColumnDataSource(data=dict(x=[], y=[]))
-        self.wave_movie = Surface3d(x='x', y='y', z='z',
+        min = np.min(self.rho_t)
+        max = np.max(self.rho_t)
+        range = max - min
+        min -= 0.1 * range
+        max += 0.1 * range
+        self.wave_movie = Surface3d(x='x', y='y', z='z', zMax=max,
                                     data_source=self.source)
 
     # def plot_waves(self):

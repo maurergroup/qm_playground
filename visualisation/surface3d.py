@@ -2,7 +2,7 @@ from __future__ import division
 
 import numpy as np
 
-from bokeh.core.properties import Instance, String, Dict, Any
+from bokeh.core.properties import Instance, String, Float, Any
 from bokeh.models import ColumnDataSource, LayoutDOM
 from bokeh.io import show
 from bokeh.util.compiler import TypeScript
@@ -33,23 +33,6 @@ declare namespace vis {
 
 // This defines some default options for the Graph3d feature of vis.js
 // See: http://visjs.org/graph3d_examples.html for more details.
-const OPTIONS = {
-  width: '600px',
-  height: '600px',
-  style: 'surface',
-  showPerspective: true,
-  showGrid: true,
-  zMax: 1,
-  zMin: -1,
-  keepAspectRatio: true,
-  verticalRatio: 1.0,
-  legendLabel: 'stuff',
-  cameraPosition: {
-    horizontal: -0.35,
-    vertical: 0.22,
-    distance: 1.8,
-  },
-}
 // To create custom model extensions that will render on to the HTML canvas
 // or into the DOM, we must create a View subclass for the model.
 //
@@ -79,6 +62,22 @@ export class Surface3dView extends LayoutDOMView {
     // Many Bokeh views ignore this default <div>, and instead do things like
     // draw to the HTML canvas. In this case though, we use the <div> to attach
     // a Graph3d to the DOM.
+    const OPTIONS = {
+      width: '600px',
+      height: '600px',
+      style: 'surface',
+      showPerspective: true,
+      zMax: this.model.zMax,
+      showGrid: true,
+      keepAspectRatio: true,
+      verticalRatio: 1.0,
+      legendLabel: 'stuff',
+      cameraPosition: {
+        horizontal: -0.35,
+        vertical: 0.22,
+        distance: 1.8,
+      },
+    }
     this._graph = new vis.Graph3d(this.el, this.get_data(), OPTIONS)
 
     // Set a listener so that when the Bokeh data source has a change
@@ -125,6 +124,7 @@ export namespace Surface3d {
     y: p.Property<string>
     z: p.Property<string>
     data_source: p.Property<ColumnDataSource>
+    zMax: p.Property<number>
   }
 }
 
@@ -158,28 +158,12 @@ export class Surface3d extends LayoutDOM {
       y:            [ p.String   ],
       z:            [ p.String   ],
       data_source:  [ p.Instance ],
+      zMax:         [ p.Any      ],
     })
   }
 }
 Surface3d.initClass()
 """
-
-DEFAULTS = {
-    'width':          '600px',
-    'height':         '600px',
-    'style':          'surface',
-    'showPerspective': True,
-    'showGrid':        True,
-    'keepAspectRatio': True,
-    'zMax': 1,
-    'verticalRatio':   1.0,
-    'legendLabel':     'stuff',
-    'cameraPosition':  {
-        'horizontal': -0.35,
-        'vertical':    0.22,
-        'distance':    1.8,
-    }
-}
 
 # This custom extension model will have a DOM view that should layout-able in
 # Bokeh layouts, so use ``LayoutDOM`` as the base class. If you wanted to create
@@ -214,4 +198,4 @@ class Surface3d(LayoutDOM):
 
     z = String
 
-    options = Dict(String, Any, default=DEFAULTS)
+    zMax = Any
