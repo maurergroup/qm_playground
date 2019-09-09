@@ -31,7 +31,9 @@ from numpy.fft import ifftn
 
 class AbstractWavePropagator(ABC):
     """
-    Abstract base class for other wave integrators to implement.
+    Abstract base class for other wave integrators to implement. Only the
+    functions decorated by '@abstractmethod' should be extended, all others
+    shoudl remain the same for all integrators.
     Had to leave this little picture in, someone obviously put of lot of work
     into it.
                      _               ..
@@ -43,32 +45,59 @@ class AbstractWavePropagator(ABC):
     (border)       (wave)         (barrier)                  (border)
     """
     def __init__(self, dt=1):
+        """
+        Class is initialised with a timestep as a single argument.
+        """
         self.dt = dt
 
     def run(self, system, steps, potential, data, **kwargs):
         """
-        Propagates the system for 'steps' timesteps of length 'dt'.
+        This function is called by the model to run the integration process.
         """
+        self.system = system
 
         self.read_kwargs(kwargs)
-        self.initialise_start(system, potential)
+
+        self.prepare_electronics(potential)
+
+        self.initialise_start()
 
         self.integrate(steps)
 
         self.assign_data(data)
 
     def read_kwargs(self, kwargs):
+        """
+        Allowed keyword arguments are read here, no other keyword arguments
+        should be specified.
+        """
         self.dt = kwargs.get('dt', self.dt)
         self.output_freq = kwargs.get('output_freq', 200)
 
     @abstractmethod
-    def initialise_start(self, system, potential):
-        self.system = system
+    def prepare_electronics(self, potential):
+        pass
+
+    def initialise_start(self):
+        """
+        This function is for any initialisation that must occur before the
+        integration begins, extending classes should prepare any variables
+        constant throughout the integration by extending this function.
+        """
+        if (not self.system.psi.any() != 0.):
+            raise ValueError('Please provide initial wave function'
+                             + ' on appropriate grid')
+
         self.status = ("Wave has not reached the cell boundary.")
         self.system.construct_imaginary_potential()
         self.propI = np.exp(-1j * self.system.imag * self.dt)
+        self.psi_t = [self.system.psi]
+        self.E_t = [self.compute_current_energy()]
 
     def integrate(self, steps):
+        """
+        This function carries out the main integration loop.
+        """
         print('Integrating...')
         for i in range(steps):
 
@@ -91,9 +120,18 @@ class AbstractWavePropagator(ABC):
 
     @abstractmethod
     def propagate_psi(self):
+        """
+        Child classes should use this function to carry out a single timestep
+        propagation.
+        """
         pass
 
     def absorb_boundary(self):
+        """
+        The wavefunction is propagated by a whole timestep in the negative
+        imaginary potential. This is present in the boundary regions to absorb
+        the wavefunction and detect the scattering outcome.
+        """
         density_before = self.system.compute_adiabatic_density()
         self.system.psi = self.propI * self.system.psi
         density_after = self.system.compute_adiabatic_density()
@@ -102,6 +140,9 @@ class AbstractWavePropagator(ABC):
         self.system.detect_flux(absorbed_density)
 
     def store_result(self):
+        """
+        Lists of energies and wavefunctions are populated at each timestep.
+        """
         self.E_t.append(self.compute_current_energy())
 
         psi = self.system.psi
@@ -110,6 +151,12 @@ class AbstractWavePropagator(ABC):
         self.psi_t.append(psi)
 
     def is_finished(self):
+        """
+        The total amount absorbed so far is compared to the intial probability
+        density, once the absorbed density reaches 0.9 of the initial density,
+        the simulation is terminated. This is to avoid simulations running for
+        long periods of time when density is struggling to reach the boundary.
+        """
         absorbed = np.sum(self.system.exit_flux)
         absorbed_fraction = absorbed / self.system.total_initial_density
         exit = False
@@ -120,13 +167,23 @@ class AbstractWavePropagator(ABC):
 
     @abstractmethod
     def compute_current_energy(self):
+        """
+        This function must be implemented in each child class to describe the
+        energy calculation for the current wavefunction.
+        """
         pass
 
     def assign_data(self, data):
+        """
+        Class variables are copied over to the data attribute of the model
+        class.
+        """
         data.psi_t = np.real(self.psi_t)
         data.N = self.system.N
         data.rho_t = np.real(np.conjugate(self.psi_t)*self.psi_t)
         data.outcome = self.system.exit_flux
+        data.E_t = np.array(self.E_t)
+        data.V = np.real(self.system.V.A)
 
 
 class PrimitivePropagator(AbstractWavePropagator):
@@ -134,19 +191,8 @@ class PrimitivePropagator(AbstractWavePropagator):
     Primitive exp(-iHt) propagator for psi in arbitrary
     basis in spatial representation.
     """
-    def initialise_start(self, system, potential):
-
-        super().initialise_start(system, potential)
-        self.prepare_electronics(potential)
-
-        self.psi_t = [self.system.psi]
-        self.E_t = [self.compute_current_energy()]
-        if (not self.system.psi.any() != 0.):
-            raise ValueError('Please provide initial wave function'
-                             + ' on appropriate grid')
 
     def prepare_electronics(self, potential):
-
         self.system.construct_hamiltonian(potential)
         self.prop = -1j * self.system.H * self.dt
 
@@ -157,11 +203,6 @@ class PrimitivePropagator(AbstractWavePropagator):
         psi = self.system.psi
         return np.real(psi.conj().dot(self.system.H.dot(psi)))
 
-    def assign_data(self, data):
-        super().assign_data(data)
-        data.E_t = np.array(self.E_t)
-        data.V = np.real(self.system.V.A)
-
 
 class SOFT_Propagator(AbstractWavePropagator):
     """
@@ -169,14 +210,9 @@ class SOFT_Propagator(AbstractWavePropagator):
     Follows approach detailed in section 11.7 of David J. Tannor's
     "Introduction to Quantum Mechanics".
     """
-
-    def initialise_start(self, system, potential):
-        super().initialise_start(system, potential)
+    def prepare_electronics(self, potential):
         self.system.construct_V_matrix(potential)
         self.system.compute_k()
-
-        self.psi_t = [self.system.psi]
-        self.E_t = [self.compute_current_energy()]
         self.propT = self.expT(self.dt/2)
         self.propV = self.expV(self.dt)
 
@@ -225,13 +261,6 @@ class SOFT_Propagator(AbstractWavePropagator):
         E_kin = self.system.compute_kinetic_energy()
         E_pot = self.system.compute_potential_energy()
         return E_pot + E_kin
-
-    def assign_data(self, data):
-        super().assign_data(data)
-        # data.E_kin_t = self.E_kin_t
-        # data.E_pot_t = self.E_pot_t
-        data.E_t = np.array(self.E_t)
-        data.V = np.real(self.system.V.A)
 
 
 # class EigenPropagator(AbstractWavePropagator):
