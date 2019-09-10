@@ -35,3 +35,13 @@ class PhaseSpace:
 
     def compute_force(self, potential):
         return -1 * potential.deriv(self.r)
+
+    def propagate_positions(self, acc, dt):
+        self.r = self.r + self.v * dt + 0.5 * acc * dt ** 2
+
+    def propagate_velocities(self, a1, a2, dt):
+        self.v = self.v + 0.5 * (a1 + a2) * dt
+
+    def compute_acceleration(self, potential):
+        F = self.compute_force(potential)
+        return F / self.masses[:, np.newaxis]

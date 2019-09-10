@@ -20,10 +20,101 @@
 """
 trajintegrators.py
 """
-
 from qmp.integrator.integrator import Integrator
 from numpy.random import standard_normal
 import numpy as np
+from abc import ABC, abstractmethod
+
+
+class AbstractVelocityVerlet(ABC):
+
+    def __init__(self, dt=1):
+        self.dt = dt
+
+    def run(self, system, steps, potential, data, **kwargs):
+
+        self.system = system
+        self.potential = potential
+
+        self.read_kwargs(kwargs)
+
+        self.initialise_start()
+
+        self.integrate(steps)
+
+        self.assign_data(data)
+
+    def read_kwargs(self, kwargs):
+        """
+        Allowed keyword arguments are read here, no other keyword arguments
+        should be specified.
+        """
+        self.dt = kwargs.get('dt', self.dt)
+        self.output_freq = kwargs.get('output_freq', 200)
+
+    @abstractmethod
+    def initialise_start(self):
+        pass
+
+    def integrate(self, steps):
+        print('Integrating...')
+
+        self.current_acc = self.system.compute_acceleration(self.potential)
+        for i in range(steps):
+
+            self.propagate_system()
+
+            if (i+1) % self.output_freq == 0:
+                self.store_result()
+
+        print('INTEGRATED')
+
+    def propagate_system(self):
+        """
+        This function carries out the shortened form of the velocity verlet
+        algorithm. It requires that the systems taking advantage of this
+        integrator implement the three functions used within it.
+        """
+        self.system.propagate_positions(self.current_acc, self.dt)
+        new_acc = self.system.compute_acceleration(self.potential)
+        self.system.propagate_velocities(self.current_acc, new_acc, self.dt)
+        self.current_acc = new_acc
+
+    @abstractmethod
+    def store_result(self):
+        pass
+
+    @abstractmethod
+    def assign_data(self, data):
+        pass
+
+
+class VelocityVerlet(AbstractVelocityVerlet):
+    """
+    Velocity verlet integrator for classical dynamics
+    """
+
+    def initialise_start(self):
+        self.r_t = [self.system.r]
+        self.v_t = [self.system.v]
+
+        self.E_pot = [self.system.compute_potential_energy(self.potential)]
+        self.E_kin = [self.system.compute_kinetic_energy()]
+
+    def store_result(self):
+        self.r_t.append(self.system.r)
+        self.v_t.append(self.system.v)
+
+        self.E_pot.append(self.system.compute_potential_energy(self.potential))
+        self.E_kin.append(self.system.compute_kinetic_energy())
+
+    def assign_data(self, data):
+        data.r_t = np.array(self.r_t)
+        data.v_t = np.array(self.v_t)
+        data.E_kin_t = np.array(self.E_kin)
+        data.E_pot_t = np.array(self.E_pot)
+        data.E_t = data.E_kin_t + data.E_pot_t
+        data.potential = self.potential.compute_cell_potential(density=1000)
 
 
 class Langevin(Integrator):
@@ -130,53 +221,3 @@ class Langevin(Integrator):
         data.E_kin_t = E_kin
         data.E_pot_t = E_pot
         data.E_t = E_tot
-
-
-class VelocityVerlet(Integrator):
-    """
-    Velocity verlet integrator for classical dynamics
-    """
-
-    def run(self, system, steps, potential, data, **kwargs):
-
-        dt = kwargs.get('dt', self.dt)
-
-        self.system = system
-        N = self.system.n_particles
-        ndim = self.system.ndim
-        m = self.system.masses
-
-        r_t = np.zeros((steps, N, ndim))
-        v_t = np.zeros((steps, N, ndim))
-        r_t[0] = np.array(self.system.r)
-        v_t[0] = np.array(self.system.v)
-
-        E_pot = np.zeros((steps, N))
-        E_kin = np.zeros((steps, N))
-        E_pot[0] = self.system.compute_potential_energy(potential)
-        E_kin[0] = self.system.compute_kinetic_energy()
-
-        print('Integrating...')
-        for i_step in range(1, steps):
-
-            F = self.system.compute_force(potential)
-            v1 = self.system.v + F / m[:, np.newaxis] * dt / 2
-            self.system.r += v1 * dt
-            F = (F + self.system.compute_force(potential)) / 2
-            self.system.v += F / m[:, np.newaxis] * dt
-
-            r_t[i_step] = self.system.r
-            v_t[i_step] = self.system.v
-            E_pot[i_step] = self.system.compute_potential_energy(potential)
-            E_kin[i_step] = self.system.compute_kinetic_energy()
-
-        E_tot = E_pot + E_kin
-
-        print('INTEGRATED')
-
-        data.r_t = r_t
-        data.v_t = v_t
-        data.E_kin_t = E_kin
-        data.E_pot_t = E_pot
-        data.E_t = E_tot
-        data.potential = potential.compute_cell_potential(density=1000)

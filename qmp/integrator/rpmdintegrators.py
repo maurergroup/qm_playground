@@ -20,34 +20,18 @@
 """
 rpmd integrators.py
 """
-
-from qmp.integrator.integrator import Integrator
+from qmp.integrator.trajintegrators import AbstractVelocityVerlet
 from qmp.tools.dyn_tools import create_thermostat
 import numpy as np
-import pickle as pick
 
 
-def remove_restart():
+class RPMD_VelocityVerlet(AbstractVelocityVerlet):
     """
-    Removes filename from current directory, if existing
+    Velocity verlet integrator for RPMD.
     """
-    try:
-        from os import remove
-        remove('*.rst')
-        del remove
-    except OSError:
-        pass
-
-
-class RPMD_VelocityVerlet(Integrator):
-    """
-    Velocity verlet integrator for classical dynamics
-    """
-
     def __init__(self, dt, **kwargs):
-        Integrator.__init__(self, dt)
+        super().__init__(dt)
 
-        # create thermostat
         no_ts = {'name': 'no_thermostat', 'cfreq': 0., 'T_set': 0.}
         ts_dict = kwargs.get('thermostat', no_ts)
         ts_name = ts_dict['name']
@@ -57,124 +41,83 @@ class RPMD_VelocityVerlet(Integrator):
                                         cfreq=ts_cfreq,
                                         T_set=ts_Tset)
 
-        self.restart = kwargs.get('restart_file', False)
+    def read_kwargs(self, kwargs):
+        super().read_kwargs(kwargs)
+        self.dyn_T = kwargs.get('dyn_T', False)
 
-    def initialise_zero_arrays(self, steps, N, Nb, ndim, potential):
-        self.rb_t = np.zeros((steps, N, Nb, ndim))
-        self.vb_t = np.zeros((steps, N, Nb, ndim))
-        self.r_t = np.zeros((steps, N, ndim))
-        self.v_t = np.zeros((steps, N, ndim))
+    def initialise_start(self):
 
-        self.rb_t[0] = np.array(self.system.r_beads)
-        self.vb_t[0] = np.array(self.system.v_beads)
-        self.r_t[0] = np.mean(self.system.r_beads, 1)
-        self.v_t[0] = np.mean(self.system.v_beads, 1)
+        potential = self.potential
+        self.rb_t = [self.system.r_beads]
+        self.vb_t = [self.system.v_beads]
+        self.E_pot = [self.system.compute_bead_potential_energy(potential)]
+        self.E_kin = [self.system.compute_kinetic_energy()]
 
-        self.e_pot = np.zeros((steps, N, Nb))
-        self.e_kin = np.zeros((steps, N, Nb))
+        bins = [np.arange(potential.cell[0][0], potential.cell[0][1], 0.1)]
+        if self.system.ndim == 2:
+            bins.append(np.arange(potential.cell[1][0],
+                                  potential.cell[1][1], 0.1))
+        bins = np.array(bins)
 
-        self.e_pot[0] = self.system.compute_bead_potential_energy(potential)
-        self.e_kin[0] = self.system.compute_kinetic_energy()
+        H, self.rbins = np.histogramdd(self.system.r, bins=bins)
+        self.vals = np.zeros(np.shape([H, ]*self.system.n_particles))
 
-        self.dt_ts = np.zeros(Nb)
+        self.omega_t = []
+        self.dt_ts = np.zeros(self.system.n_beads)
 
-    def load_restart(self):
-        try:
-            restart_file = open(self.restart, 'rb')
-            current_data = pick.load(restart_file)
-            self.rb_t = current_data['rb_t']
-            self.vb_t = current_data['vb_t']
-            self.e_kin = current_data['Eb_kin']
-            self.e_pot = current_data['Eb_pot']
-            self.vals = current_data['prob_vals']
-            self.rbins = current_data['bins']
-            self.omega_t = current_data['omega_t']
-            self.s_start = current_data['i_step']+1
-        except FileNotFoundError:
-            raise FileNotFoundError("Could not load restart file '"
-                                    + str(self.restart)+"'.")
+    def integrate(self, steps):
+        print('Integrating...')
 
-    def prepare(self, steps, potential):
-        if not self.restart:
+        self.current_acc = self.system.compute_acceleration(self.potential)
+        for i in range(steps):
+            self.update_omega()
 
-            ndim = self.system.ndim
-            N = self.system.n_particles
-            Nb = self.system.n_beads
-            self.initialise_zero_arrays(steps, N, Nb, ndim, potential)
+            self.propagate_system()
 
-            bins = [np.arange(potential.cell[0][0], potential.cell[0][1], 0.1)]
-            if ndim == 2:
-                bins.append(np.arange(potential.cell[1][0],
-                                      potential.cell[1][1], 0.1))
-            bins = np.array(bins)
+            self.apply_thermostat()
 
-            H, self.rbins = np.histogramdd(self.system.r, bins=bins)
-            self.vals = np.zeros(np.shape([H, ]*N))
+            if (i+1) % self.output_freq == 0:
+                self.store_result()
 
-            self.omega_t = np.zeros((steps+1, N))
+        print('INTEGRATED')
 
-            self.p_start = 0
-            self.s_start = 0
-        else:
-            self.load_restart()
+    def update_omega(self):
+        if self.dyn_T == 'Rugh':
+            self.system.compute_omega_Rugh(self.potential)
+        elif self.dyn_T is not False:
+            raise ValueError(f"Scheme for dynamical Temperature '{self.dyn_T}'"
+                             + "' not known. Use False or 'Rugh'.")
+        self.omega_t.append(self.system.omega)
 
-    def update_omega(self, dyn_T, potential, i_step):
-        if dyn_T == 'Rugh':
-            self.system.compute_omega_Rugh(potential)
-        elif dyn_T is not False:
-            raise ValueError("Scheme for dynamical Temperature '"
-                             + dyn_T + "' not known. Use False or 'Rugh'.")
-        self.omega_t[i_step] = self.system.omega
-
-    def propagate_system(self, potential, dt):
-        m = self.system.masses
-        F = self.system.compute_bead_force(potential)
-        v1 = self.system.v_beads + F / m[:, np.newaxis, np.newaxis] * dt / 2.
-        self.system.r_beads += v1 * dt
-        F = self.system.compute_bead_force(potential)
-        self.system.v_beads = v1 + F / m[:, np.newaxis, np.newaxis] * dt / 2
-
-    def apply_thermostat(self, dt):
-        self.dt_ts += dt
+    def apply_thermostat(self):
+        self.dt_ts += self.dt
         m = self.system.masses
         ndim = self.system.ndim
         self.system.v_beads, self.dt_ts = self.thermo(self.system.v_beads,
                                                       m, self.dt_ts, ndim)
 
-    def store_result(self, e_pot, e_kin, i_step):
+    def store_result(self):
 
-        self.rb_t[i_step] = self.system.r_beads
-        self.vb_t[i_step] = self.system.v_beads
-        self.r_t[i_step] = self.system.r
-        self.v_t[i_step] = self.system.v
-        self.e_pot[i_step] = e_pot
-        self.e_kin[i_step] = e_kin
+        self.rb_t.append(self.system.r_beads)
+        self.vb_t.append(self.system.v_beads)
 
-    def write_restart(self, i_step):
-        out = open('rpmd_dyn.rst', 'wb')
-        rpmd_data = {'rb_t': self.rb_t, 'vb_t': self.vb_t,
-                     'Eb_pot': self.e_pot, 'Eb_kin': self.e_kin,
-                     'bins': self.rbins, 'prob_vals': self.vals,
-                     'omega_t': self.omega_t, 'i_step': i_step}
-        pick.dump(rpmd_data, out)
+        e_pot = self.system.compute_bead_potential_energy(self.potential)
+        e_kin = self.system.compute_kinetic_energy()
+        self.E_pot.append(e_pot)
+        self.E_kin.append(e_kin)
 
-    def create_histogram(self):
-        for i in range(self.system.n_particles):
-            self.vals[i] = np.histogramdd(self.r_t[:, i],
-                                          bins=self.rbins, normed=True)[0]
-        self.vals_tot = np.mean(self.vals, 0)
-
-    def assign_data(self, data, i_step):
+    def assign_data(self, data):
         data.rb_t = self.rb_t
         data.vb_t = self.vb_t
         data.r_t = np.mean(self.rb_t, 2)
         data.v_t = np.mean(self.vb_t, 2)
+        self.create_histogram(data.r_t)
 
-        data.Eb_kin_t = self.e_kin
-        data.Eb_pot_t = self.e_pot
-        data.Eb_t = self.e_kin + self.e_pot
-        data.E_kin_t = np.mean(self.e_kin, 2)
-        data.E_pot_t = np.mean(self.e_pot, 2)
+        data.Eb_kin_t = np.array(self.E_kin)
+        data.Eb_pot_t = np.array(self.E_pot)
+        data.Eb_t = self.E_kin + self.E_pot
+        data.E_kin_t = np.mean(data.Eb_kin_t, 2)
+        data.E_pot_t = np.mean(data.Eb_pot_t, 2)
         data.E_t = np.mean(data.Eb_t, 2)
 
         data.prob_vals = self.vals
@@ -182,184 +125,110 @@ class RPMD_VelocityVerlet(Integrator):
         data.prob_bins = self.rbins
         data.omega_t = self.omega_t
 
-    def run(self, system, steps, potential, data, **kwargs):
-
-        dt = kwargs.get('dt', self.dt)
-        dyn_T = kwargs.get('dyn_T', False)
-
-        self.system = system
-
-        self.prepare(steps, potential)
-
-        print('Integrating...')
-        for i_step in range(1, steps):
-            self.update_omega(dyn_T, potential, i_step)
-
-            self.propagate_system(potential, dt)
-
-            self.apply_thermostat(dt)
-
-            self.system.r = np.mean(self.system.r_beads, 1)
-            self.system.v = np.mean(self.system.v_beads, 1)
-
-            e_pot = self.system.compute_bead_potential_energy(potential)
-            e_kin = self.system.compute_kinetic_energy()
-
-            self.store_result(e_pot, e_kin, i_step)
-
-            # # write binary restart file
-            if np.mod(i_step+1, 1000000) == 0:
-                self.write_restart(i_step)
-
-        self.create_histogram()
-        print('INTEGRATED')
-
-        self.assign_data(data, i_step)
-        remove_restart()
+    def create_histogram(self, positions):
+        for i in range(self.system.n_particles):
+            self.vals[i] = np.histogramdd(positions[:, i],
+                                          bins=self.rbins, normed=True)[0]
+        self.vals_tot = np.mean(self.vals, 0)
 
 
-class RPMD_EquilibriumProperties(RPMD_VelocityVerlet):
-    """
-    Velocity verlet integrator to obtain equilibrium
-    properties from RPMD Trajectories
-    """
-    # Stuff commented out is probability distribution stuff,
-    # not sure how relevant that is for this equilibrium calculation.
+# TODO: Update this.
+# class RPMD_Scattering(RPMD_VelocityVerlet):
+#     """
+#     Velocity verlet integrator for RPMD scatter trajectories
+#     """
+#     def update_omega(self, dyn_T, potential, i_step):
+#         if dyn_T == 'Rugh':
+#             self.system.compute_omega_Rugh(potential)
+#         elif dyn_T is not False:
+#             raise ValueError("Scheme for dynamical Temperature '"
+#                              + dyn_T + "' not known. Use False or 'Rugh'.")
+#         self.omega_t[i_step] = self.system.omega
 
-    def initialise_zero_arrays(self, steps, N, Nb, ndim, potential):
-        self.r_mean = np.zeros((N, ndim))
-        self.E_pot = np.zeros(N)
-        self.E_kin = np.zeros(N)
+#     def propagate_system(self, potential, dt):
+#         m = self.system.masses
+#         F = self.system.compute_bead_force(potential)
+#         v1 = self.system.v_beads + F / m[:, np.newaxis, np.newaxis] * dt / 2.
+#         self.system.r_beads[self.active] += v1[self.active] * dt
+#         F = self.system.compute_bead_force(potential)
+#         v2 = (v1[self.active] + F[self.active]
+#               / m[self.active, np.newaxis, np.newaxis] * dt / 2)
+#         self.system.v_beads[self.active] = v2
 
-        self.dt_ts = np.zeros(Nb)
+#     def assign_data(self, data):
+#         data.rb_t = self.rb_t
+#         data.vb_t = self.vb_t
+#         data.r_t = np.mean(self.rb_t, 2)
+#         data.v_t = np.mean(self.vb_t, 2)
 
-    def store_result(self, e_pot, e_kin, i_step):
-        self.E_pot += np.mean(e_pot, 1)
-        self.E_kin += np.mean(e_kin, 1)
-        self.r_mean += np.mean(self.system.r_beads, 1)
+#         data.Eb_kin_t = self.e_kin
+#         data.Eb_pot_t = self.e_pot
+#         data.Eb_t = self.e_kin + self.e_pot
+#         data.E_kin_t = np.mean(self.e_kin, 2)
+#         data.E_pot_t = np.mean(self.e_pot, 2)
+#         data.E_t = np.mean(data.Eb_t, 2)
+#         data.E_mean = np.mean(data.E_t, 0)
+#         data.dErel_max = np.amax(abs(data.E_t - data.E_mean / data.E_mean), 0)
 
-    def write_restart(self, i_step):
-        out = open('rpmd_avgs.rst', 'wb')
-        rpmd_data = {'r_mean': self.r_mean,
-                     # 'bins': self.rbins, 'prob_vals': self.vals,
-                     'E_kin': self.E_kin, 'E_pot': self.E_pot,
-                     'i_step': i_step}
-        pick.dump(rpmd_data, out)
+#         data.p_refl = self.p_refl
+#         data.p_trans = self.p_trans
+#         data.omega_t = self.omega_t
 
-    def create_histogram(self):
-        pass
-        # for i in range(self.system.n_particles):
-        #     self.vals[i] += np.histogram(self.r_mean[1000:, i],
-        #                                  bins=self.rbins, density=True)[0]
-        # self.vals_tot = np.mean(self.vals, 0)
+#     def run(self, system, steps, potential, data, **kwargs):
 
-    def assign_data(self, data, i_step):
-        data.E_kin = self.E_kin / i_step
-        data.E_pot = self.E_pot / i_step
-        data.E_t = data.E_kin + data.E_pot
+#         dt = kwargs.get('dt', self.dt)
+#         dyn_T = kwargs.get('dyn_T', False)
 
-        data.r_mean = self.r_mean / i_step
-        # data.prob_vals = self.vals
-        # data.prob_tot = self.vals_tot
-        # data.prob_bins = self.rbins
+#         self.system = system
 
+#         self.prepare(steps, potential)
 
-class RPMD_Scattering(RPMD_VelocityVerlet):
-    """
-    Velocity verlet integrator for RPMD scatter trajectories
-    """
-    def update_omega(self, dyn_T, potential, i_step):
-        if dyn_T == 'Rugh':
-            self.system.compute_omega_Rugh(potential)
-        elif dyn_T is not False:
-            raise ValueError("Scheme for dynamical Temperature '"
-                             + dyn_T + "' not known. Use False or 'Rugh'.")
-        self.omega_t[i_step] = self.system.omega
+#         # get boundary freezing vectors
+#         grid_bounds = potential.cell[0]  # TODO: 2D?
+#         self.lower_bound = kwargs.get('lower_bound', grid_bounds[0]+3.)
+#         self.upper_bound = kwargs.get('upper_bound', grid_bounds[1]-3.)
 
-    def propagate_system(self, potential, dt):
-        m = self.system.masses
-        F = self.system.compute_bead_force(potential)
-        v1 = self.system.v_beads + F / m[:, np.newaxis, np.newaxis] * dt / 2.
-        self.system.r_beads[self.active] += v1[self.active] * dt
-        F = self.system.compute_bead_force(potential)
-        v2 = (v1[self.active] + F[self.active]
-              / m[self.active, np.newaxis, np.newaxis] * dt / 2)
-        self.system.v_beads[self.active] = v2
+#         # get dividing surface, TODO: 2D?
+#         grid = np.linspace(grid_bounds[0], grid_bounds[1], 2000)
+#         r_Vmax = grid[np.argmax(potential(grid))]
+#         data.barrier = np.max(potential(grid))
+#         data.r_barrier = r_Vmax
+#         self.rb = kwargs.get('div_surf', r_Vmax)
+#         self.active = np.full(self.system.n_particles, True, dtype=bool)
 
-    def assign_data(self, data):
-        data.rb_t = self.rb_t
-        data.vb_t = self.vb_t
-        data.r_t = np.mean(self.rb_t, 2)
-        data.v_t = np.mean(self.vb_t, 2)
+#         print('Integrating...')
+#         for i_step in range(steps):
+#             self.update_omega(dyn_T, potential, i_step)
 
-        data.Eb_kin_t = self.e_kin
-        data.Eb_pot_t = self.e_pot
-        data.Eb_t = self.e_kin + self.e_pot
-        data.E_kin_t = np.mean(self.e_kin, 2)
-        data.E_pot_t = np.mean(self.e_pot, 2)
-        data.E_t = np.mean(data.Eb_t, 2)
-        data.E_mean = np.mean(data.E_t, 0)
-        data.dErel_max = np.amax(abs(data.E_t - data.E_mean / data.E_mean), 0)
+#             self.propagate_system(potential, dt)
 
-        data.p_refl = self.p_refl
-        data.p_trans = self.p_trans
-        data.omega_t = self.omega_t
+#             self.apply_thermostat(dt)
 
-    def run(self, system, steps, potential, data, **kwargs):
+#             self.system.r = np.mean(self.system.r_beads, 1)
+#             self.system.v = np.mean(self.system.v_beads, 1)
 
-        dt = kwargs.get('dt', self.dt)
-        dyn_T = kwargs.get('dyn_T', False)
+#             # Update active particles
+#             self.active = np.logical_and(self.system.r >= self.lower_bound,
+#                                          self.system.r <= self.upper_bound)
+#             self.active = self.active.flatten()
 
-        self.system = system
+#             e_pot = self.system.compute_bead_potential_energy(potential)
+#             e_kin = self.system.compute_kinetic_energy()
 
-        self.prepare(steps, potential)
+#             self.store_result(e_pot, e_kin, i_step)
 
-        # get boundary freezing vectors
-        grid_bounds = potential.cell[0]  # TODO: 2D?
-        self.lower_bound = kwargs.get('lower_bound', grid_bounds[0]+3.)
-        self.upper_bound = kwargs.get('upper_bound', grid_bounds[1]-3.)
+#         print('INTEGRATED')
+#         print(str(np.sum(self.active))+' particles did not reach a border\n')
 
-        # get dividing surface, TODO: 2D?
-        grid = np.linspace(grid_bounds[0], grid_bounds[1], 2000)
-        r_Vmax = grid[np.argmax(potential(grid))]
-        data.barrier = np.max(potential(grid))
-        data.r_barrier = r_Vmax
-        self.rb = kwargs.get('div_surf', r_Vmax)
-        self.active = np.full(self.system.n_particles, True, dtype=bool)
+#         # count reflected/transmitted particles, in general:
+#         # count particles on either side of the barrier
+#         N = self.system.n_particles
+#         self.p_refl = float(np.count_nonzero(self.system.r < self.rb))/N
+#         self.p_trans = float(np.count_nonzero(self.system.r > self.rb))/N
 
-        print('Integrating...')
-        for i_step in range(steps):
-            self.update_omega(dyn_T, potential, i_step)
+#         if (self.p_refl+self.p_trans-1.) > 1E-4:
+#             print('Congratulations, my friend!')
+#             print('You have just been elected the Most Outstanding Lucky Loser Of the Week (MOLLOW)')
+#             print('It seems like one or more particles are located exactly at the dividing surface.')
 
-            self.propagate_system(potential, dt)
-
-            self.apply_thermostat(dt)
-
-            self.system.r = np.mean(self.system.r_beads, 1)
-            self.system.v = np.mean(self.system.v_beads, 1)
-
-            # Update active particles
-            self.active = np.logical_and(self.system.r >= self.lower_bound,
-                                         self.system.r <= self.upper_bound)
-            self.active = self.active.flatten()
-
-            e_pot = self.system.compute_bead_potential_energy(potential)
-            e_kin = self.system.compute_kinetic_energy()
-
-            self.store_result(e_pot, e_kin, i_step)
-
-        print('INTEGRATED')
-        print(str(np.sum(self.active))+' particles did not reach a border\n')
-
-        # count reflected/transmitted particles, in general:
-        # count particles on either side of the barrier
-        N = self.system.n_particles
-        self.p_refl = float(np.count_nonzero(self.system.r < self.rb))/N
-        self.p_trans = float(np.count_nonzero(self.system.r > self.rb))/N
-
-        if (self.p_refl+self.p_trans-1.) > 1E-4:
-            print('Congratulations, my friend!')
-            print('You have just been elected the Most Outstanding Lucky Loser Of the Week (MOLLOW)')
-            print('It seems like one or more particles are located exactly at the dividing surface.')
-
-        self.assign_data(data)
+#         self.assign_data(data)

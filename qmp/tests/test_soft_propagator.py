@@ -31,7 +31,7 @@ class SOFT_PropagatorTestCase(unittest.TestCase):
         self.integrator.propV = self.integrator.expV(self.dt)
 
     def test_initialise_start(self):
-        self.integrator.initialise_start(self.system, self.pot)
+        self.integrator.initialise_start()
         test.assert_equal(self.system.V.shape,
                           (self.size, self.size))
         test.assert_equal(self.system.k.shape, (self.size,))

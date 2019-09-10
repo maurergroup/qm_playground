@@ -18,6 +18,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>#
 import numpy as np
+from scipy.stats import maxwell
 
 kB = 1.380649e-23
 
@@ -180,3 +181,12 @@ def get_v_init(pot, r_p=[1.], m_p=1., E=1., v_dir=[1.]):
     v_dir /= norm(v_dir)
     vel_p = v_dir*np.sqrt(2.*(E-pot_p)/m_p)
     return vel_p
+
+
+def get_v_maxwell(m, T):
+    """
+    draw velocity from Maxwell-Boltzmann distribution with mean 0.
+    """
+    s = np.sqrt(kB*T/m)
+    x_rand = np.random.random(1)
+    return maxwell.ppf(x_rand, loc=0., scale=s)

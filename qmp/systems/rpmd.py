@@ -1,7 +1,6 @@
 import numpy as np
 from qmp.systems.phasespace import PhaseSpace
-from qmp.tools.dyn_tools import kB
-from scipy.stats import maxwell
+from qmp.tools.dyn_tools import kB, get_v_maxwell
 import scipy.linalg as la
 
 
@@ -10,58 +9,7 @@ class RPMD(PhaseSpace):
     def __init__(self, coordinates, velocities, masses, n_beads=4,
                  T=None, init_type='velocity'):
 
-        def get_v_maxwell(m, T):
-            """
-            draw velocity from Maxwell-Boltzmann distribution with mean 0.
-            """
-            s = np.sqrt(kB*T/m)
-            x_rand = np.random.random(1)
-            return maxwell.ppf(x_rand, loc=0., scale=s)
-
-        def velocity_init():
-            for i_par in range(self.n_particles):
-                if self.ndim == 1:
-                    i_start = self.n_beads % 2
-                    # for odd number of beads:
-                    # (n_beads-1)/2 pairs, v=0 for last bead ~> start at i_start=1
-                    for i_bead in range(i_start, self.n_beads, 2):
-                        v_mb = get_v_maxwell(self.masses[i_par],
-                                             self.temp[i_par])
-                        # assign v_p + v_mb to bead1 of pair
-                        self.v_beads[i_par, i_bead] = self.v[i_par] + v_mb
-                        # assign v_p - v_mb to bead2 of pair
-                        self.v_beads[i_par, i_bead+1] = self.v[i_par] - v_mb
-                else:
-                    v_abs = get_v_maxwell(self.masses[i_par], self.temp[i_par])
-                    v_vec = np.dot(np.array([0., v_abs]), rM).T
-                    for i_bead in range(self.n_beads):
-                        self.v_beads[i_par, i_bead] = self.v[i_par] + v_vec
-                        v_vec = np.dot(v_vec, rotMat)
-
-                for i_bead in range(self.n_beads):
-                    self.r_beads[i_par, i_bead] = self.r[i_par]
-
-        def position_init():
-            for i_par in range(self.n_particles):
-                r_abs = (np.pi)*np.sqrt(
-                    self.n_beads/(2.*self.masses[i_par]*kB*self.temp[i_par]))/400.
-                if self.ndim == 1:
-                    self.r_beads[i_par, 0] = self.r[i_par] - r_abs
-                    for i_bead in range(1, self.n_beads):
-                        self.r_beads[i_par,
-                                     i_bead] = (self.r_beads[i_par, i_bead-1]
-                                                + (2.*r_abs/(self.n_beads-1)))
-                else:
-                    r_vec = np.dot(np.array([0., r_abs]), rM).T
-                    self.r_beads[i_par, 0] = self.r[i_par] + r_vec
-                    for i_bead in range(1, self.n_beads):
-                        r_vec = np.dot(r_vec, rotMat)
-                        self.r_beads[i_par, i_bead] = self.r[i_par] + r_vec
-
-                for i_bead in range(self.n_beads):
-                    self.v_beads[i_par, i_bead] = self.v[i_par]
-
-        PhaseSpace.__init__(self, coordinates, velocities, masses)
+        super().__init__(coordinates, velocities, masses)
 
         if (n_beads == 0) or (type(n_beads) != int):
             print('0 and lists are not allowed for number of beads,'
@@ -96,9 +44,9 @@ class RPMD(PhaseSpace):
         self.v_beads = np.zeros((self.n_particles, self.n_beads, self.ndim))
 
         if init_type == 'velocity':
-            velocity_init()
+            self.velocity_init(rotMat, rM)
         elif init_type == 'position':
-            position_init()
+            self.position_init(rotMat, rM)
         else:
             raise ValueError('Init type not recognised')
 
@@ -153,3 +101,56 @@ class RPMD(PhaseSpace):
         v = la.norm(self.v)
 
         self.omega = (self.n_beads)*((A**2 + v**2)/(a+(self.ndim/self.masses)))
+
+    def propagate_positions(self, acc, dt):
+        self.r_beads = self.r_beads + self.v_beads * dt + 0.5 * acc * dt ** 2
+
+    def propagate_velocities(self, a1, a2, dt):
+        self.v_beads = self.v_beads + 0.5 * (a1 + a2) * dt
+
+    def compute_acceleration(self, potential):
+        F = self.compute_bead_force(potential)
+        return F / self.masses[:, np.newaxis, np.newaxis]
+
+    def velocity_init(self, rotMat, rM):
+        for i_par in range(self.n_particles):
+            if self.ndim == 1:
+                i_start = self.n_beads % 2
+                # for odd number of beads:
+                # (n_beads-1)/2 pairs, v=0 for last bead ~> start at i_start=1
+                for i_bead in range(i_start, self.n_beads, 2):
+                    v_mb = get_v_maxwell(self.masses[i_par],
+                                         self.temp[i_par])
+                    # assign v_p + v_mb to bead1 of pair
+                    self.v_beads[i_par, i_bead] = self.v[i_par] + v_mb
+                    # assign v_p - v_mb to bead2 of pair
+                    self.v_beads[i_par, i_bead+1] = self.v[i_par] - v_mb
+            else:
+                v_abs = get_v_maxwell(self.masses[i_par], self.temp[i_par])
+                v_vec = np.dot(np.array([0., v_abs]), rM).T
+                for i_bead in range(self.n_beads):
+                    self.v_beads[i_par, i_bead] = self.v[i_par] + v_vec
+                    v_vec = np.dot(v_vec, rotMat)
+
+            for i_bead in range(self.n_beads):
+                self.r_beads[i_par, i_bead] = self.r[i_par]
+
+    def position_init(self, rotMat, rM):
+        for i_par in range(self.n_particles):
+            r_abs = (np.pi)*np.sqrt(
+                self.n_beads/(2.*self.masses[i_par]*kB*self.temp[i_par]))/400.
+            if self.ndim == 1:
+                self.r_beads[i_par, 0] = self.r[i_par] - r_abs
+                for i_bead in range(1, self.n_beads):
+                    self.r_beads[i_par,
+                                 i_bead] = (self.r_beads[i_par, i_bead-1]
+                                            + (2.*r_abs/(self.n_beads-1)))
+            else:
+                r_vec = np.dot(np.array([0., r_abs]), rM).T
+                self.r_beads[i_par, 0] = self.r[i_par] + r_vec
+                for i_bead in range(1, self.n_beads):
+                    r_vec = np.dot(r_vec, rotMat)
+                    self.r_beads[i_par, i_bead] = self.r[i_par] + r_vec
+
+            for i_bead in range(self.n_beads):
+                self.v_beads[i_par, i_bead] = self.v[i_par]

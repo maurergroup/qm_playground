@@ -161,6 +161,7 @@ class Grid:
 
         k = 2 * np.pi * FTp(self.N, self.steps[0])
         if self.ndim == 2:
+            """ TODO Pretty sure this is wrong. """
             k = k ** 2
             k = np.kron(np.ones(self.N), k) + np.kron(k, np.ones(self.N))
         elif self.ndim > 2:
