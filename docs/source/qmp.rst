@@ -6,7 +6,7 @@ Subpackages
 
 .. toctree::
 
-    qmp.basis
+    qmp.systems
     qmp.integrator
     qmp.potential
     qmp.solver
@@ -27,15 +27,6 @@ qmp.model module
 ----------------
 
 .. automodule:: qmp.model
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-Module contents
----------------
-
-.. automodule:: qmp
     :members:
     :undoc-members:
     :show-inheritance:

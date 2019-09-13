@@ -1,4 +1,4 @@
-#    qmp.integrator.dyn_tools
+#    qmp.tools.dyn_tools
 #
 #    qm_playground - python package for dynamics simulations
 #    Copyright (C) 2016  Reinhard J. Maurer
@@ -17,6 +17,10 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>#
+"""
+This module contains a variety of utility functions that can be used to assist
+the generation of initial conditions for a simulation.
+"""
 import numpy as np
 from scipy.stats import maxwell
 
@@ -24,13 +28,21 @@ kB = 1.380649e-23
 
 
 def project_wvfn(wvfn, evecs):
-    """
-    project wave packet onto eigenvectors, return vector of coefficients
+    """Project wave packet onto eigenvectors and return vector of coefficients.
 
-    parameters:
-    ===========
-        evecs: matrix containing eigenvectors(eigenvalue problem solved beforehand)
-        wvfn:  wavepacket to be projected on eigenstates (defined on same grid as evecs)
+    Parameters
+    ----------
+    evecs : array_like
+        Matrix containing the eigenvectors of the Hamiltonian.
+    wvfn : array_like
+        Wavepacket to be projected on eigenstates defined on the same grid as
+        the eigenvectors.
+
+    Returns
+    -------
+    array_like
+        A vector containing the normalised coefficients corresponding to the
+        eigenvectors.
     """
     c = np.dot(wvfn.flatten(), evecs)
     norm = np.sqrt(np.conjugate(c).dot(c))
@@ -38,90 +50,115 @@ def project_wvfn(wvfn, evecs):
 
 
 def create_gaussian(x, x0=0., p0=0., sigma=1.):
-    """
-    creates gaussian wave
+    """Create a 1D gaussian wavepacket.
 
-    parameters:
-    ===========
-        x:      grid for wave packet
-        x0:     center/expectation value of gaussian (default 0.)
-        p0:     initial momentum of wave (default 0.)
-        sigma:  variance of gaussian (default 1.)
+    Parameters
+    ----------
+    x : array_like
+        Grid for wavepacket.
+    x0 : float or int, optional
+        Expectation value of position.
+    p0 : float or int, optional
+        Expectation value of momentum.
+    sigma: float or int, optional
+        Variance of gaussian.
+
+    Returns
+    -------
+    array_like
+        A 1D gaussian.
     """
-    wave = np.exp( -((x-x0)**2/sigma**2/4.) + 1j*p0*(x-x0))/(np.sqrt(np.sqrt(2.*np.pi)*sigma))
+    wave = np.exp(-((x-x0)**2/sigma**2/4.)
+                  + 1j*p0*(x-x0))/(np.sqrt(np.sqrt(2.*np.pi)*sigma))
     return wave
+
 
 def create_real_gaussian(x, x0=0., sigma=1.):
-    """
-    creates gaussian wave
+    """Creates a real gaussian wave.
 
-    parameters:
-    ===========
-        x:      grid for gaussian
-        x0:     center/expectation value of gaussian (default 0.)
-        sigma:  variance of gaussian (default 1.)
+    Parameters
+    ----------
+    x : array_like
+        1D grid for gaussian.
+    x0 : float or int, optional
+        Center/expectation value of gaussian (default 0.)
+    sigma : float or int, optional
+        Variance of gaussian (default 1.)
     """
-    wave = np.exp( -((x-x0)**2/sigma**2/4.))/(np.sqrt(np.sqrt(2.*np.pi)*sigma))
+    wave = np.exp(-((x-x0)**2/sigma**2/4.))/(np.sqrt(np.sqrt(2.*np.pi)*sigma))
     return wave
 
 
-def create_gaussian2D(xgrid, ygrid, x0=[0.,0.], p0=[0.,0.], sigma=[1.,1.]):
-    """
-    creates 2D gaussian wave
+def create_gaussian2D(xgrid, ygrid, x0=[0., 0.], p0=[0., 0.], sigma=[1., 1.]):
+    """Creates 2D gaussian wave.
 
-    parameters:
-    ===========
-        *grid:  x/y grid wave will be constructed on
-        x0:     (initial) center/expectation value of wave (default [0.,0.])
-        p0:     initial momentum of wave (default [0.,0.])
-        sigma:  variance of gaussian in x and y direction (default [1.,1.])
+    Parameters
+    ----------
+    xgrid : array_like
+        x grid wave will be constructed on
+    ygrid : array_like
+        y grid wave will be constructed on
+    x0 : array_like, optional
+        (initial) center/expectation value of wave (default [0.,0.])
+    p0 : array_like, optional
+        initial momentum of wave (default [0.,0.])
+    sigma : array_like, optional
+        variance of gaussian in x and y direction (default [1.,1.])
     """
     if (type(sigma) == float) or (type(sigma) == int):
         sigma = [sigma, sigma]
 
-    wave = np.exp( -(1/2.)*(((xgrid-x0[0])/sigma[0])**2 + ((ygrid-x0[1])/sigma[1])**2) + 1j*(p0[0]*(xgrid-x0[0]) + p0[1]*(ygrid-x0[1])) )
+    wave = np.exp(-(1/2.)*(((xgrid-x0[0])/sigma[0])**2
+                  + ((ygrid-x0[1])/sigma[1])**2)
+                  + 1j*(p0[0]*(xgrid-x0[0])
+                  + p0[1]*(ygrid-x0[1])))
     return wave
 
 
-def create_real_gaussian2D(xgrid, ygrid, x0=[0.,0.], sigma=[1.,1.]):
-    """
-    creates 2D gaussian wave
+def create_real_gaussian2D(xgrid, ygrid, x0=[0., 0.], sigma=[1., 1.]):
+    """Creates 2D gaussian wave
 
-    parameters:
-    ===========
-        *grid:  x/y grid
-        x0:     (initial) center/expectation value of wave (default [0.,0.])
-        sigma:  variance of gaussian in x and y direction (default [1.,1.])
+    Parameters
+    ----------
+    xgrid : array_like
+        x grid
+    ygrid : array_like
+        y grid
+    x0 : array_like, optional
+        (initial) center/expectation value of wave (default [0.,0.])
+    sigma : array_like, optional
+        variance of gaussian in x and y direction (default [1.,1.])
     """
     if (type(sigma) == float) or (type(sigma) == int):
         sigma = [sigma, sigma]
 
-    wave = np.exp( -(1/2.)*(((xgrid-x0[0])/sigma[0])**2 + ((ygrid-x0[1])/sigma[1])**2) )
+    wave = np.exp(-(1/2.)*(((xgrid-x0[0])/sigma[0])**2
+                           + ((ygrid-x0[1])/sigma[1])**2))
     return wave
 
-def create_2D_NVEdistribution(e,m,n):
-    """
-    creates an initial phase space distribution with n points
+
+def create_2D_NVEdistribution(e, m, n):
+    """Create 2D NVE phasespace distribution.
+
+    Create an initial phase space distribution with n points
     at a given energy e for particles with mass m according to a
     potential energy function f.
     """
-    from numpy.random import normal, random
-    r0 = np.zeros([n,2])
-    v0 = np.zeros([n,2])
+    from numpy.random import random
+    r0 = np.zeros([n, 2])
+    v0 = np.zeros([n, 2])
     v2 = 2.*e/m
     for i in range(n):
-        vx,vy = random(2)*2.0-1.0 #random numbers between -1 and 1
+        vx, vy = random(2)*2.0-1.0  # random numbers between -1 and 1
         v2tmp = vx**2+vy**2
         vx = vx*np.sqrt(v2/v2tmp)
         vy = vy*np.sqrt(v2/v2tmp)
-        v0[i,:] = [vx,vy]
+        v0[i, :] = [vx, vy]
     return r0, v0
 
 
 def create_thermostat(name='no_thermostat', **kwargs):
-    """
-    returns thermostat as defined by **kwargs
-    """
+    """Returns thermostat as defined by kwargs."""
     from scipy.stats import norm
 
     def andersen_ts(v, m, dt, ndim):
@@ -154,6 +191,7 @@ def create_thermostat(name='no_thermostat', **kwargs):
 
 
 def EOM_morse_analyt(a, D, m, t, pos, Temp=293.15):
+    """Not really sure what this is for."""
 
     if kB*Temp >= D:
         raise ValueError('System not bound at given Temperature')
@@ -164,15 +202,18 @@ def EOM_morse_analyt(a, D, m, t, pos, Temp=293.15):
 
 
 def get_v_init(pot, r_p=[1.], m_p=1., E=1., v_dir=[1.]):
-    """
-    create velocity for particle in order to match total energy
+    """Create velocity for particle in order to match total energy.
 
-    parameters:
-    ===========
-        r_p:    the particles position
-        m_p:    mass of particle
-        E:      the particles initial energy
-        v_dir:  direction of particles motion
+    Parameters
+    ----------
+    r_p
+        the particles position
+    m_p
+        mass of particle
+    E
+        the particles initial energy
+    v_dir
+        direction of particles motion
     """
     from scipy.linalg import norm
 
@@ -184,9 +225,7 @@ def get_v_init(pot, r_p=[1.], m_p=1., E=1., v_dir=[1.]):
 
 
 def get_v_maxwell(m, T):
-    """
-    draw velocity from Maxwell-Boltzmann distribution with mean 0.
-    """
+    """Draw velocity from Maxwell-Boltzmann distribution with mean 0."""
     s = np.sqrt(kB*T/m)
     x_rand = np.random.random(1)
     return maxwell.ppf(x_rand, loc=0., scale=s)

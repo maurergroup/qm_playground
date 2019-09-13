@@ -17,9 +17,7 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>#
-"""
-waveintegrators.py
-"""
+"""Contains integrators to propagate grid systems through time."""
 
 from qmp.tools.dyn_tools import project_wvfn
 import numpy as np
@@ -30,29 +28,29 @@ from numpy.fft import ifftn
 
 
 class AbstractWavePropagator(ABC):
-    """
-    Abstract base class for other wave integrators to implement. Only the
-    functions decorated by '@abstractmethod' should be extended, all others
-    shoudl remain the same for all integrators.
-    Had to leave this little picture in, someone obviously put of lot of work
-    into it.
-                     _               ..
-       :            / \ ->          ;  ;                        :
-       :           /   \ ->         ;  ;                        :
-       :          /     \ ->        ;  ;                        :
-       :_________/       \__________;  ;________________________:
-      r_l                            rb                        r_r
-    (border)       (wave)         (barrier)                  (border)
+    """Abstract base class for other wave integrators to implement.
+
+    Only the functions decorated by '@abstractmethod' should be extended,
+    all others should remain the same for all integrators.
     """
     def __init__(self, dt=1):
-        """
-        Class is initialised with a timestep as a single argument.
-        """
+        """Class is initialised with a timestep as a single argument."""
         self.dt = dt
 
     def run(self, system, steps, potential, data, **kwargs):
-        """
-        This function is called by the model to run the integration process.
+        """This function is called by the model to run the integration process.
+
+        This function handles the operation of the integrator. The integrator
+        is first set up and then the system is integrated for the specified
+        number of steps. Finally, the data object is assigned.
+
+        Parameters
+        ----------
+        system : qmp.systems.grid.Grid
+        steps : int
+        potential : qmp.potential.potential.Potential
+        data : qmp.data_containers.Data
+        kwargs : {'dt', 'output_freq'}
         """
         self.system = system
 
@@ -67,22 +65,26 @@ class AbstractWavePropagator(ABC):
         self.assign_data(data)
 
     def read_kwargs(self, kwargs):
-        """
-        Allowed keyword arguments are read here, no other keyword arguments
-        should be specified.
+        """Allowed keyword arguments are read here.
+
+        Parameters
+        ----------
+        kwargs : {'dt', 'output_freq'}
         """
         self.dt = kwargs.get('dt', self.dt)
         self.output_freq = kwargs.get('output_freq', 200)
 
     @abstractmethod
     def prepare_electronics(self, potential):
+        """Prepare electronic quantities required for the propagation.
+        """
         pass
 
     def initialise_start(self):
-        """
-        This function is for any initialisation that must occur before the
-        integration begins, extending classes should prepare any variables
-        constant throughout the integration by extending this function.
+        """Initialise logging variables and imaginary potential.
+
+        This function should likely be extended to add extra functionality, but
+        not completely overrided.
         """
         if (not self.system.psi.any() != 0.):
             raise ValueError('Please provide initial wave function'
@@ -95,8 +97,17 @@ class AbstractWavePropagator(ABC):
         self.E_t = [self.compute_current_energy()]
 
     def integrate(self, steps):
-        """
-        This function carries out the main integration loop.
+        """Carry out main integration loop.
+
+        For each step, propagate the wavefunction, absorb at the boundary,
+        store the result if at the specified interval, and check for finishing
+        conditions. When the integration has finished, detect the density that
+        still remains in the cell and normalise the outcome probabilities.
+
+        Parameters
+        ----------
+        steps : int
+            The maximum number of steps allowed for the integration.
         """
         print('Integrating...')
         for i in range(steps):
@@ -120,17 +131,20 @@ class AbstractWavePropagator(ABC):
 
     @abstractmethod
     def propagate_psi(self):
-        """
-        Child classes should use this function to carry out a single timestep
-        propagation.
+        """Propagate the wavefunction by a single timestep.
         """
         pass
 
     def absorb_boundary(self):
-        """
+        """Absorb the wavefunction in the boundary region.
+
         The wavefunction is propagated by a whole timestep in the negative
         imaginary potential. This is present in the boundary regions to absorb
-        the wavefunction and detect the scattering outcome.
+        the wavefunction and detect the scattering outcome. I have not seen
+        this done in this way elsewhere but it allows a convenient way to
+        detect the density and absorb the wavefunction at the boundary. The
+        methodology is based upon the Strang splitting idea of the potential
+        and the imaginary potential.
         """
         density_before = self.system.compute_adiabatic_density()
         self.system.psi = self.propI * self.system.psi
@@ -140,8 +154,7 @@ class AbstractWavePropagator(ABC):
         self.system.detect_flux(absorbed_density)
 
     def store_result(self):
-        """
-        Lists of energies and wavefunctions are populated at each timestep.
+        """Lists of energies and wavefunctions are populated at each timestep.
         """
         self.E_t.append(self.compute_current_energy())
 
@@ -151,7 +164,8 @@ class AbstractWavePropagator(ABC):
         self.psi_t.append(psi)
 
     def is_finished(self):
-        """
+        """Check if sufficient probability density has been absorbed.
+
         The total amount absorbed so far is compared to the intial probability
         density, once the absorbed density reaches 0.9 of the initial density,
         the simulation is terminated. This is to avoid simulations running for
@@ -167,14 +181,12 @@ class AbstractWavePropagator(ABC):
 
     @abstractmethod
     def compute_current_energy(self):
-        """
-        This function must be implemented in each child class to describe the
-        energy calculation for the current wavefunction.
-        """
+        """Compute the current energy of the system."""
         pass
 
     def assign_data(self, data):
-        """
+        """Assign the relevant quantities to the data object.
+
         Class variables are copied over to the data attribute of the model
         class.
         """
@@ -187,36 +199,72 @@ class AbstractWavePropagator(ABC):
 
 
 class PrimitivePropagator(AbstractWavePropagator):
-    """
+    """Standard exp(-iHt) propagation for the wavefunction.
+
     Primitive exp(-iHt) propagator for psi in arbitrary
     basis in spatial representation.
     """
 
     def prepare_electronics(self, potential):
+        """Construct the hamiltonian and the propagator.
+
+        Parameters
+        ----------
+        potential : qmp.potential.potential.Potential
+            The potential that the hamiltonian is constructed from.
+        """
         self.system.construct_hamiltonian(potential)
         self.prop = -1j * self.system.H * self.dt
 
     def propagate_psi(self):
+        """Propagate the wavefunction by one timestep."""
         self.system.psi = sp.linalg.expm_multiply(self.prop, self.system.psi)
 
     def compute_current_energy(self):
+        """Compute the expectation value of the Hamiltonian."""
         psi = self.system.psi
         return np.real(psi.conj().dot(self.system.H.dot(psi)))
 
 
 class SOFT_Propagator(AbstractWavePropagator):
-    """
-    Split operator Fourier transform propagator
+    """Split Operator Fourier Transform propagator.
+
     Follows approach detailed in section 11.7 of David J. Tannor's
     "Introduction to Quantum Mechanics".
     """
     def prepare_electronics(self, potential):
+        """Construct the potential and kinetic energy propagators.
+
+        Parameters
+        ----------
+        potential : qmp.potential.potential.Potential
+            The potential that the propagators are constructed from.
+        """
         self.system.construct_V_matrix(potential)
         self.system.compute_k()
         self.propT = self.expT(self.dt/2)
         self.propV = self.expV(self.dt)
 
     def expV(self, dt):
+        """Construct the potential energy propagator.
+
+        Check out section 11.7 in Tannor's book for information on the
+        transformations going on in the two state case.
+
+        Parameters
+        ----------
+        dt : int or float
+            The timestep of the propagation. For the symmetric split operator
+            the central operator (this one in this case), should be double that
+            of the other operator.
+
+        Returns
+        -------
+        array_like
+            A matrix representing the propagator, for a single state this will
+            be diagonal, for 2 states, as seen below, things are a little more
+            complicated.
+        """
 
         if self.system.nstates == 2:
             col1, col2 = np.array_split(self.system.V.A, 2)
@@ -245,19 +293,44 @@ class SOFT_Propagator(AbstractWavePropagator):
             return sp.diags(np.exp(-1j * self.system.V.diagonal() * dt))
 
     def expT(self, dt):
+        """Construct the kinetic energy propagator.
+
+        Parameters
+        ----------
+        dt : int or float
+            The timestep for the propagator, in the current setup this should
+            be half that of the timestep for the potential propagator.
+
+        Returns
+        -------
+        array_like
+            Vector representing the propagator.
+        """
         return np.exp(-1j * self.system.momentum_T * dt)
 
     def propagate_psi(self):
+        """Propagate the wavefunction by a single timestep."""
         self.propagate_momentum()
         self.system.psi = self.propV.dot(self.system.psi)
         self.propagate_momentum()
 
     def propagate_momentum(self):
+        """Propagate the momentum by a single timestep.
+
+        This involves a unitary transformation into momentum space to allow for
+        convenient operation of the kinetic energy operator, which is diagonal
+        in this representation.
+        """
         self.system.psi = self.system.transform(self.system.psi, fftn)
         self.system.psi = self.propT * self.system.psi
         self.system.psi = self.system.transform(self.system.psi, ifftn)
 
     def compute_current_energy(self):
+        """Compute the energy of the current wavefunction.
+
+        Here we calculate the kinetic and potential components separately and
+        add them together, innovative.
+        """
         E_kin = self.system.compute_kinetic_energy()
         E_pot = self.system.compute_potential_energy()
         return E_pot + E_kin

@@ -17,7 +17,6 @@ Contents:
 
    Introduction <intro>
    Features <features>
-   Theory and Methods <methods>
    Examples <examples>
    qmp Modules <qmp>
 

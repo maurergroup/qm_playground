@@ -1,11 +1,10 @@
-from qmp.integrator.integrator import Integrator
 import numpy as np
 
 
-class HoppingIntegrator(Integrator):
+class HoppingIntegrator:
 
     def __init__(self, dt=2):
-        Integrator.__init__(self, dt)
+        self.dt = dt
 
     def propagate_density_matrix(self, density_matrix, dt):
         """ Propagates the density matrix by dt.

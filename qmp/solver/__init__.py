@@ -1,4 +1,4 @@
-#qmp.solver.__init__
+#    qmp.solver.__init__
 #
 #    qm_playground - python package for dynamics simulations
 #    Copyright (C) 2016  Reinhard J. Maurer

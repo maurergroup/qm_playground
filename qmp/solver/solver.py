@@ -18,27 +18,45 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>#
 """
-solver.py
-Different solvers for time-independent
-problems
+Different solvers for time-independent problems.
 """
 
 import numpy as np
+from abc import ABC, abstractmethod
 
 
-class Solver:
+class Solver(ABC):
     """
-    Base class for all solver
+    Abstract base class for all solvers.
+
+    Attributes
+    ----------
+    system : qmp.systems.grid object
+        The system to be operated on by the solver.
+    potential : qmp.potential object
+        The potential that the Hamiltonian is constructed from.
     """
 
     def __init__(self, system, potential):
         self.system = system
         self.potential = potential
 
+    @abstractmethod
+    def solve(self):
+        """Solve the eigenvalue problem.
+        Must be implemented by child classes.
+        """
+        pass
+
 
 class ScipySolver(Solver):
     """
-    standard scipy eigensolver
+    Standard scipy eigensolver.
+
+    Attributes
+    ----------
+    states : int
+        The desired number of eigenvectors.
     """
 
     def __init__(self, system, potential, states):
@@ -47,6 +65,9 @@ class ScipySolver(Solver):
         self.states = states
 
     def solve(self):
+        """Solve the eigenvalue problem.
+        The results are written into system.E and system.basis.
+        """
 
         from scipy.sparse.linalg import eigsh
 
@@ -70,13 +91,16 @@ class ScipySolver(Solver):
 
 class AlglibSolver(Solver):
     """
-    alglib based eigensolver
+    Alglib based eigensolver.
     """
     def __init__(self, system, potential):
 
         Solver.__init__(self, system, potential)
 
     def solve(self):
+        """Solve the eigenvalue problem.
+        The results are written into system.E and system.basis.
+        """
 
         try:
             import xalglib as xa

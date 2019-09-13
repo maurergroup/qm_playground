@@ -1,37 +1,18 @@
 qmp.tools package
 =================
 
-Submodules
-----------
-
-qmp.tools.logger module
------------------------
-
-.. automodule:: qmp.tools.logger
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-qmp.tools.menu module
----------------------
-
-.. automodule:: qmp.tools.menu
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-qmp.tools.termcolors module
----------------------------
-
-.. automodule:: qmp.tools.termcolors
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-qmp.tools.utilities module
+qmp.tools.dyn_tools module
 --------------------------
 
-.. automodule:: qmp.tools.utilities
+.. automodule:: qmp.tools.dyn_tools
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+qmp.tools.pot_tools module
+--------------------------
+
+.. automodule:: qmp.tools.pot_tools
     :members:
     :undoc-members:
     :show-inheritance:
@@ -44,11 +25,10 @@ qmp.tools.visualizations module
     :undoc-members:
     :show-inheritance:
 
+qmp.tools.derivatives module
+----------------------------
 
-Module contents
----------------
-
-.. automodule:: qmp.tools
+.. automodule:: qmp.tools.derivatives
     :members:
     :undoc-members:
     :show-inheritance:

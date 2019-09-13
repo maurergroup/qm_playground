@@ -17,21 +17,46 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>#
-"""
-trajintegrators.py
-"""
-from qmp.integrator.integrator import Integrator
+"""Integrators that propagate the PhaseSpace system."""
+
 from numpy.random import standard_normal
 import numpy as np
 from abc import ABC, abstractmethod
 
 
 class AbstractVelocityVerlet(ABC):
+    """Abstract base class for other classical integrators to implement.
 
+    Only the functions decorated by '@abstractmethod' should be extended,
+    all others should remain the same for all integrators.
+
+    Attributes
+    ----------
+    dt : float or int
+    system : qmp.systems.phasespace.PhaseSpace
+    potential : qmp.potential.potential.Potential
+    current_acc : array_like
+        Current acceleration of each particle.
+    """
     def __init__(self, dt=1):
+        """Class is initialised with a timestep as a single argument."""
         self.dt = dt
 
     def run(self, system, steps, potential, data, **kwargs):
+        """This function is called by the model to run the integration process.
+
+        This function handles the operation of the integrator. The integrator
+        is first set up and then the system is integrated for the specified
+        number of steps. Finally, the data object is assigned.
+
+        Parameters
+        ----------
+        system : qmp.systems.phasespace.PhaseSpace
+        steps : int
+        potential : qmp.potential.potential.Potential
+        data : qmp.data_containers.Data
+        kwargs : {'dt', 'output_freq'}
+        """
 
         self.system = system
         self.potential = potential
@@ -45,18 +70,28 @@ class AbstractVelocityVerlet(ABC):
         self.assign_data(data)
 
     def read_kwargs(self, kwargs):
-        """
-        Allowed keyword arguments are read here, no other keyword arguments
-        should be specified.
+        """Allowed keyword arguments are read here.
+
+        Parameters
+        ----------
+        kwargs : {'dt', 'output_freq'}
         """
         self.dt = kwargs.get('dt', self.dt)
         self.output_freq = kwargs.get('output_freq', 200)
 
     @abstractmethod
     def initialise_start(self):
+        """Prepare any logging variables and calculate intial values."""
         pass
 
     def integrate(self, steps):
+        """Carry out main integration loop.
+
+        Parameters
+        ----------
+        steps : int
+            The number of steps.
+        """
         print('Integrating...')
 
         self.current_acc = self.system.compute_acceleration(self.potential)
@@ -70,7 +105,8 @@ class AbstractVelocityVerlet(ABC):
         print('INTEGRATED')
 
     def propagate_system(self):
-        """
+        """Propagate the system by a single timestep.
+
         This function carries out the shortened form of the velocity verlet
         algorithm. It requires that the systems taking advantage of this
         integrator implement the three functions used within it.
@@ -82,17 +118,17 @@ class AbstractVelocityVerlet(ABC):
 
     @abstractmethod
     def store_result(self):
+        """Store the results of the current step."""
         pass
 
     @abstractmethod
     def assign_data(self, data):
+        """Assign the data at the end of the simulation."""
         pass
 
 
 class VelocityVerlet(AbstractVelocityVerlet):
-    """
-    Velocity verlet integrator for classical dynamics
-    """
+    """Velocity verlet integrator for classical dynamics."""
 
     def initialise_start(self):
         self.r_t = [self.system.r]
@@ -117,11 +153,15 @@ class VelocityVerlet(AbstractVelocityVerlet):
         data.potential = self.potential.compute_cell_potential(density=1000)
 
 
-class Langevin(Integrator):
+class Langevin:
     """
+    TODO tidy this up.
     Langevin integrator for classical dynamics
     This has not been rigorously tested. Quick update to work with new layout.
     """
+
+    def __init__(self, dt=1):
+        self.dt = dt
 
     def updatevars(self, dt=0.1, temp=300, friction=0.1):
         self.temp = temp

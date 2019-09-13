@@ -1,13 +1,17 @@
 qmp.potential package
 =====================
+qmp.potential.presets module
+----------------------------
 
-Submodules
-----------
+.. automodule:: qmp.potential.presets
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
-qmp.potential.pot_tools module
-------------------------------
+qmp.potential.tullymodels module
+---------------------------------
 
-.. automodule:: qmp.potential.pot_tools
+.. automodule:: qmp.potential.tullymodels
     :members:
     :undoc-members:
     :show-inheritance:
@@ -16,23 +20,6 @@ qmp.potential.potential module
 ------------------------------
 
 .. automodule:: qmp.potential.potential
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-qmp.potential.potential2D module
---------------------------------
-
-.. automodule:: qmp.potential.potential2D
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-Module contents
----------------
-
-.. automodule:: qmp.potential
     :members:
     :undoc-members:
     :show-inheritance:

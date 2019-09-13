@@ -1,25 +1,6 @@
 qmp.integrator package
 ======================
 
-Submodules
-----------
-
-qmp.integrator.dyn_tools module
--------------------------------
-
-.. automodule:: qmp.integrator.dyn_tools
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-qmp.integrator.integrator module
---------------------------------
-
-.. automodule:: qmp.integrator.integrator
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 qmp.integrator.rpmdintegrators module
 -------------------------------------
 
@@ -44,11 +25,10 @@ qmp.integrator.waveintegrators module
     :undoc-members:
     :show-inheritance:
 
+qmp.integrator.hoppingintegrators module
+----------------------------------------
 
-Module contents
----------------
-
-.. automodule:: qmp.integrator
+.. automodule:: qmp.integrator.hoppingintegrators
     :members:
     :undoc-members:
     :show-inheritance:
