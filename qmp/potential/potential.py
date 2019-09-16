@@ -18,7 +18,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>#
 """
-class potential
+This module contains the Potential class.
 """
 
 from qmp.tools import derivatives
@@ -27,24 +27,37 @@ import numpy as np
 
 class Potential:
     """
-    Defines Potential and all operations on it. Functions for the
-    potential energy, the first and second derivative, and for possible
-    excited states and scalar and vectorial derivative couplings must
-    be passed explicitly.
+    Defines Potential and all operations on it.
     """
 
-    def __init__(self, cell=[[0., 1.]], f=lambda a: 0, firstd=None, n=1,
+    def __init__(self, cell, f, n=1, firstd=None,
                  secondd=None, d1=None, d2=None):
-        """
-        Initializes potential
-        Input
-            cell: domain given as list of two values
-            f:    function that defines potential
-            firstd: first derivative, if not given is calculated numerically
-            secondd: second derivative, if not given is calculated numerically
-            n: number of states, default is 1. if n>1, f,d1,d2,firstd, secondd are lists of functions
-            d1: first order couplings
-            d2: second order couplings
+        """Initialises a Potential object.
+
+        Initialisation consists of reading the input and ensuring arrays are
+        reshaped correctly.
+
+        Parameters
+        ----------
+        cell : 2-D array
+            Simulation box, given as a 2D array, each row corresponding to the
+            start and end values of the box in each dimension.
+        f : ndarray
+            An array of functions with n by n entries that can be reshaped into
+            an array representing the matrix elements of the potential
+            operator.
+        n : int, optional
+            Number of electronic states.
+        firstd : ndarray, optional
+            First derivative function of the potential. If needed and not given
+            it will be calculated numerically.
+        secondd : ndarray, optional
+            Second derivative function of the potential. If needed and not
+            given it will be calculated numerically.
+        d1 : ndarray
+            First order couplings, currently not used.
+        d2 : ndarray
+            Second order couplings, currently not used.
         """
 
         self.cell = cell
@@ -76,16 +89,24 @@ class Potential:
         self.d2 = d2
 
     def __call__(self, *points, i=0, j=0):
-        """
-        calculate potential at point x or list of points x
+        """Calculate the potential at the point(s) given.
+
+        The potential is evaluated for the matrix element [i, j].
+
+        Parameters
+        ----------
+        points : array_like
+            Set of coordinates where the potential is to be evaluated.
+        i : int
+            Matrix index.
+        j : int
+            Matrix index.
         """
         f = self.f[i, j]
         return f(*points)
 
     def deriv(self, points, n=0):
-        """
-        calculate 1st derivative at point x or list of points x
-        """
+        """Calculate 1st derivative at point(s)."""
         # Need to make these functions n-dimensional, very ugly right now
         firstd = self.firstd[n]
         if firstd is None:
@@ -106,9 +127,7 @@ class Potential:
                 return d
 
     def hess(self, points, i=0, j=0):
-        """
-        calculate 2nd derivative at point x or list of points x
-        """
+        """Calculate 2nd derivative at point(s)."""
         secondd = self.secondd[i]
         if secondd is None:
             if self.dimension == 1:
@@ -140,6 +159,7 @@ class Potential:
             #return d2(x)
 
     def compute_cell_potential(self, density=100):
+        """Calculate the potential on a grid over the whole cell."""
 
         if self.dimension == 1:
             x = np.linspace(self.cell[0][0], self.cell[0][1], density)

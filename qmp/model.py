@@ -17,34 +17,42 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>#
-"""
-model class
-"""
-
 from qmp.solver.solver import ScipySolver
 from qmp.data_containers import Data
 import pickle
 
 
 class Model:
-    """
-    The model class contains all information and all
-    subroutines to run the calculations.
+    """Instances of this class are used to run calculations in qmp.
 
-    Before it can run it has to be given a
-    potential, and a basis.
+    The two functions of the class are the run and solve methods. These
+    correspond to time-dependent and time-independent problems respectively.
 
-    There are two basic tasks associated with the
-    solver subclass (time-independent problems) and the
-    dyn subclass (time  propagation)
-
+    Typical usage of qmp entails instantiating this class with the
+    necessary settings and calling either run or solve.
     """
 
     def __init__(self, system, potential, mode, integrator=None, solver=None,
                  states=20, name='simulation'):
         """
-        Initializes the calculation model using arbitrary keyword arguments
-        which are parsed later.
+        Initialise the calculation model.
+
+        Parameters
+        ----------
+        system : qmp.systems object
+            This system to be simulated.
+        potential : qmp.potential.potential.Potential
+            The potential of the simulation.
+        mode : {'wave', 'rpmd', 'hop', 'traj'}
+            A label that helps track the type of simulation being carried out.
+        integrator : qmp.integrator object, optional
+            The integrator used to propagate the system.
+        solver : qmp.solver.solver, optional
+            The eigensolver used to solve the eigenvalue problem.
+        states : int, optional
+            The number of eigenvectors found by the eigensolver.
+        name : str, optional
+            The name of the output file.
         """
 
         self.system = system
@@ -69,6 +77,10 @@ class Model:
         return string
 
     def prepare_data(self):
+        """Create the data object.
+
+        The data object is basically just a dictionary right now and is not
+        really necessary but could be developed later."""
         self.data = Data()
         self.data.name = self.name
         self.data.mode = self.mode
@@ -83,7 +95,7 @@ class Model:
 
     def run(self, steps, **kwargs):
         """
-        Wrapper for dyn.run
+        Wrapper for integrator.run
         """
 
         add_info = kwargs.get('additional', None)

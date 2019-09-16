@@ -18,17 +18,12 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>#
 
-"""
-data_containers.py
-
-collection of different data containers for different
-job classes such as wavefunction, particle, and RPMD necklace
-"""
-
 
 class Data(dict):
-    """
-    Base class for all data containers
+    """Class used to store the results and setup for every simulation.
+
+    This is currently just a dictionary with almost no alterations but could be
+    changed in the future to be different for each simulation type.
     """
     def __getattr__(self, key):
         if key not in self:

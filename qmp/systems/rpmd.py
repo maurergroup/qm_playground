@@ -91,9 +91,10 @@ class RPMD(PhaseSpace):
         return potential.hess(self.r)
 
     def compute_omega_Rugh(self, potential):
-        """
-        return omega(t) = (n_beads/hbar)*kB*T = (n_beads/hbar)*( (|V'(r)|^2 + |v|^2) / (V"(r) + ndim/m) )
-        (definition of dynamical temperature according to Rugh)
+        """Definition of dynamical temperature according to Rugh.
+
+        = (n_beads/hbar)*kB*T
+        = (n_beads/hbar)*( (|V'(r)|^2 + |v|^2) / (V"(r) + ndim/m) )
         """
 
         A = la.norm(PhaseSpace.compute_force(self, potential))

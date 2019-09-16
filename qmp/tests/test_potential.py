@@ -7,7 +7,7 @@ import numpy.testing as test
 class PotentialTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.one_dimension = potential.Potential(f=lambda a: a)
+        self.one_dimension = potential.Potential([[0, 1]], f=lambda a: a)
         self.two_dimension = potential.Potential([[0, 1], [0, 1]],
                                                  f=lambda a, b: a+b)
         self.potentials = [self.one_dimension, self.two_dimension]

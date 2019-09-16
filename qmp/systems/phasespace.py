@@ -2,6 +2,21 @@ import numpy as np
 
 
 class PhaseSpace:
+    """Phasespace system used for calculations with classical trajectories.
+
+    Attributes
+    ----------
+    r : ndarray
+        Positions of particles.
+    v : ndarray
+        Velocities of particles.
+    masses : 1-D array
+        Masses of particles.
+    n_particles : int
+        Number of particles.
+    ndim : int
+        Dimension of system.
+    """
 
     def __init__(self, coordinates, velocities, masses):
 

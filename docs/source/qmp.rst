@@ -15,18 +15,7 @@ Subpackages
 Submodules
 ----------
 
-qmp.data_containers module
---------------------------
+.. toctree::
 
-.. automodule:: qmp.data_containers
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-qmp.model module
-----------------
-
-.. automodule:: qmp.model
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   qmp.model
+   qmp.data_containers

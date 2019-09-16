@@ -5,12 +5,68 @@ from numpy.fft import ifftn
 
 
 class Grid:
+    """Grid system used for 1D and 2D wavepacket calculations.
+
+    Attributes
+    ----------
+    mass : float
+        The mass of the particle.
+    N : int
+        The number of grid points in each dimension. This is currently limited
+        to the same number in every dimension.
+    cell : 2-D array
+        The dimensions of the simulation box.
+    nstates : int
+        The number of electronic states.
+    start : 1-D array
+        The beginning value of the cell in each dimension.
+    end : 1-D array
+        The final value of the cell in each dimension.
+    ndim : {1, 2}
+        The dimension of the cell, currently limited to 1 or 2.
+    solved : bool
+        Indicator as to whether the eigenvalue problem has been solved yet.
+    delta : float
+        Parameter of the imaginary potential absorbing boundary.
+    steps : 1-D array
+        Spacing between each grid point in each dimension.
+    mesh : ndarray
+        Grid basis that the wavefunction uses.
+    psi : 1-D array
+        Coefficients of the wavefunction at each grid point.
+    rho : 1-D array
+        Probability density on the diabatic states.
+    exit_flux : 2-D array
+        Array containing the probability density that has been absorbed by the
+        boundaries. This is structured for a 1-D system only, with reflection
+        and transmission probabilities for each state.
+    V : sparse matrix
+        Matrix elements of the potential operator.
+    coordinate_T : sparse matrix
+        Matrix representation of the kinetic energy operator in the coordinate
+        representation.
+    U : 3-D array
+        Array of unitary transformations that convert from the diabatic to
+        adiabatic representation at each grid point.
+    L : sparse matrix
+        Laplacian operator.
+    imag : array_like
+        Imaginary potential used as an absorbing boundary.
+    E_min : float
+        Parameter for the imaginary potential, taken as a third of the initial
+        kinetic energy.
+    k_min : float
+        Parameter for the imaginary potential, momentum corresponding to E_min.
+    momentum_T : 1-D array
+        Kinetic energy operator in the momentum representation.
+    """
 
     def __init__(self, mass=1800, cell=[[-10, 10]], N=256, states=1, **kwargs):
+        """Create an instance by assigning a bunch of class attributes."""
 
         self.mass = mass
         self.N = N
-        self.cell = cell
+        self.cell = np.array(cell)
         self.nstates = states
         self.start = cell[:, 0]
         self.end = cell[:, 1]
@@ -29,6 +85,7 @@ class Grid:
         self.exit_flux = np.zeros((self.nstates, 2))
 
     def create_mesh(self):
+        """Create the grid mesh based on the cell size."""
 
         axes = [np.linspace(self.start[i], self.end[i], self.N, retstep=True)
                 for i in range(len(self.start))]
@@ -38,11 +95,18 @@ class Grid:
         self.mesh = np.meshgrid(*axes)
 
     def construct_hamiltonian(self, potential):
+        """Construct the Hamiltonian."""
         self.construct_V_matrix(potential)
         self.construct_coordinate_T()
         self.H = self.V + self.coordinate_T
 
     def construct_V_matrix(self, potential):
+        """Construct the potential matrix.
+
+        If the number of states is two, then the matrix is also diagonalised at
+        every grid point to obtain the unitary transformations necessary for
+        converting to the adiabatic representation.
+        """
 
         try:
             v11 = self.compute_diagonal_potential(potential, i=0, j=0)
@@ -62,14 +126,17 @@ class Grid:
             self.V = v11
 
     def compute_diagonal_potential(self, potential, i, j):
+        """Compute a sparse diagonal potential."""
         vflat = potential(*self.mesh, i=i, j=j).flatten()
         return sp.diags(vflat)
 
     def construct_coordinate_T(self):
+        """Construct the kinetic energy operator in the position basis."""
         self.define_laplacian()
         self.coordinate_T = - self.L / (2 * self.mass)
 
     def define_laplacian(self):
+        """Define the laplacian."""
         L = self.get_1D_laplacian()
 
         if self.ndim == 2:
@@ -81,16 +148,17 @@ class Grid:
         self.L = sp.block_diag([self.L] * self.nstates)
 
     def get_1D_laplacian(self):
+        """Create the laplacian in 1D."""
         off_diagonal = np.ones(self.N-1)
         diagonal = np.full(self.N, -2)
         L = sp.diags([off_diagonal, diagonal, off_diagonal], [-1, 0, 1])
         return L.tolil()
 
     def construct_imaginary_potential(self):
-        """
+        """Construct the imaginary absorbing boundary potential.
+
         Calculates imaginary potential as described by Manolopoulos
         in JCP 117, 9552 (2002).
-        Currently only implemented for 1D.
         """
         self.compute_absorption_parameters()
 
@@ -112,11 +180,21 @@ class Grid:
         self.imag = np.tile(imag, self.nstates)
 
     def compute_absorption_parameters(self):
+        """Compute the parameters for the absorbing boundary."""
         self.compute_k()
         self.E_min = self.compute_kinetic_energy() / 3
         self.k_min = np.sqrt(2 * self.mass * self.E_min)
 
     def set_initial_wvfn(self, psi, n=1):
+        """Set the initial wavefunction.
+
+        Parameters
+        ----------
+        psi : array_like
+            The initial wavefunction to be placed on a single state.
+        n : int
+            The desired initial state.
+        """
         if n == 1:
             self.psi[:self.N**self.ndim] = np.array(psi).flatten()
         elif n == 2:
@@ -124,25 +202,37 @@ class Grid:
         self.total_initial_density = np.sum(self.compute_diabatic_density())
 
     def compute_diabatic_density(self):
+        """Compute the probability density in the diabatic representation."""
         return np.real(self.psi.conj() * self.psi)
 
     def detect_all(self):
-        """ After the simulation has finished, detect the remaining density
-        to give a result for transmission and reflection probabilities.
-        """
+        """Detect the remaining density at the end of the simulation."""
         current_density = self.compute_adiabatic_density()
         self.detect_flux(current_density)
 
     def detect_flux(self, density):
+        """Record the outcome of the scattering based upon the density.
+
+        This function splits the probability density into sections with the
+        divider in the middle of the cell. Then sums each section and adds it
+        to the scattering outcomes.
+
+        Parameters
+        ----------
+        density : 1-D array
+            The density to be detected.
+        """
         splits = np.array(np.split(density, 2*self.nstates))
         probabilities = np.sum(splits, axis=1).reshape(self.nstates, 2)
         self.exit_flux += probabilities
 
     def normalise_probabilities(self):
+        """Normalise the exit flux at the end of the simulation."""
         norm = np.sum(self.exit_flux)
         self.exit_flux /= norm
 
     def get_adiabatic_wavefunction(self):
+        """Convert the current diabatic wave to an adiabatic form."""
         psi = np.zeros_like(self.psi)
         for i in range(self.N):
             psi_current = np.array([self.psi[i],
@@ -151,12 +241,17 @@ class Grid:
         return psi
 
     def compute_adiabatic_density(self):
+        """Compute the adiabatic probability density."""
         psi = self.psi
         if self.nstates == 2:
             psi = self.get_adiabatic_wavefunction()
         return np.real(psi.conj() * psi)
 
     def compute_k(self):
+        """Compute the momentum grid corresponding to the Fourier transform.
+
+        Also calculates the kinetic energy operator in the momentum basis.
+        """
         from numpy.fft import fftfreq as FTp
 
         k = 2 * np.pi * FTp(self.N, self.steps[0])
@@ -166,19 +261,34 @@ class Grid:
             k = np.kron(np.ones(self.N), k) + np.kron(k, np.ones(self.N))
         elif self.ndim > 2:
             raise NotImplementedError('Only 1D and 2D systems implemented')
+
         self.k = np.tile(k, self.nstates)
         self.momentum_T = self.k**2 / (2*self.mass)
 
     def compute_kinetic_energy(self):
+        """Computes the kinetic energy.
+
+        The calculation is performed by converting to the momentum
+        representation and operating in the momentum space."""
         T_dot_psi = self.momentum_T * self.transform(self.psi, fftn)
         E_kin = np.real(self.psi.conj().dot(self.transform(T_dot_psi, ifftn)))
         return E_kin
 
     def compute_potential_energy(self):
+        """Computes the potential energy as a dot product."""
         E_pot = np.real(self.psi.conj().dot(self.V.dot(self.psi)))
         return E_pot
 
     def transform(self, psi, transform):
+        """Transforms the wavefunction between bases.
+
+        Parameters
+        ----------
+        psi : 1-D array
+            The wavefunction to be transformed.
+        transform : {fftn, ifftn}
+            The Fourier transform to be performed.
+        """
         size = self.nstates * self.N ** self.ndim
         split = np.array(np.split(psi, self.nstates))
         axes = [-1]
@@ -190,6 +300,7 @@ class Grid:
 
     @staticmethod
     def imaginary_potential(r, r1, r2, delta, k_min, E_min):
+        """Define the 1D imaginary potential."""
 
         c = 2.62206
         a = 1 - 16/c**3

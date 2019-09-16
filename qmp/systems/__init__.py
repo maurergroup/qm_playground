@@ -17,11 +17,6 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>#
-
-
-"""
-qm_playground systems
-"""
 from .grid import Grid
 from .hopping import Hopping
 from .phasespace import PhaseSpace

@@ -17,18 +17,14 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>#
-"""
-rpmd integrators.py
-"""
+"""Contains integrators for propagating ring polymers."""
 from qmp.integrator.trajintegrators import AbstractVelocityVerlet
 from qmp.tools.dyn_tools import create_thermostat
 import numpy as np
 
 
 class RPMD_VelocityVerlet(AbstractVelocityVerlet):
-    """
-    Velocity verlet integrator for RPMD.
-    """
+    """Velocity verlet integrator for RPMD."""
     def __init__(self, dt, **kwargs):
         super().__init__(dt)
 

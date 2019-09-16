@@ -1,3 +1,7 @@
+"""Potentials for the 3 Tully models.
+
+By default these are configured for -10 to 10 one dimensional cells with the
+default parameters set out by Tully (1990)."""
 from qmp.potential import Potential
 import numpy as np
 

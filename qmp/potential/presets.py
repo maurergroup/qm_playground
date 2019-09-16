@@ -1,8 +1,14 @@
+"""N-dimensional predefined potential generators.
+
+Functions returned by calling these generators should be given to the Potential
+class in order to define the potential of the model."""
 import numpy as np
 from qmp.tools.dyn_tools import create_real_gaussian2D
+from abc import ABC
 
 
-class ModelPotential:
+class ModelPotential(ABC):
+    """Abstract base class for the model potential generators."""
 
     def __init__(self, dimension):
         self.function = None
@@ -13,6 +19,7 @@ class ModelPotential:
 
 
 class Free(ModelPotential):
+    """Generator for a free potential (no potential)."""
 
     def __init__(self, dimension):
         ModelPotential.__init__(self, dimension)
@@ -24,6 +31,11 @@ class Free(ModelPotential):
 
 
 class Harmonic(ModelPotential):
+    """Generator for an n-dimensional harmonic potential.
+
+    Passing arrays of omegas and minima to the constructor defines the
+    attributes of the potential in each dimension.
+    """
 
     def __init__(self, dimension, **kwargs):
         ModelPotential.__init__(self, dimension)
@@ -45,6 +57,11 @@ class Harmonic(ModelPotential):
 
 
 class Wall(ModelPotential):
+    """Generator for an n-dimensional wall potential.
+
+    Passing arrays of positions, widths, and heights to the constructor
+    defines the attributes of the potential in each dimension.
+    """
 
     def __init__(self, dimension, **kwargs):
         ModelPotential.__init__(self, dimension)
@@ -78,6 +95,11 @@ class Wall(ModelPotential):
 
 
 class Box(ModelPotential):
+    """Generator for an n-dimensional box potential.
+
+    Passing arrays of positions, widths, and heights to the constructor
+    defines the attributes of the potential in each dimension.
+    """
 
     def __init__(self, dimension, **kwargs):
         ModelPotential.__init__(self, dimension)
@@ -111,6 +133,11 @@ class Box(ModelPotential):
 
 
 class DoubleBox(ModelPotential):
+    """Generator for an n-dimensional double box potential.
+
+    Passing arrays of positions, widths, and heights to the constructor
+    defines the attributes of the potential in each dimension.
+    """
 
     def __init__(self, dimension, **kwargs):
         ModelPotential.__init__(self, dimension)
@@ -150,6 +177,11 @@ class DoubleBox(ModelPotential):
 
 
 class Morse(ModelPotential):
+    """Generator for an n-dimensional morse potential.
+
+    Passing arrays of a's, D's, and p's to the constructor
+    defines the attributes of the potential in each dimension.
+    """
 
     def __init__(self, dimension, **kwargs):
         ModelPotential.__init__(self, dimension)
@@ -174,6 +206,11 @@ class Morse(ModelPotential):
 
 
 class Elbow(ModelPotential):
+    """Generator for an 2-dimensional elbow potential.
+
+    Various keyword arguments can be given to specify the size and shape of the
+    elbow.
+    """
 
     def __init__(self, dimension, **kwargs):
         if dimension != 2:
