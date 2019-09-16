@@ -17,8 +17,9 @@ class Hopping(PhaseSpace):
         self.initial_state = initial_state
         self.coeffs = None
 
-    def reset_system(self):
+    def reset_system(self, potential):
         """ Resets all quantities to the initial state.
+
         This is used to refresh the system before starting a new trajectory.
         """
         self.r = copy.deepcopy(self.initial_r)
@@ -26,35 +27,36 @@ class Hopping(PhaseSpace):
         self.v = copy.deepcopy(self.initial_v)
         self.current_state = copy.deepcopy(self.initial_state)
 
-        self.update_electronics()
+        self.update_electronics(potential)
 
         self.density_matrix = np.zeros((self.nstates,
                                         self.nstates))
         self.density_matrix[self.current_state, self.current_state] = 1.0
 
-    def construct_V_matrix(self):
-        """ Constructs an n by n matrix for V evaluated at position r.
-        """
+    def construct_V_matrix(self, potential):
+        """Construct an n by n matrix for V evaluated at position r."""
         V = np.zeros((self.nstates, self.nstates))
         for i in range(self.nstates):
             for j in range(self.nstates):
-                V[i, j] = self.potential(self.r, i=i, j=j)
+                V[i, j] = potential(self.r, i=i, j=j)
         return V
 
-    def construct_Nabla_matrix(self):
-        """ Constructs an n by n matrix for dV/dR from the potential.
+    def construct_Nabla_matrix(self, potential):
+        """Construct an n by n matrix for dV/dR from the potential.
+
         As with construct_V_matrix, the diabatic matrix elements should be
         given to the potential as a list of functions. This then calculates
         them for the current position and reshapes.
         """
         flat = np.array(
-            [self.potential.deriv(self.r, n=i) for i in range(self.nstates**2)]
+            [potential.deriv(self.r, n=i) for i in range(self.nstates**2)]
             )
         D = flat.reshape((self.nstates, self.nstates))
         return D
 
     def compute_coeffs(self):
-        """ Computes the eigenvalues and eigenstates of the V matrix
+        """Compute the eigenvalues and eigenstates of the V matrix.
+
         These are used as a basis for the calculation of the rest of the
         electronic properties.
         """
@@ -68,19 +70,19 @@ class Hopping(PhaseSpace):
         return energies, coeff
 
     def compute_force(self):
-        """ Computes <psi_i|dH/dR|psi_i>
-        """
+        """Compute <psi_i|dH/dR|psi_j>"""
         force_matrix = -np.einsum('ji,jk,km->im', self.coeffs.conj(),
                                   self.D, self.coeffs)
         return np.diag(force_matrix)
 
     def compute_hamiltonian(self):
-        """ Computes <psi|V|psi>
-        """
+        """Compute <psi|V|psi>"""
         return np.dot(self.coeffs.T, np.dot(self.V, self.coeffs))
 
     def compute_derivative_coupling(self):
-        """ Computes <psi|D|psi> / (V_jj - V_ii)
+        """Compute <psi|D|psi> / (V_jj - V_ii)
+
+        This uses the Hellman-Feynman theorem.
         """
         out = np.einsum('ji,jk,km->im', self.coeffs, self.D, self.coeffs)
 
@@ -96,21 +98,27 @@ class Hopping(PhaseSpace):
         return out
 
     def compute_propagating_hamiltonian(self):
-        """ Computes H - ihRd
+        """ Compute H - ihRd
+
         This is used to propagate the density matrix.
         """
-        velocity = (self.last_velocity + self.v) * 0.5
-        return self.hamiltonian - 1.0j * self.derivative_coupling * velocity
+        return self.hamiltonian - 1.0j * self.derivative_coupling * self.v
 
-    def update_electronics(self):
-        """ Updates all the electronic quantities.
+    def update_electronics(self, potential):
+        """Update all the electronic quantities.
+
         Whenever the position is updated this function should be called to give
         consistent electronics.
         """
-        self.V = self.construct_V_matrix()
-        self.D = self.construct_Nabla_matrix()
+        self.V = self.construct_V_matrix(potential)
+        self.D = self.construct_Nabla_matrix(potential)
         self.energies, self.coeffs = self.compute_coeffs()
 
         self.force = self.compute_force()
         self.hamiltonian = self.compute_hamiltonian()
         self.derivative_coupling = self.compute_derivative_coupling()
+
+    def compute_acceleration(self, potential):
+        """Evaluate electronics and return force."""
+        self.update_electronics(potential)
+        return self.force[self.current_state] / self.masses
