@@ -17,6 +17,7 @@ Contents:
 
    Introduction <intro>
    Features <features>
+   Visualisation <visualisation>
    Examples <examples>
    qmp Modules <qmp>
 
