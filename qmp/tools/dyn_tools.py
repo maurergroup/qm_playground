@@ -226,6 +226,6 @@ def get_v_init(pot, r_p=[1.], m_p=1., E=1., v_dir=[1.]):
 
 def get_v_maxwell(m, T):
     """Draw velocity from Maxwell-Boltzmann distribution with mean 0."""
-    s = np.sqrt(kB*T/m)
+    s = np.sqrt(T/m)
     x_rand = np.random.random(1)
     return maxwell.ppf(x_rand, loc=0., scale=s)

@@ -25,19 +25,5 @@ from .waveintegrators import PrimitivePropagator
 # from .waveintegrators import EigenPropagator
 from .waveintegrators import SOFT_Propagator
 from .trajintegrators import VelocityVerlet, Langevin
-from .rpmdintegrators import RPMD_VelocityVerlet
+from .rpmdintegrators import RPMD_VelocityVerlet, TRPMD_VelocityVerlet
 from .hoppingintegrators import HoppingIntegrator
-
-# integrator_type = {
-#     'primitive': wave.PrimitivePropagator,
-#     'eigen': wave.EigenPropagator,
-#     'SOFT': wave.SOFT_Propagator,
-#     # 'SOFT_scatter': wave.SOFT_Scattering,
-#     # 'SOFT_averages': wave.SOFT_AverageProperties,
-#     'velocity_verlet': traj.VelocityVerlet,
-#     'langevin': traj.Langevin,
-#     'RPMD_VelocityVerlet': rpmd.RPMD_VelocityVerlet,
-#     'RPMD_averages': rpmd.RPMD_EquilibriumProperties,
-#     'RPMD_scatter': rpmd.RPMD_Scattering,
-#     'hopping': HoppingIntegrator
-#     }

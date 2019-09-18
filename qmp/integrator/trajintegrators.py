@@ -77,7 +77,7 @@ class AbstractVelocityVerlet(ABC):
         kwargs : {'dt', 'output_freq'}
         """
         self.dt = kwargs.get('dt', self.dt)
-        self.output_freq = kwargs.get('output_freq', 200)
+        self.output_freq = kwargs.get('output_freq', 2)
 
     @abstractmethod
     def initialise_start(self):

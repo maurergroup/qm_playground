@@ -25,6 +25,39 @@ import numpy as np
 
 class RPMD_VelocityVerlet(AbstractVelocityVerlet):
     """Velocity verlet integrator for RPMD."""
+
+    def initialise_start(self):
+        self.rb_t = [self.system.r_beads]
+        self.vb_t = [self.system.v_beads]
+
+        self.E_pot = [self.system.compute_potential_energy(self.potential)]
+        self.E_kin = [self.system.compute_kinetic_energy()]
+
+    def store_result(self):
+        self.rb_t.append(self.system.r_beads)
+        self.vb_t.append(self.system.v_beads)
+
+        self.E_pot.append(self.system.compute_potential_energy(self.potential))
+        self.E_kin.append(self.system.compute_kinetic_energy())
+
+    def assign_data(self, data):
+        data.rb_t = np.array(self.rb_t)
+        data.vb_t = np.array(self.vb_t)
+        data.r_t = np.mean(self.rb_t, 2)
+        data.v_t = np.mean(self.vb_t, 2)
+
+        data.Eb_kin_t = np.array(self.E_kin)
+        data.Eb_pot_t = np.array(self.E_pot)
+        data.Eb_t = self.E_kin + self.E_pot
+        data.E_kin_t = np.mean(data.Eb_kin_t, 2)
+        data.E_pot_t = np.mean(data.Eb_pot_t, 2)
+        data.E_t = np.mean(data.Eb_t, 2)
+
+        data.potential = self.potential.compute_cell_potential(density=1000)
+
+
+class TRPMD_VelocityVerlet(RPMD_VelocityVerlet):
+    """Velocity verlet integrator for thermostatted RPMD."""
     def __init__(self, dt, **kwargs):
         super().__init__(dt)
 
@@ -42,22 +75,7 @@ class RPMD_VelocityVerlet(AbstractVelocityVerlet):
         self.dyn_T = kwargs.get('dyn_T', False)
 
     def initialise_start(self):
-
-        potential = self.potential
-        self.rb_t = [self.system.r_beads]
-        self.vb_t = [self.system.v_beads]
-        self.E_pot = [self.system.compute_bead_potential_energy(potential)]
-        self.E_kin = [self.system.compute_kinetic_energy()]
-
-        bins = [np.arange(potential.cell[0][0], potential.cell[0][1], 0.1)]
-        if self.system.ndim == 2:
-            bins.append(np.arange(potential.cell[1][0],
-                                  potential.cell[1][1], 0.1))
-        bins = np.array(bins)
-
-        H, self.rbins = np.histogramdd(self.system.r, bins=bins)
-        self.vals = np.zeros(np.shape([H, ]*self.system.n_particles))
-
+        super().initialise_start()
         self.omega_t = []
         self.dt_ts = np.zeros(self.system.n_beads)
 
@@ -91,42 +109,6 @@ class RPMD_VelocityVerlet(AbstractVelocityVerlet):
         ndim = self.system.ndim
         self.system.v_beads, self.dt_ts = self.thermo(self.system.v_beads,
                                                       m, self.dt_ts, ndim)
-
-    def store_result(self):
-
-        self.rb_t.append(self.system.r_beads)
-        self.vb_t.append(self.system.v_beads)
-
-        e_pot = self.system.compute_bead_potential_energy(self.potential)
-        e_kin = self.system.compute_kinetic_energy()
-        self.E_pot.append(e_pot)
-        self.E_kin.append(e_kin)
-
-    def assign_data(self, data):
-        data.rb_t = self.rb_t
-        data.vb_t = self.vb_t
-        data.r_t = np.mean(self.rb_t, 2)
-        data.v_t = np.mean(self.vb_t, 2)
-        self.create_histogram(data.r_t)
-
-        data.Eb_kin_t = np.array(self.E_kin)
-        data.Eb_pot_t = np.array(self.E_pot)
-        data.Eb_t = self.E_kin + self.E_pot
-        data.E_kin_t = np.mean(data.Eb_kin_t, 2)
-        data.E_pot_t = np.mean(data.Eb_pot_t, 2)
-        data.E_t = np.mean(data.Eb_t, 2)
-
-        data.prob_vals = self.vals
-        data.prob_tot = self.vals_tot
-        data.prob_bins = self.rbins
-        data.omega_t = self.omega_t
-
-    def create_histogram(self, positions):
-        for i in range(self.system.n_particles):
-            self.vals[i] = np.histogramdd(positions[:, i],
-                                          bins=self.rbins, normed=True)[0]
-        self.vals_tot = np.mean(self.vals, 0)
-
 
 # TODO: Update this.
 # class RPMD_Scattering(RPMD_VelocityVerlet):
