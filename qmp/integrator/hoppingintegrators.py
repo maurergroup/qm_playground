@@ -18,12 +18,12 @@ class HoppingIntegrator:
         data.outcome = np.zeros((self.system.nstates, 2))
 
         momentum = self.system.initial_v * self.system.masses
+
+        traj = SingleTrajectoryHopper(dt)
         print(f'Running {self.ntraj} surface hopping trajectories'
               + f' for momentum = {momentum}')
-        for i in range(self.ntraj):
 
-            self.system.reset_system(potential)
-            traj = SingleTrajectoryHopper(dt)
+        for i in range(self.ntraj):
             traj.run(system, steps, potential, data, **kwargs)
 
         data.outcome = data.outcome / self.ntraj
@@ -89,10 +89,10 @@ class SingleTrajectoryHopper(AbstractVelocityVerlet):
         """Carry out the hop between surfaces."""
 
         g = self.system.get_probabilities(self.dt)
-        can_hop, desired_state = self.check_possible_hop(g)
+        can_hop = self.check_possible_hop(g)
 
         if can_hop:
-            self.system.attempt_hop(desired_state)
+            self.system.attempt_hop()
 
     def check_possible_hop(self, g):
         """Determine whether a hop should occur.
@@ -107,10 +107,7 @@ class SingleTrajectoryHopper(AbstractVelocityVerlet):
             The hopping probability.
         """
         zeta = np.random.uniform()
-        for i, prob in enumerate(g):
-            if prob > zeta:
-                return True, i
-        return False, -1
+        return g > zeta
 
     def assign_data(self, data):
         """Add to the cumulative outcome."""

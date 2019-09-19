@@ -57,33 +57,31 @@ class Hopping(PhaseSpace):
         """Compute the eigenvalues and eigenstates of the V matrix.
 
         These are used as a basis for the calculation of the rest of the
-        electronic properties.
+        electronic properties. The second part is to correct the phase.
         """
         energies, coeff = np.linalg.eigh(self.V)
 
         if self.coeffs is not None:
-            for mo in range(self.nstates):
-                if (np.dot(coeff[:, mo], self.coeffs[:, mo]) < 0.0):
-                    coeff[:, mo] *= -1.0
+            column_sum = np.sum(coeff * self.coeffs, axis=1)
+            coeff = np.where(column_sum < 0, -coeff, coeff)
 
         return energies, coeff
 
     def compute_force(self):
         """Compute <psi_i|dH/dR|psi_j>"""
-        force_matrix = -np.einsum('ji,jk,km->im', self.coeffs.conj(),
-                                  self.D, self.coeffs)
+        force_matrix = -self.coeffs.T @ self.D @ self.coeffs
         return np.diag(force_matrix)
 
     def compute_hamiltonian(self):
         """Compute <psi|V|psi>"""
-        return np.dot(self.coeffs.T, np.dot(self.V, self.coeffs))
+        return self.coeffs.T @ self.V @ self.coeffs
 
     def compute_derivative_coupling(self):
         """Compute <psi|D|psi> / (V_jj - V_ii)
 
         This uses the Hellman-Feynman theorem.
         """
-        out = np.einsum('ji,jk,km->im', self.coeffs, self.D, self.coeffs)
+        out = self.coeffs.T @ self.D @ self.coeffs
 
         for j in range(self.nstates):
             for i in range(j):
@@ -133,8 +131,8 @@ class Hopping(PhaseSpace):
         diags, coeff = np.linalg.eigh(V)
         prop = np.diag(np.exp(-1j * diags * dt))
 
-        U = np.linalg.multi_dot([coeff, prop, coeff.T.conj()])
-        self.density_matrix = np.dot(U, np.dot(self.density_matrix, U.T.conj()))
+        U = coeff @ prop @ coeff.T.conj()
+        self.density_matrix = U @ self.density_matrix @ U.T.conj()
 
     def get_probabilities(self, dt):
         """Calculate the hopping probability.
@@ -148,22 +146,21 @@ class Hopping(PhaseSpace):
         n = self.current_state
 
         prob = 2 * np.real(A[n] * R * d[n] / A[n, n]) * dt
+        n ^= 1
 
-        prob[n] = 0.0
-        prob = prob.clip(0.0, 1.0)
+        return prob[n].clip(0, 1)
 
-        return prob
-
-    def attempt_hop(self, desired_state):
+    def attempt_hop(self):
         """Carry out a hop if the particle has sufficient kinetic energy.
 
         If the energy is sufficient the velocity is rescaled accordingly and
         the state changed. Otherwise nothing happens.
         """
-        hamiltonian = self.hamiltonian
-        old = hamiltonian[self.current_state,
-                          self.current_state]
-        new = hamiltonian[desired_state, desired_state]
+        desired_state = self.current_state ^ 1
+
+        old = self.energies[self.current_state]
+        new = self.energies[desired_state]
+
         deltaV = new - old
         kinetic = 0.5 * self.masses * self.v ** 2
 
