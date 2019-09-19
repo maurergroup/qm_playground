@@ -21,3 +21,4 @@ from .grid import Grid
 from .hopping import Hopping
 from .phasespace import PhaseSpace
 from .rpmd import RPMD
+from .rpsh import RPSH

@@ -25,7 +25,7 @@ class RPMD(PhaseSpace):
             Temperature of the ring polymer.
         """
 
-        super().__init__(coordinates, velocities, masses)
+        PhaseSpace.__init__(self, coordinates, velocities, masses)
 
         if (n_beads == 0) or (type(n_beads) != int):
             print('0 and lists are not allowed for number of beads,'
@@ -59,14 +59,17 @@ class RPMD(PhaseSpace):
         else:
             raise ValueError('Init type not recognised')
 
+        self.r = self.r_beads
+        self.v = self.v_beads
+
     def compute_kinetic_energy(self):
-        return 0.5 * np.einsum('i,ijk->ij', self.masses, self.v_beads ** 2)
+        return 0.5 * np.einsum('i,ijk->ij', self.masses, self.v ** 2)
 
     def compute_bead_potential_energy(self, potential):
         if self.ndim == 1:
-            return potential(self.r_beads[:, :, 0])
+            return potential(self.r[:, :, 0])
         elif self.ndim == 2:
-            return potential(self.r_beads[:, :, 0], self.r_beads[:, :, 1])
+            return potential(self.r[:, :, 0], self.r[:, :, 1])
 
     def compute_potential_energy(self, potential):
         """Compute the potential energy for each bead."""
@@ -75,15 +78,15 @@ class RPMD(PhaseSpace):
 
         bead = self.compute_bead_potential_energy(potential)
 
-        a = np.sum(np.einsum('ij,xjk->xik', M, self.r_beads)**2, 2)
+        a = np.sum(np.einsum('ij,xjk->xik', M, self.r)**2, 2)
         b = 0.5 * self.masses[:, np.newaxis] * self.omega ** 2
         spring = a * b
         return bead + spring
 
     def compute_force(self, potential):
         """Compute the force from the potential on the bead."""
-        force = np.empty_like(self.r_beads)
-        for i, particle in enumerate(self.r_beads):
+        force = np.empty_like(self.r)
+        for i, particle in enumerate(self.r):
             force[i] = -1 * potential.deriv(particle)
         return force
 
@@ -101,14 +104,8 @@ class RPMD(PhaseSpace):
         M[-1, 0], M[0, -1] = -1, -1
 
         b = self.masses * self.omega ** 2
-        spring_force = np.einsum('i,jk,ikm', b, M, self.r_beads)
+        spring_force = np.einsum('i,jk,ikm', b, M, self.r)
         return spring_force
-
-    def propagate_positions(self, acc, dt):
-        self.r_beads = self.r_beads + self.v_beads * dt + 0.5 * acc * dt ** 2
-
-    def propagate_velocities(self, a1, a2, dt):
-        self.v_beads = self.v_beads + 0.5 * (a1 + a2) * dt
 
     def compute_acceleration(self, potential):
         F = self.compute_bead_force(potential)
@@ -158,7 +155,8 @@ class RPMD(PhaseSpace):
                 self.v_beads[i_par, i_bead] = self.v[i_par]
 
     def compute_hessian(self, potential):
-        return potential.hess(self.r)
+        r = np.mean(self.r, 1)
+        return potential.hess(r)
 
     def compute_omega_Rugh(self, potential):
         """Definition of dynamical temperature according to Rugh.

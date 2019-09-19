@@ -60,8 +60,7 @@ class SingleTrajectoryHopper(AbstractVelocityVerlet):
 
             self.propagate_system()
 
-            self.system.density_matrix = self.propagate_density_matrix(
-                                             self.system.density_matrix)
+            self.system.propagate_density_matrix(self.dt)
 
             self.execute_hopping()
 
@@ -78,80 +77,22 @@ class SingleTrajectoryHopper(AbstractVelocityVerlet):
         recorded.
         """
         exit = False
-        if self.system.r < self.system.potential.cell[0][0]:
+        if self.system.has_reflected():
             self.outcome[self.system.current_state, 0] = 1
             exit = True
-        elif self.system.r > self.system.potential.cell[0][1]:
+        elif self.system.has_transmitted():
             self.outcome[self.system.current_state, 1] = 1
             exit = True
         return exit
 
-    def propagate_density_matrix(self, density_matrix):
-        """ Propagates the density matrix by dt.
-
-        This is taken from smparker's FSSH implementation.
-        """
-
-        V = self.system.compute_propagating_hamiltonian()
-
-        diags, coeff = np.linalg.eigh(V)
-        prop = np.diag(np.exp(-1j * diags * self.dt))
-
-        U = np.linalg.multi_dot([coeff, prop, coeff.T.conj()])
-        return np.dot(U, np.dot(density_matrix, U.T.conj()))
-
     def execute_hopping(self):
         """Carry out the hop between surfaces."""
 
-        velocity = 0.5 * (self.system.v + self.system.last_velocity)
-        g = self.get_probabilities(velocity)
+        g = self.system.get_probabilities(self.dt)
         can_hop, desired_state = self.check_possible_hop(g)
 
         if can_hop:
-            self.attempt_hop(desired_state, velocity)
-
-    def rescale_velocity(self, deltaV, desired_state):
-        """ Rescale velocity.
-
-        Rescaling is carried out in the direction of the derivative coupling
-        after a successful hop.
-
-        Parameters
-        ----------
-        deltaV : float
-            Difference in energy between the adiabatic states.
-        desired_state : int
-            The state that is being hopped to.
-        """
-        d = self.system.derivative_coupling[desired_state,
-                                            self.system.current_state]
-
-        direction = d / np.sqrt(np.dot(d, d))
-        Md = self.system.masses * direction
-        a = np.dot(Md, Md)
-        b = 2.0 * np.dot(self.system.masses * self.system.v, Md)
-        c = -2.0 * self.system.masses * -deltaV
-        roots = np.roots([a, b, c])
-        scal = min(roots, key=lambda x: abs(x))
-        self.system.v += np.real(scal) * direction
-
-    def get_probabilities(self, velocity):
-        """Calculate the hopping probability.
-
-        Returns an array where prob[i] is the probability of hopping from the
-        current state to state i.
-        """
-        A = self.system.density_matrix
-        R = velocity
-        d = self.system.derivative_coupling
-        n = self.system.current_state
-
-        prob = 2 * np.real(A[n] * R * d[n] / A[n, n]) * self.dt
-
-        prob[n] = 0.0
-        prob = prob.clip(0.0, 1.0)
-
-        return prob
+            self.system.attempt_hop(desired_state)
 
     def check_possible_hop(self, g):
         """Determine whether a hop should occur.
@@ -170,29 +111,6 @@ class SingleTrajectoryHopper(AbstractVelocityVerlet):
             if prob > zeta:
                 return True, i
         return False, -1
-
-    def attempt_hop(self, desired_state, velocity):
-        """Carry out a hop if the particle has sufficient kinetic energy.
-
-        If the energy is sufficient the velocity is rescaled accordingly and
-        the state changed. Otherwise nothing happens.
-        """
-        hamiltonian = self.system.hamiltonian
-        old = hamiltonian[self.system.current_state,
-                          self.system.current_state]
-        new = hamiltonian[desired_state, desired_state]
-        deltaV = new - old
-        kinetic = 0.5 * self.system.masses * velocity ** 2
-
-        if kinetic >= deltaV:
-            self.rescale_velocity(deltaV, desired_state)
-            self.system.current_state = desired_state
-        else:
-            # Chem. Phys. 349, 334 (2008) suggests reversing the velocity
-            # during a frustrated hop but I see not mention of this elsewhere,
-            # I'll leave in here in case someone else wants to try it.
-            # self.system.v = -1 * self.system.v
-            self.system.v = self.system.v
 
     def assign_data(self, data):
         """Add to the cumulative outcome."""

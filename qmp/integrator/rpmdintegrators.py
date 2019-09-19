@@ -18,33 +18,19 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>#
 """Contains integrators for propagating ring polymers."""
-from qmp.integrator.trajintegrators import AbstractVelocityVerlet
+from qmp.integrator.trajintegrators import VelocityVerlet
 from qmp.tools.dyn_tools import create_thermostat
 import numpy as np
 
 
-class RPMD_VelocityVerlet(AbstractVelocityVerlet):
+class RPMD_VelocityVerlet(VelocityVerlet):
     """Velocity verlet integrator for RPMD."""
 
-    def initialise_start(self):
-        self.rb_t = [self.system.r_beads]
-        self.vb_t = [self.system.v_beads]
-
-        self.E_pot = [self.system.compute_potential_energy(self.potential)]
-        self.E_kin = [self.system.compute_kinetic_energy()]
-
-    def store_result(self):
-        self.rb_t.append(self.system.r_beads)
-        self.vb_t.append(self.system.v_beads)
-
-        self.E_pot.append(self.system.compute_potential_energy(self.potential))
-        self.E_kin.append(self.system.compute_kinetic_energy())
-
     def assign_data(self, data):
-        data.rb_t = np.array(self.rb_t)
-        data.vb_t = np.array(self.vb_t)
-        data.r_t = np.mean(self.rb_t, 2)
-        data.v_t = np.mean(self.vb_t, 2)
+        data.rb_t = np.array(self.r_t)
+        data.vb_t = np.array(self.v_t)
+        data.r_t = np.mean(self.r_t, 2)
+        data.v_t = np.mean(self.v_t, 2)
 
         data.Eb_kin_t = np.array(self.E_kin)
         data.Eb_pot_t = np.array(self.E_pot)
