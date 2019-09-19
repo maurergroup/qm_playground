@@ -32,25 +32,39 @@ class Hopping(PhaseSpace):
                                         self.nstates))
         self.density_matrix[self.current_state, self.current_state] = 1.0
 
-    def construct_V_matrix(self, potential):
+    def update_electronics(self, potential):
+        """Update all the electronic quantities.
+
+        Whenever the position is updated this function should be called to give
+        consistent electronics.
+        """
+        self.V = self.construct_V_matrix(self.r, potential)
+        self.D = self.construct_Nabla_matrix(self.r, potential)
+        self.energies, self.coeffs = self.compute_coeffs()
+        self.compute_force()
+
+        self.compute_hamiltonian(self.coeffs, self.V)
+        self.compute_derivative_coupling(self.coeffs, self.D)
+
+    def construct_V_matrix(self, r, potential):
         """Construct an n by n matrix for V evaluated at position r."""
-        V = np.zeros((self.nstates, self.nstates))
-        for i in range(self.nstates):
-            for j in range(self.nstates):
-                V[i, j] = potential(self.r, i=i, j=j)
+        v11 = np.diag(potential(r, i=0, j=0))
+        v22 = np.diag(potential(r, i=1, j=1))
+        v12 = np.diag(potential(r, i=0, j=1))
+        V = np.block([[v11, v12], [v12, v22]])
         return V
 
-    def construct_Nabla_matrix(self, potential):
+    def construct_Nabla_matrix(self, r, potential):
         """Construct an n by n matrix for dV/dR from the potential.
 
         As with construct_V_matrix, the diabatic matrix elements should be
         given to the potential as a list of functions. This then calculates
         them for the current position and reshapes.
         """
-        flat = np.array(
-            [potential.deriv(self.r, n=i) for i in range(self.nstates**2)]
-            )
-        D = flat.reshape((self.nstates, self.nstates))
+        d11 = np.diag(potential.deriv(r, n=0))
+        d22 = np.diag(potential.deriv(r, n=3))
+        d12 = np.diag(potential.deriv(r, n=1))
+        D = np.block([[d11, d12], [d12, d22]])
         return D
 
     def compute_coeffs(self):
@@ -70,55 +84,33 @@ class Hopping(PhaseSpace):
     def compute_force(self):
         """Compute <psi_i|dH/dR|psi_j>"""
         force_matrix = -self.coeffs.T @ self.D @ self.coeffs
-        return np.diag(force_matrix)
+        self.force = force_matrix.diagonal()
 
-    def compute_hamiltonian(self):
+    def compute_hamiltonian(self, coeffs, V):
         """Compute <psi|V|psi>"""
-        return self.coeffs.T @ self.V @ self.coeffs
+        self.hamiltonian = coeffs.T @ V @ coeffs
 
-    def compute_derivative_coupling(self):
+    def compute_derivative_coupling(self, coeffs, D):
         """Compute <psi|D|psi> / (V_jj - V_ii)
 
         This uses the Hellman-Feynman theorem.
         """
-        out = self.coeffs.T @ self.D @ self.coeffs
+        out = coeffs.T @ D @ coeffs
 
-        for j in range(self.nstates):
-            for i in range(j):
-                dE = self.energies[j]-self.energies[i]
-                if abs(dE) < 1.0e-14:
-                    dE = np.copysign(1.0e-14, dE)
+        dE = self.energies[0] - self.energies[1]
+        if abs(dE) < 1.0e-14:
+            dE = np.copysign(1.0e-14, dE)
 
-                out[i, j] /= dE
-                out[j, i] /= -dE
+        out[0] /= dE
+        out[1] /= -dE
 
-        return out
-
-    def compute_propagating_hamiltonian(self):
-        """ Compute H - ihRd
-
-        This is used to propagate the density matrix.
-        """
-        return self.hamiltonian - 1.0j * self.derivative_coupling * self.v
-
-    def update_electronics(self, potential):
-        """Update all the electronic quantities.
-
-        Whenever the position is updated this function should be called to give
-        consistent electronics.
-        """
-        self.V = self.construct_V_matrix(potential)
-        self.D = self.construct_Nabla_matrix(potential)
-        self.energies, self.coeffs = self.compute_coeffs()
-
-        self.force = self.compute_force()
-        self.hamiltonian = self.compute_hamiltonian()
-        self.derivative_coupling = self.compute_derivative_coupling()
+        self.derivative_coupling = out
 
     def compute_acceleration(self, potential):
         """Evaluate electronics and return force."""
         self.update_electronics(potential)
-        return self.force[self.current_state] / self.masses
+        force = np.split(self.force, 2)[self.current_state]
+        return force / self.masses
 
     def propagate_density_matrix(self, dt):
         """ Propagates the density matrix by dt.
@@ -134,6 +126,14 @@ class Hopping(PhaseSpace):
         U = coeff @ prop @ coeff.T.conj()
         self.density_matrix = U @ self.density_matrix @ U.T.conj()
 
+    def compute_propagating_hamiltonian(self):
+        """ Compute H - ihRd
+
+        This is used to propagate the density matrix.
+        """
+        return (self.hamiltonian
+                - 1.0j * self.derivative_coupling * self.get_velocity())
+
     def get_probabilities(self, dt):
         """Calculate the hopping probability.
 
@@ -141,7 +141,7 @@ class Hopping(PhaseSpace):
         current state to state i.
         """
         A = self.density_matrix
-        R = self.v
+        R = self.get_velocity()
         d = self.derivative_coupling
         n = self.current_state
 
@@ -162,7 +162,7 @@ class Hopping(PhaseSpace):
         new = self.energies[desired_state]
 
         deltaV = new - old
-        kinetic = 0.5 * self.masses * self.v ** 2
+        kinetic = 0.5 * self.masses * self.get_velocity() ** 2
 
         if kinetic >= deltaV:
             self.rescale_velocity(deltaV, desired_state)
@@ -187,14 +187,20 @@ class Hopping(PhaseSpace):
         direction = d / np.sqrt(np.dot(d, d))
         Md = self.masses * direction
         a = np.dot(Md, Md)
-        b = 2.0 * np.dot(self.masses * self.v, Md)
+        b = 2.0 * np.dot(self.masses * self.get_velocity(), Md)
         c = -2.0 * self.masses * -deltaV
         roots = np.roots([a, b, c])
         scal = min(roots, key=lambda x: abs(x))
         self.v += np.real(scal) * direction
 
     def has_reflected(self):
-        return self.r < self.potential.cell[0][0]
+        return self.get_position() < self.potential.cell[0][0]
 
     def has_transmitted(self):
-        return self.r > self.potential.cell[0][1]
+        return self.get_position() > self.potential.cell[0][1]
+
+    def get_velocity(self):
+        return self.v
+
+    def get_position(self):
+        return self.r
