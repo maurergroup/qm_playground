@@ -1,6 +1,7 @@
 from .rpmd import RPMD
 from .hopping import Hopping
 import numpy as np
+import copy
 
 
 class RPSH(Hopping, RPMD):
@@ -8,6 +9,10 @@ class RPSH(Hopping, RPMD):
     def __init__(self, coordinates, velocities, masses,
                  initial_state, potential, nstates=2, n_beads=4,
                  T=298, init_type='velocity'):
+
+        self.initial_r = coordinates
+        self.initial_v = velocities
+        self.initial_state = initial_state
 
         RPMD.__init__(self, coordinates, velocities, masses, n_beads, T,
                       init_type)
@@ -18,11 +23,15 @@ class RPSH(Hopping, RPMD):
         self.r = self.r[0, :, 0]
         self.v = self.v[0, :, 0]
 
-        self.initial_r = self.r
-        self.initial_v = self.v
-        self.initial_state = initial_state
         self.coeffs = None
         self.centroid_U = None
+
+    def copy_initial_values(self):
+        super().copy_initial_values()
+
+        self.initialise_beads()
+        self.r = self.r[0, :, 0]
+        self.v = self.v[0, :, 0]
 
     def update_electronics(self, potential):
         """Update all the electronic quantities.

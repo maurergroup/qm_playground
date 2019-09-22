@@ -37,7 +37,11 @@ class RPMD(PhaseSpace):
         self.temp = T / 3.15777504e5
         self.beta = 1 / (self.temp * self.n_beads)
         self.omega = 1 / (self.beta)
+        self.init_type = init_type
 
+        self.initialise_beads()
+
+    def initialise_beads(self):
         if self.ndim == 2:
             xi = 2.*np.pi/self.n_beads
             rotMat = np.array([[np.cos(xi), np.sin(xi)],
@@ -52,9 +56,9 @@ class RPMD(PhaseSpace):
         self.r_beads = np.zeros((self.n_particles, self.n_beads, self.ndim))
         self.v_beads = np.zeros((self.n_particles, self.n_beads, self.ndim))
 
-        if init_type == 'velocity':
+        if self.init_type == 'velocity':
             self.velocity_init(rotMat, rM)
-        elif init_type == 'position':
+        elif self.init_type == 'position':
             self.position_init(rotMat, rM)
         else:
             raise ValueError('Init type not recognised')

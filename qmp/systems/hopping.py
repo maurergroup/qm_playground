@@ -22,15 +22,18 @@ class Hopping(PhaseSpace):
 
         This is used to refresh the system before starting a new trajectory.
         """
-        self.r = copy.deepcopy(self.initial_r)
-        self.v = copy.deepcopy(self.initial_v)
-        self.current_state = copy.deepcopy(self.initial_state)
 
+        self.copy_initial_values()
         self.update_electronics(potential)
 
         self.density_matrix = np.zeros((self.nstates,
                                         self.nstates))
         self.density_matrix[self.current_state, self.current_state] = 1.0
+
+    def copy_initial_values(self):
+        self.r = copy.deepcopy(self.initial_r)
+        self.v = copy.deepcopy(self.initial_v)
+        self.current_state = copy.deepcopy(self.initial_state)
 
     def update_electronics(self, potential):
         """Update all the electronic quantities.
