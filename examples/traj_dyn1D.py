@@ -26,4 +26,4 @@ traj2d = qmp.Model(
 print(traj2d)
 
 # EVOLVE SYSTEM
-traj2d.run(steps)
+traj2d.run(steps, output_freq=1)

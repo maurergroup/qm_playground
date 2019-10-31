@@ -63,8 +63,8 @@ export class Surface3dView extends LayoutDOMView {
     // draw to the HTML canvas. In this case though, we use the <div> to attach
     // a Graph3d to the DOM.
     const OPTIONS = {
-      width: '600px',
-      height: '600px',
+      width: '1000px',
+      height: '800px',
       style: 'surface',
       showPerspective: true,
       zMax: this.model.zMax,

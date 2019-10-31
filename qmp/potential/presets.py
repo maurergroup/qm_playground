@@ -205,6 +205,51 @@ class Morse(ModelPotential):
         self.function = f_morse
 
 
+class DoubleSlit(ModelPotential):
+    """Generator for an 2-dimensional double slit potential.
+
+    Passing arrays of positions, widths, and heights to the constructor
+    defines the attributes of the potential in each dimension.
+    """
+
+    def __init__(self, dimension, **kwargs):
+        if dimension != 2:
+            raise ValueError('Elbow only available in 2D.')
+        ModelPotential.__init__(self, dimension)
+
+        position = kwargs.get('position', 0)
+        thickness = kwargs.get('thickness', 1)
+        spacing = kwargs.get('spacing', 1)
+        height = kwargs.get('height', 100)
+        centre = kwargs.get('centre', 0)
+        slit_size = kwargs.get('slit_size', 0.8)
+
+        def f_slit(x, y):
+            lower = position - thickness*0.5
+            upper = position + thickness*0.5
+
+            slit_start_one = centre - spacing - slit_size
+            slit_end_one = centre - spacing + slit_size
+            slit_start_two = centre + spacing - slit_size
+            slit_end_two = centre + spacing + slit_size
+
+            result = x
+            x_truth = np.logical_and(np.greater(x, lower), np.less(x, upper))
+            lower_y = np.less(y, slit_start_one)
+            upper_y = np.greater(y, slit_end_two)
+            mid_y = np.logical_and(np.greater(y, slit_end_one),
+                                   np.less(y, slit_start_two))
+
+            all_y = lower_y + upper_y + mid_y
+            all = np.logical_and(all_y, x_truth)
+
+            result = np.where(all, height, 0)
+
+            return result
+
+        self.function = f_slit
+
+
 class Elbow(ModelPotential):
     """Generator for an 2-dimensional elbow potential.
 
