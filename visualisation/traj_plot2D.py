@@ -57,7 +57,9 @@ class TrajPlot2D:
         x = np.linspace(0, 1, len(E_t))
         colors = itertools.cycle(colorcet.glasbey)
         for i, color in zip(range(nparticles), colors):
-            self.energy_plot.line(x=x, y=E_t[:, i], color=color)
+            y = E_t[:, i]
+            mean = np.mean(y)
+            self.energy_plot.line(x=x, y=(y-mean)/mean, color=color)
 
     def get_update_function(self):
 

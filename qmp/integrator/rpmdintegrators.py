@@ -26,6 +26,10 @@ import numpy as np
 class RPMD_VelocityVerlet(VelocityVerlet):
     """Velocity verlet integrator for RPMD."""
 
+    def initialise_start(self):
+        super().initialise_start()
+        self.system.initialise_propagators(self.dt)
+
     def assign_data(self, data):
         data.rb_t = np.array(self.r_t)
         data.vb_t = np.array(self.v_t)
@@ -34,7 +38,7 @@ class RPMD_VelocityVerlet(VelocityVerlet):
 
         data.Eb_kin_t = np.array(self.E_kin)
         data.Eb_pot_t = np.array(self.E_pot)
-        data.Eb_t = self.E_kin + self.E_pot
+        data.Eb_t = data.Eb_kin_t + data.Eb_pot_t
         data.E_kin_t = np.mean(data.Eb_kin_t, 2)
         data.E_pot_t = np.mean(data.Eb_pot_t, 2)
         data.E_t = np.mean(data.Eb_t, 2)

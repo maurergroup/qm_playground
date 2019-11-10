@@ -17,12 +17,12 @@ class HoppingTestCase(unittest.TestCase):
         self.hop.reset_system(self.pot)
 
     def test_construct_V_matrix(self):
-        V = self.hop.construct_V_matrix(self.pot)
+        V = self.hop.construct_V_matrix(self.hop.r, self.pot)
         correct = [[0, 0.005], [0.005, 0]]
         test.assert_array_equal(V, correct)
 
     def test_construct_Nabla_matrix(self):
-        D = self.hop.construct_Nabla_matrix(self.pot)
+        D = self.hop.construct_Nabla_matrix(self.hop.r, self.pot)
         correct = [[0.016, 0], [0, -0.016]]
         test.assert_array_equal(D, correct)
 
@@ -34,33 +34,38 @@ class HoppingTestCase(unittest.TestCase):
         test.assert_array_almost_equal(e, correct_e)
 
     def test_compute_force(self):
-        f = self.hop.compute_force()
+        self.hop.compute_force()
         correct = [0, 0]
-        test.assert_array_almost_equal(f, correct)
+        test.assert_array_almost_equal(self.hop.force, correct)
 
     def test_compute_hamiltonian(self):
-        h = self.hop.compute_hamiltonian()
+        e, c = self.hop.compute_coeffs()
+        V = self.hop.construct_V_matrix(self.hop.r, self.pot)
+        self.hop.compute_hamiltonian(c, V)
         correct = [[-5.00000000e-03, -1.10682021e-19],
                    [1.10682021e-19,  5.00000000e-03]]
-        test.assert_array_almost_equal(h, correct)
+        test.assert_array_almost_equal(self.hop.hamiltonian, correct)
 
     def test_compute_derivative_coupling(self):
-        d = self.hop.compute_derivative_coupling()
-        correct = [[0, -1.6],
-                   [1.6, 0]]
-        test.assert_array_almost_equal(d, correct)
+        D = self.hop.construct_Nabla_matrix(self.hop.r, self.pot)
+        e, coeffs = self.hop.compute_coeffs()
+
+        self.hop.compute_derivative_coupling(coeffs, D)
+        correct = [[0, 1.6],
+                   [-1.6, 0]]
+        test.assert_array_almost_equal(self.hop.derivative_coupling, correct)
 
     def test_compute_propagating_hamiltonian(self):
         h = self.hop.compute_propagating_hamiltonian()
-        correct = [[-5.00000000e-03+0.j, 0+0.016j],
-                   [0-0.016j, 5.00000000e-03+0.j]]
+        correct = [[-5.00000000e-03+0.j, 0-0.016j],
+                   [0+0.016j, 5.00000000e-03+0.j]]
         test.assert_array_almost_equal(h, correct)
 
     def test_propagate_density_matrix(self):
         self.hop.propagate_density_matrix(dt=2)
         new = self.hop.density_matrix
-        correct = [[0.99897638+0.j, -0.03197603-0.00031988j],
-                   [-0.03197603+0.00031988j, 0.00102362+0.j]]
+        correct = [[0.99897638+0.j, 0.03197603+0.00031988j],
+                   [+0.03197603-0.00031988j, 0.00102362+0.j]]
         test.assert_array_almost_equal(new, correct)
 
     def test_rescale_velocity(self):

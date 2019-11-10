@@ -41,8 +41,9 @@ class RPMDPlot2D:
 
         self.particle_movie.image(image=[pot], x=[self.cell[0][0]],
                                   y=[self.cell[1][0]],
-                                  dw=[self.cell[0][1]],
-                                  dh=[self.cell[1][1]], color_mapper=colors)
+                                  dw=[self.cell[0][1]-self.cell[0][0]],
+                                  dh=[self.cell[1][1]-self.cell[1][0]],
+                                  color_mapper=colors)
 
     def plot_particles(self):
 
@@ -52,12 +53,18 @@ class RPMDPlot2D:
                                    source=self.source)
 
     def plot_energy(self):
+        colors = itertools.cycle(colorcet.glasbey)
+
         E_t = self.raw_data['E_t']
+        E_kin_t = self.raw_data['E_pot_t']
+        E_pot_t = self.raw_data['E_kin_t']
+        energies = [E_t, E_kin_t, E_pot_t]
         nparticles = np.shape(E_t)[1]
         x = np.linspace(0, 1, len(E_t))
-        colors = itertools.cycle(colorcet.glasbey)
-        for i, color in zip(range(nparticles), colors):
-            self.energy_plot.line(x=x, y=E_t[:, i], color=color)
+        for i in range(nparticles):
+            for e, color in zip(energies, colors):
+                mean = np.mean(e[:, i])
+                self.energy_plot.line(x=x, y=(e[:, i]), color=color)
 
     def get_update_function(self):
 

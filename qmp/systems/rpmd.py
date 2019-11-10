@@ -3,6 +3,7 @@ from qmp.systems.phasespace import PhaseSpace
 from qmp.tools.dyn_tools import get_v_maxwell
 import scipy.sparse as sp
 import scipy.linalg as la
+from numpy.fft import fft, ifft, fftfreq
 
 
 class RPMD(PhaseSpace):
@@ -37,21 +38,21 @@ class RPMD(PhaseSpace):
         self.temp = T / 3.15777504e5
         self.beta = 1 / (self.temp * self.n_beads)
         self.omega = 1 / (self.beta)
+        self.omega = self.temp * self.n_beads
         self.init_type = init_type
 
         self.initialise_beads()
 
+        self.initialise_normal_frequencies()
+        self.initialise_transformer()
+
     def initialise_beads(self):
-        if self.ndim == 2:
-            xi = 2.*np.pi/self.n_beads
-            rotMat = np.array([[np.cos(xi), np.sin(xi)],
-                              [-np.sin(xi), np.cos(xi)]])
-            arand = np.random.random(1)*2.*np.pi
-            rM = np.array([[np.cos(arand), np.sin(arand)],
-                          [-np.sin(arand), np.cos(arand)]])
-        else:
-            rotMat = None
-            rM = None
+        xi = 2.*np.pi/self.n_beads
+        rotMat = np.array([[np.cos(xi), np.sin(xi)],
+                          [-np.sin(xi), np.cos(xi)]])
+        arand = np.random.random(1)*2.*np.pi
+        rM = np.array([[np.cos(arand), np.sin(arand)],
+                      [-np.sin(arand), np.cos(arand)]])
 
         self.r_beads = np.zeros((self.n_particles, self.n_beads, self.ndim))
         self.v_beads = np.zeros((self.n_particles, self.n_beads, self.ndim))
@@ -65,55 +66,6 @@ class RPMD(PhaseSpace):
 
         self.r = self.r_beads
         self.v = self.v_beads
-
-    def compute_kinetic_energy(self):
-        return 0.5 * np.einsum('i,ijk->ij', self.masses, self.v ** 2)
-
-    def compute_bead_potential_energy(self, potential):
-        if self.ndim == 1:
-            return potential(self.r[:, :, 0])
-        elif self.ndim == 2:
-            return potential(self.r[:, :, 0], self.r[:, :, 1])
-
-    def compute_potential_energy(self, potential):
-        """Compute the potential energy for each bead."""
-        M = np.eye(self.n_beads) - np.diag(np.ones(self.n_beads-1), 1)
-        M[-1, 0] = -1.
-
-        bead = self.compute_bead_potential_energy(potential)
-
-        a = np.sum(np.einsum('ij,xjk->xik', M, self.r)**2, 2)
-        b = 0.5 * self.masses[:, np.newaxis] * self.omega ** 2
-        spring = a * b
-        return bead + spring
-
-    def compute_force(self, potential):
-        """Compute the force from the potential on the bead."""
-        force = np.empty_like(self.r)
-        for i, particle in enumerate(self.r):
-            force[i] = -1 * potential.deriv(particle)
-        return force
-
-    def compute_bead_force(self, potential):
-        """Compute the total force acting on each bead."""
-        spring_force = self.compute_spring_force()
-        bead_force = self.compute_force(potential)
-        return bead_force - spring_force
-
-    def compute_spring_force(self):
-        """Compute the spring force acting between beads."""
-        off = np.full(self.n_beads-1, -1)
-        diagonal = np.full(self.n_beads, 2)
-        M = sp.diags([off, diagonal, off], [-1, 0, 1]).A
-        M[-1, 0], M[0, -1] = -1, -1
-
-        b = self.masses * self.omega ** 2
-        spring_force = np.einsum('i,jk,ikm', b, M, self.r)
-        return spring_force
-
-    def compute_acceleration(self, potential):
-        F = self.compute_bead_force(potential)
-        return F / self.masses[:, np.newaxis, np.newaxis]
 
     def velocity_init(self, rotMat, rM):
         for i_par in range(self.n_particles):
@@ -158,9 +110,37 @@ class RPMD(PhaseSpace):
             for i_bead in range(self.n_beads):
                 self.v_beads[i_par, i_bead] = self.v[i_par]
 
-    def compute_hessian(self, potential):
-        r = np.mean(self.r, 1)
-        return potential.hess(r)
+    def compute_kinetic_energy(self):
+        return 0.5 * np.einsum('i,ijk->ij', self.masses, self.v ** 2)
+
+    def compute_bead_potential_energy(self, potential):
+        if self.ndim == 1:
+            return potential(self.r[:, :, 0])
+        elif self.ndim == 2:
+            return potential(self.r[:, :, 0], self.r[:, :, 1])
+
+    def compute_potential_energy(self, potential):
+        """Compute the potential energy for each bead."""
+        M = np.eye(self.n_beads) - np.diag(np.ones(self.n_beads-1), 1)
+        M[-1, 0] = -1.
+
+        bead = self.compute_bead_potential_energy(potential)
+
+        a = np.sum(np.einsum('ij,xjk->xik', M, self.r)**2, 2)
+        b = 0.5 * self.masses[:, np.newaxis] * self.omega ** 2
+        spring = a * b
+        return bead + spring
+
+    def compute_force(self, potential):
+        """Compute the force from the potential on the bead."""
+        force = np.empty_like(self.r)
+        for i, particle in enumerate(self.r):
+            force[i] = -1 * potential.deriv(particle)
+        return force
+
+    def compute_acceleration(self, potential):
+        F = self.compute_force(potential)
+        self.acceleration = F / self.masses[:, np.newaxis, np.newaxis]
 
     def compute_omega_Rugh(self, potential):
         """Definition of dynamical temperature according to Rugh.
@@ -168,9 +148,66 @@ class RPMD(PhaseSpace):
         = (n_beads/hbar)*kB*T
         = (n_beads/hbar)*( (|V'(r)|^2 + |v|^2) / (V"(r) + ndim/m) )
         """
-
         A = la.norm(PhaseSpace.compute_force(self, potential))
         a = self.compute_hessian(potential)
         v = la.norm(self.v)
 
         self.omega = (self.n_beads)*((A**2 + v**2)/(a+(self.ndim/self.masses)))
+
+    def compute_hessian(self, potential):
+        r = np.mean(self.r, 1)
+        return potential.hess(r)
+
+    def propagate_positions(self, dt):
+
+        self.transform_to_normal_modes()
+        self.propagate_free_polymer()
+        self.transform_from_normal_modes()
+
+    def initialise_transformer(self):
+        c = np.zeros((self.n_beads, self.n_beads))
+        j = np.arange(1, self.n_beads+1)
+
+        c[:, 0] = 1
+        lower_range = np.arange(1, self.n_beads//2)
+        upper_range = np.arange(self.n_beads//2+1, self.n_beads)
+
+        for k in lower_range:
+            c[:, k] = np.sqrt(2)*np.cos(2*np.pi*j*k/self.n_beads)
+        for k in upper_range:
+            c[:, k] = np.sqrt(2)*np.sin(2*np.pi*j*k/self.n_beads)
+
+        if self.n_beads % 2 == 0:
+            c[:, self.n_beads//2] = (-1)**j
+
+        self.transformer = c / np.sqrt(self.n_beads)
+
+    def initialise_normal_frequencies(self):
+        k = np.arange(self.n_beads)
+        self.omega_k = 2. * self.omega * np.sin(k*np.pi/self.n_beads)
+
+    def initialise_propagators(self, dt):
+        square = (self.omega_k * dt / 2)**2
+        self.cayley_11 = (1 - square) / (1 + square)
+        self.cayley_12 = -(4 * square / dt) / (1 + square) * self.masses[..., None]
+        self.cayley_21 = dt / (1 + square) / self.masses[..., None]
+
+    def transform_to_normal_modes(self):
+        self.p_normal = np.zeros_like(self.v)
+        self.q_normal = np.zeros_like(self.r)
+
+        self.p_normal = self.transformer.T @ self.v * self.masses[..., None, None]
+        self.q_normal = self.transformer.T @ self.r
+
+    def transform_from_normal_modes(self):
+        self.v = np.zeros_like(self.p_normal)
+        self.r = np.zeros_like(self.q_normal)
+
+        self.v = self.transformer @ self.p_normal / self.masses[..., None, None]
+        self.r = self.transformer @ self.q_normal
+
+    def propagate_free_polymer(self):
+        old_p = self.p_normal
+        old_q = self.q_normal
+        self.p_normal = self.cayley_11[..., None] * old_p + old_q * self.cayley_12[..., None]
+        self.q_normal = self.cayley_11[..., None] * old_q + old_p * self.cayley_21[..., None]

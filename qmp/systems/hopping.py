@@ -113,7 +113,7 @@ class Hopping(PhaseSpace):
         """Evaluate electronics and return force."""
         self.update_electronics(potential)
         force = np.split(self.force, 2)[self.current_state]
-        return force / self.masses
+        self.acceleration = force / self.masses
 
     def propagate_density_matrix(self, dt):
         """ Propagates the density matrix by dt.
