@@ -4,12 +4,12 @@ from qmp.tools.dyn_tools import get_v_maxwell
 import scipy.sparse as sp
 import scipy.linalg as la
 from numpy.fft import fft, ifft, fftfreq
+import pickle
 
 
 class RPMD(PhaseSpace):
 
-    def __init__(self, coordinates, velocities, masses, n_beads=4,
-                 T=298, init_type='velocity'):
+    def __init__(self, coordinates, velocities, masses, n_beads=4, T=298):
         """Initialise the ring polymer system.
 
         Parameters
@@ -39,76 +39,22 @@ class RPMD(PhaseSpace):
         self.beta = 1 / (self.temp * self.n_beads)
         self.omega = 1 / (self.beta)
         self.omega = self.temp * self.n_beads
-        self.init_type = init_type
 
         self.initialise_beads()
-
         self.initialise_normal_frequencies()
         self.initialise_transformer()
 
     def initialise_beads(self):
-        xi = 2.*np.pi/self.n_beads
-        rotMat = np.array([[np.cos(xi), np.sin(xi)],
-                          [-np.sin(xi), np.cos(xi)]])
-        arand = np.random.random(1)*2.*np.pi
-        rM = np.array([[np.cos(arand), np.sin(arand)],
-                      [-np.sin(arand), np.cos(arand)]])
 
         self.r_beads = np.zeros((self.n_particles, self.n_beads, self.ndim))
         self.v_beads = np.zeros((self.n_particles, self.n_beads, self.ndim))
 
-        if self.init_type == 'velocity':
-            self.velocity_init(rotMat, rM)
-        elif self.init_type == 'position':
-            self.position_init(rotMat, rM)
-        else:
-            raise ValueError('Init type not recognised')
+        for i_par in range(self.n_particles):
+            self.r_beads[i_par] = self.r[i_par]
+            self.v_beads[i_par] = self.v[i_par]
 
         self.r = self.r_beads
         self.v = self.v_beads
-
-    def velocity_init(self, rotMat, rM):
-        for i_par in range(self.n_particles):
-            if self.ndim == 1:
-                i_start = self.n_beads % 2
-                # for odd number of beads:
-                # (n_beads-1)/2 pairs, v=0 for last bead ~> start at i_start=1
-                for i_bead in range(i_start, self.n_beads, 2):
-                    v_mb = get_v_maxwell(self.masses[i_par],
-                                         self.temp)
-                    # assign v_p + v_mb to bead1 of pair
-                    self.v_beads[i_par, i_bead] = self.v[i_par] + v_mb
-                    # assign v_p - v_mb to bead2 of pair
-                    self.v_beads[i_par, i_bead+1] = self.v[i_par] - v_mb
-            else:
-                v_abs = get_v_maxwell(self.masses[i_par], self.temp)
-                v_vec = np.dot(np.array([0., v_abs]), rM).T
-                for i_bead in range(self.n_beads):
-                    self.v_beads[i_par, i_bead] = self.v[i_par] + v_vec
-                    v_vec = np.dot(v_vec, rotMat)
-
-            for i_bead in range(self.n_beads):
-                self.r_beads[i_par, i_bead] = self.r[i_par]
-
-    def position_init(self, rotMat, rM):
-        for i_par in range(self.n_particles):
-            r_abs = (np.pi)*np.sqrt(
-                self.n_beads/(2.*self.masses[i_par]*self.temp))/400.
-            if self.ndim == 1:
-                self.r_beads[i_par, 0] = self.r[i_par] - r_abs
-                for i_bead in range(1, self.n_beads):
-                    self.r_beads[i_par,
-                                 i_bead] = (self.r_beads[i_par, i_bead-1]
-                                            + (2.*r_abs/(self.n_beads-1)))
-            else:
-                r_vec = np.dot(np.array([0., r_abs]), rM).T
-                self.r_beads[i_par, 0] = self.r[i_par] + r_vec
-                for i_bead in range(1, self.n_beads):
-                    r_vec = np.dot(r_vec, rotMat)
-                    self.r_beads[i_par, i_bead] = self.r[i_par] + r_vec
-
-            for i_bead in range(self.n_beads):
-                self.v_beads[i_par, i_bead] = self.v[i_par]
 
     def compute_kinetic_energy(self):
         return 0.5 * np.einsum('i,ijk->ij', self.masses, self.v ** 2)
@@ -211,3 +157,29 @@ class RPMD(PhaseSpace):
         old_q = self.q_normal
         self.p_normal = self.cayley_11[..., None] * old_p + old_q * self.cayley_12[..., None]
         self.q_normal = self.cayley_11[..., None] * old_q + old_p * self.cayley_21[..., None]
+
+    def initialise_thermostat(self, dt, tau0=1):
+        self.gamma_k = 2 * self.omega_k
+        self.gamma_k[0] = 1 / tau0
+
+        self.c1 = np.exp(-dt * self.gamma_k / 2)
+        self.c2 = np.sqrt(1 - self.c1 ** 2)
+
+    def apply_thermostat(self):
+        randoms = np.random.normal(size=self.r.shape)
+        self.transform_to_normal_modes()
+        self.p_normal = self.c1[None, :, None] * self.p_normal
+        self.p_normal += (np.sqrt(self.masses[:, None, None] / self.beta)
+                          * self.c2[None, :, None] * randoms)
+        self.transform_from_normal_modes()
+
+    def set_position_from_trajectory(self, file, equilbration_end):
+        file = open(file, 'rb')
+        trajectory = pickle.load(file)
+        positions = trajectory['rb_t']
+        velocities = trajectory['vb_t']
+
+        choice = np.random.randint(low=equilbration_end, high=len(positions))
+
+        self.r = positions[choice]
+        self.v = velocities[choice]

@@ -33,7 +33,7 @@ class Model:
     """
 
     def __init__(self, system, potential, mode, integrator=None, solver=None,
-                 states=20, name='simulation'):
+                 states=20):
         """
         Initialise the calculation model.
 
@@ -60,7 +60,6 @@ class Model:
         self.integrator = integrator
         self.mode = mode
         self.states = states
-        self.name = name
 
         if solver is None:
             self.solver = ScipySolver(self.system, self.potential, self.states)
@@ -82,10 +81,12 @@ class Model:
         The data object is basically just a dictionary right now and is not
         really necessary but could be developed later."""
         self.data = Data()
-        self.data.name = self.name
         self.data.mode = self.mode
         self.data.integrator = type(self.integrator).__name__
         self.data.cell = self.potential.cell
+
+    def set_integrator(self, integrator):
+        self.integrator = integrator
 
     def solve(self):
         """
@@ -114,6 +115,8 @@ class Model:
         for key in self.data:
             print(key)
 
-        print(f'Writing results to \'{self.name}.end\'.')
-        out = open(f'{self.name}.end', 'wb')
+    def write_output(self, name='simulation'):
+
+        print(f'Writing results to \'{name}\'.')
+        out = open(name, 'wb')
         pickle.dump(self.data, out)

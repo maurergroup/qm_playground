@@ -26,4 +26,5 @@ from .waveintegrators import PrimitivePropagator
 from .waveintegrators import SOFT_Propagator
 from .trajintegrators import VelocityVerlet, Langevin
 from .rpmdintegrators import RPMD_VelocityVerlet, TRPMD_VelocityVerlet
+from .rpmdintegrators import PIMD_LangevinThermostat
 from .hoppingintegrators import HoppingIntegrator

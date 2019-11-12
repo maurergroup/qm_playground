@@ -46,6 +46,19 @@ class RPMD_VelocityVerlet(VelocityVerlet):
         data.potential = self.potential.compute_cell_potential(density=1000)
 
 
+class PIMD_LangevinThermostat(RPMD_VelocityVerlet):
+
+    def initialise_start(self):
+        super().initialise_start()
+        self.system.initialise_thermostat(self.dt)
+
+    def propagate_system(self):
+
+        self.system.apply_thermostat()
+        super().propagate_system()
+        self.system.apply_thermostat()
+
+
 class TRPMD_VelocityVerlet(RPMD_VelocityVerlet):
     """Velocity verlet integrator for thermostatted RPMD."""
     def __init__(self, dt, **kwargs):
