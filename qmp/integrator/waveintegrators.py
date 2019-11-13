@@ -33,9 +33,11 @@ class AbstractWavePropagator(ABC):
     Only the functions decorated by '@abstractmethod' should be extended,
     all others should remain the same for all integrators.
     """
-    def __init__(self, dt=1):
+    def __init__(self, dt=1, absorb=True, output_adiabatic=True):
         """Class is initialised with a timestep as a single argument."""
         self.dt = dt
+        self.absorb = absorb
+        self.output_adiabatic = output_adiabatic
 
     def run(self, system, steps, potential, data, **kwargs):
         """This function is called by the model to run the integration process.
@@ -114,7 +116,8 @@ class AbstractWavePropagator(ABC):
 
             self.propagate_psi()
 
-            self.absorb_boundary()
+            if self.absorb:
+                self.absorb_boundary()
 
             if (i+1) % self.output_freq == 0:
                 self.store_result()
@@ -159,7 +162,7 @@ class AbstractWavePropagator(ABC):
         self.E_t.append(self.compute_current_energy())
 
         psi = self.system.psi
-        if (self.system.nstates == 2) and self.system.ndim == 1:
+        if self.output_adiabatic and (self.system.nstates == 2) and self.system.ndim == 1:
             psi = self.system.get_adiabatic_wavefunction()
         self.psi_t.append(psi)
 

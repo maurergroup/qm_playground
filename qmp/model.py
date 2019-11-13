@@ -115,7 +115,7 @@ class Model:
         for key in self.data:
             print(key)
 
-    def write_output(self, name='simulation'):
+    def write_output(self, name='simulation.end'):
 
         print(f'Writing results to \'{name}\'.')
         out = open(name, 'wb')

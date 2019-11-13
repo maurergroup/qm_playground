@@ -158,12 +158,15 @@ class RPMD(PhaseSpace):
         self.p_normal = self.cayley_11[..., None] * old_p + old_q * self.cayley_12[..., None]
         self.q_normal = self.cayley_11[..., None] * old_q + old_p * self.cayley_21[..., None]
 
-    def initialise_thermostat(self, dt, tau0=1):
+    def initialise_thermostat(self, dt, tau0=1, ignore_centroid=False):
         self.gamma_k = 2 * self.omega_k
         self.gamma_k[0] = 1 / tau0
 
         self.c1 = np.exp(-dt * self.gamma_k / 2)
         self.c2 = np.sqrt(1 - self.c1 ** 2)
+        if ignore_centroid:
+            self.c1[0] = 0
+            self.c2[0] = 0
 
     def apply_thermostat(self):
         randoms = np.random.normal(size=self.r.shape)

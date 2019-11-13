@@ -27,3 +27,4 @@ predefined analytical potentials.
 from .potential import Potential
 from . import presets
 from . import tullymodels
+from . import spin_boson

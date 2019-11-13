@@ -166,6 +166,9 @@ class Grid:
         r2 = self.end[0]
         r1 = r2 - c / (2 * self.delta * self.k_min)
 
+        print(f"The absorbing boundary is located {r1} symmetrically from the"
+              + " edge of the cell.")
+
         r = self.mesh[0]
         if self.ndim == 2:
             r = r[0]

@@ -8,14 +8,13 @@ class RPSH(Hopping, RPMD):
 
     def __init__(self, coordinates, velocities, masses,
                  initial_state, potential, nstates=2, n_beads=4,
-                 T=298, init_type='velocity'):
+                 T=298):
 
         self.initial_r = coordinates
         self.initial_v = velocities
         self.initial_state = initial_state
 
-        RPMD.__init__(self, coordinates, velocities, masses, n_beads, T,
-                      init_type)
+        RPMD.__init__(self, coordinates, velocities, masses, n_beads, T)
 
         self.potential = potential
         self.nstates = nstates
