@@ -1,5 +1,6 @@
 import numpy as np
 from .trajintegrators import AbstractVelocityVerlet
+from .rpmdintegrators import RPMD_VelocityVerlet
 
 
 class HoppingIntegrator:
@@ -10,25 +11,31 @@ class HoppingIntegrator:
 
     def run(self, system, steps, potential, data, **kwargs):
 
-        dt = kwargs.get('dt', self.dt)
+        self.system = system
+        self.read_kwargs(kwargs)
+
+        self.initialise_start(data)
+
+        for i in range(self.ntraj):
+            self.traj.run(system, steps, potential, data, **kwargs)
+
+        self.assign_data(data)
+
+        print(f'{self.ntraj} successful trajectories completed.')
+
+    def read_kwargs(self, kwargs):
+        self.dt = kwargs.get('dt', self.dt)
         self.ntraj = kwargs.get('ntraj', 2000)
 
-        self.system = system
-
+    def initialise_start(self, data):
         data.outcome = np.zeros((self.system.nstates, 2))
-
+        self.traj = SingleTrajectoryHopper(self.dt)
         momentum = self.system.initial_v * self.system.masses
-
-        traj = SingleTrajectoryHopper(dt)
         print(f'Running {self.ntraj} surface hopping trajectories'
               + f' for momentum = {momentum}')
 
-        for i in range(self.ntraj):
-            traj.run(system, steps, potential, data, **kwargs)
-
+    def assign_data(self, data):
         data.outcome = data.outcome / self.ntraj
-
-        print(f'{self.ntraj} successful trajectories completed.')
 
 
 class SingleTrajectoryHopper(AbstractVelocityVerlet):
@@ -117,3 +124,10 @@ class SingleTrajectoryHopper(AbstractVelocityVerlet):
         """Store trajectory data but this is currently not used."""
         self.r_t.append(self.system.r)
         self.v_t.append(self.system.v)
+
+
+class RingHoppingIntegrator(HoppingIntegrator):
+
+    def initialise_start(self, data):
+        super().initialise_start(data)
+        self.system.initialise_propagators(self.dt)

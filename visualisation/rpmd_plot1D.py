@@ -2,6 +2,8 @@ from bokeh.plotting import figure, curdoc, ColumnDataSource
 from bokeh.driving import repeat
 from bokeh.layouts import row
 import numpy as np
+import colorcet
+import itertools
 
 
 class RPMDPlot1D:
@@ -22,6 +24,9 @@ class RPMDPlot1D:
 
         self.plot_potential()
         self.plot_particles()
+
+        self.energy_plot = figure()
+        self.plot_energy()
 
     def plot_potential(self):
         pot = self.raw_data['potential']
@@ -52,4 +57,17 @@ class RPMDPlot1D:
         self.source.data = dict(x=x, y=y)
 
     def get_layout(self):
-        return row(self.particle_movie)
+        return row(self.particle_movie, self.energy_plot)
+
+    def plot_energy(self):
+        colors = itertools.cycle(colorcet.glasbey)
+
+        E_t = self.raw_data['E_t']
+        E_kin_t = self.raw_data['E_pot_t']
+        E_pot_t = self.raw_data['E_kin_t']
+        energies = [E_t, E_kin_t, E_pot_t]
+        nparticles = np.shape(E_t)[1]
+        x = np.linspace(0, 1, len(E_t))
+        for i in range(nparticles):
+            for e, color in zip(energies, colors):
+                self.energy_plot.line(x=x, y=(e[:, i]), color=color)

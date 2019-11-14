@@ -4,33 +4,39 @@ import numpy as np
 import copy
 
 
-class RPSH(Hopping, RPMD):
+class RPSH(RPMD, Hopping):
 
     def __init__(self, coordinates, velocities, masses,
-                 initial_state, potential, nstates=2, n_beads=4,
-                 T=298):
-
-        self.initial_r = coordinates
-        self.initial_v = velocities
-        self.initial_state = initial_state
+                 initial_state, potential, start_file, equilibration_end,
+                 nstates=2, n_beads=4, T=298):
 
         RPMD.__init__(self, coordinates, velocities, masses, n_beads, T)
 
+        self.initial_state = initial_state
+        self.initial_r = coordinates
+        self.initial_v = velocities
         self.potential = potential
+        self.start_file = start_file
+        self.equilibration_end = equilibration_end
         self.nstates = nstates
-
-        self.r = self.r[0, :, 0]
-        self.v = self.v[0, :, 0]
 
         self.coeffs = None
         self.centroid_U = None
 
-    def copy_initial_values(self):
-        super().copy_initial_values()
+    def reset_system(self, potential):
+        """ Resets all quantities to the initial state.
 
-        self.initialise_beads()
-        self.r = self.r[0, :, 0]
-        self.v = self.v[0, :, 0]
+        This is used to refresh the system before starting a new trajectory.
+        """
+        self.set_position_from_trajectory(self.start_file,
+                                          self.equilibration_end)
+        self.current_state = copy.deepcopy(self.initial_state)
+        self.v += self.initial_v
+        self.update_electronics(potential)
+
+        self.density_matrix = np.zeros((self.nstates,
+                                        self.nstates))
+        self.density_matrix[self.current_state, self.current_state] = 1.0
 
     def update_electronics(self, potential):
         """Update all the electronic quantities.
@@ -100,3 +106,38 @@ class RPSH(Hopping, RPMD):
 
     def get_position(self):
         return self.centroid_r
+
+    def construct_V_matrix(self, r, potential):
+        """Construct an n by n matrix for V evaluated at position r."""
+        r = r.flatten()
+        v11 = np.diag(potential(r, i=0, j=0))
+        v22 = np.diag(potential(r, i=1, j=1))
+        v12 = np.diag(potential(r, i=0, j=1))
+        V = np.block([[v11, v12], [v12, v22]])
+        return V
+
+    def construct_Nabla_matrix(self, r, potential):
+        """Construct an n by n matrix for dV/dR from the potential.
+
+        As with construct_V_matrix, the diabatic matrix elements should be
+        given to the potential as a list of functions. This then calculates
+        them for the current position and reshapes.
+        """
+        r = r.flatten()
+        d11 = np.diag(potential.deriv(r, n=0))
+        d22 = np.diag(potential.deriv(r, n=3))
+        d12 = np.diag(potential.deriv(r, n=1))
+        D = np.block([[d11, d12], [d12, d22]])
+        return D
+
+    def compute_force(self):
+        """Compute <psi_i|dH/dR|psi_j>"""
+        force_matrix = -self.coeffs.T @ self.D @ self.coeffs
+        self.force = force_matrix.diagonal()
+
+    def compute_acceleration(self, potential):
+        """Evaluate electronics and return force."""
+        self.update_electronics(potential)
+        force = np.split(self.force, 2)[self.current_state]
+        self.acceleration = force.reshape(self.n_particles, self.n_beads,
+                                          self.ndim) / self.masses

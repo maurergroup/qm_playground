@@ -18,7 +18,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>#
 """Contains integrators for propagating ring polymers."""
-from qmp.integrator.trajintegrators import VelocityVerlet
+from .trajintegrators import VelocityVerlet
 from qmp.tools.dyn_tools import create_thermostat
 import numpy as np
 
@@ -68,9 +68,8 @@ class PIMD_LangevinThermostat(RPMD_VelocityVerlet):
 class TRPMD(PIMD_LangevinThermostat):
 
     def __init__(self, dt, tau0=1):
-        super().__init__(dt)
-        self.tau0 = tau0
-        self.ignore_centroid = False
+        super().__init__(dt, tau0=tau0)
+        self.ignore_centroid = True
 
     def initialise_start(self):
         super().initialise_start()

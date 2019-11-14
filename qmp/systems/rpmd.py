@@ -139,16 +139,10 @@ class RPMD(PhaseSpace):
         self.cayley_21 = dt / (1 + square) / self.masses[..., None]
 
     def transform_to_normal_modes(self):
-        self.p_normal = np.zeros_like(self.v)
-        self.q_normal = np.zeros_like(self.r)
-
         self.p_normal = self.transformer.T @ self.v * self.masses[..., None, None]
         self.q_normal = self.transformer.T @ self.r
 
     def transform_from_normal_modes(self):
-        self.v = np.zeros_like(self.p_normal)
-        self.r = np.zeros_like(self.q_normal)
-
         self.v = self.transformer @ self.p_normal / self.masses[..., None, None]
         self.r = self.transformer @ self.q_normal
 
@@ -176,13 +170,13 @@ class RPMD(PhaseSpace):
                           * self.c2[None, :, None] * randoms)
         self.transform_from_normal_modes()
 
-    def set_position_from_trajectory(self, file, equilbration_end):
+    def set_position_from_trajectory(self, file, equilibration_end):
         file = open(file, 'rb')
         trajectory = pickle.load(file)
         positions = trajectory['rb_t']
         velocities = trajectory['vb_t']
 
-        choice = np.random.randint(low=equilbration_end, high=len(positions))
+        choice = np.random.randint(low=equilibration_end, high=len(positions))
 
         self.r = positions[choice]
         self.v = velocities[choice]
