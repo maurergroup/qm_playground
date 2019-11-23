@@ -14,7 +14,7 @@ class HoppingIntegrator:
         self.system = system
         self.read_kwargs(kwargs)
 
-        self.initialise_start(data)
+        self.initialise_start(data, steps)
 
         for i in range(self.ntraj):
             self.traj.run(system, steps, potential, data, **kwargs)
@@ -27,7 +27,8 @@ class HoppingIntegrator:
         self.dt = kwargs.get('dt', self.dt)
         self.ntraj = kwargs.get('ntraj', 2000)
 
-    def initialise_start(self, data):
+    def initialise_start(self, data, steps):
+        data.state_t = np.zeros(steps+1)
         data.outcome = np.zeros((self.system.nstates, 2))
         self.traj = SingleTrajectoryHopper(self.dt)
         momentum = self.system.initial_v * self.system.masses
@@ -36,6 +37,7 @@ class HoppingIntegrator:
 
     def assign_data(self, data):
         data.outcome = data.outcome / self.ntraj
+        data.state_t = data.state_t / self.ntraj
 
 
 class SingleTrajectoryHopper(AbstractVelocityVerlet):
@@ -49,6 +51,7 @@ class SingleTrajectoryHopper(AbstractVelocityVerlet):
         """Reset system and prepare logging variables."""
         self.r_t = [self.system.r]
         self.v_t = [self.system.v]
+        self.state_t = [self.system.initial_state]
 
         self.system.reset_system(self.potential)
         self.outcome = np.zeros((self.system.nstates, 2))
@@ -119,15 +122,18 @@ class SingleTrajectoryHopper(AbstractVelocityVerlet):
     def assign_data(self, data):
         """Add to the cumulative outcome."""
         data.outcome += self.outcome
+        for i in range(len(self.state_t)):
+            data.state_t[i] += self.state_t[i]
 
     def store_result(self):
         """Store trajectory data but this is currently not used."""
         self.r_t.append(self.system.r)
         self.v_t.append(self.system.v)
+        self.state_t.append(self.system.current_state)
 
 
 class RingHoppingIntegrator(HoppingIntegrator):
 
-    def initialise_start(self, data):
-        super().initialise_start(data)
+    def initialise_start(self, data, steps):
+        super().initialise_start(data, steps)
         self.system.initialise_propagators(self.dt)
