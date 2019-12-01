@@ -1,10 +1,12 @@
+import pickle
+
 import numpy as np
+import scipy.linalg as la
+import scipy.sparse as sp
+from numpy.fft import fft, fftfreq, ifft
+
 from qmp.systems.phasespace import PhaseSpace
 from qmp.tools.dyn_tools import get_v_maxwell
-import scipy.sparse as sp
-import scipy.linalg as la
-from numpy.fft import fft, ifft, fftfreq
-import pickle
 
 
 class RPMD(PhaseSpace):
@@ -35,7 +37,7 @@ class RPMD(PhaseSpace):
         else:
             self.n_beads = n_beads
 
-        self.temp = T / 3.15777504e5
+        self.temp = T #/ 3.15777504e5
         self.beta = 1 / (self.temp * self.n_beads)
         self.omega = 1 / (self.beta)
         self.omega = self.temp * self.n_beads
@@ -61,21 +63,28 @@ class RPMD(PhaseSpace):
 
     def compute_bead_potential_energy(self, potential):
         if self.ndim == 1:
-            return potential(self.r[:, :, 0])
+            pot = potential(self.r[:, :, 0])
         elif self.ndim == 2:
-            return potential(self.r[:, :, 0], self.r[:, :, 1])
+            pot = potential(self.r[:, :, 0], self.r[:, :, 1])
+        return pot
 
     def compute_potential_energy(self, potential):
         """Compute the potential energy for each bead."""
-        M = np.eye(self.n_beads) - np.diag(np.ones(self.n_beads-1), 1)
-        M[-1, 0] = -1.
-
         bead = self.compute_bead_potential_energy(potential)
-
-        a = np.sum(np.einsum('ij,xjk->xik', M, self.r)**2, 2)
-        b = 0.5 * self.masses[:, np.newaxis] * self.omega ** 2
-        spring = a * b
+        spring = self.compute_spring_potential()
         return bead + spring
+
+    def compute_spring_potential(self):
+        if self.n_beads == 1:
+            spring = 0
+        else:
+            M = np.eye(self.n_beads) - np.diag(np.ones(self.n_beads-1), 1)
+            M[-1, 0] = -1.
+
+            a = np.sum(np.einsum('ij,xjk->xik', M, self.r)**2, 2)
+            b = 0.5 * self.masses[:, np.newaxis] * self.omega ** 2
+            spring = a * b
+        return spring
 
     def compute_force(self, potential):
         """Compute the force from the potential on the bead."""
@@ -104,7 +113,7 @@ class RPMD(PhaseSpace):
         r = np.mean(self.r, 1)
         return potential.hess(r)
 
-    def propagate_positions(self, dt):
+    def propagate_positions(self):
 
         self.transform_to_normal_modes()
         self.propagate_free_polymer()

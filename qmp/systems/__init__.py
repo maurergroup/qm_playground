@@ -19,6 +19,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>#
 from .grid import Grid
 from .hopping import Hopping
+from .nrpmd import NRPMD
 from .phasespace import PhaseSpace
 from .rpmd import RPMD
 from .rpsh import RPSH

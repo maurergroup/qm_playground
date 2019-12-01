@@ -1,5 +1,6 @@
-from .potential import Potential
 import numpy as np
+
+from .potential import Potential
 
 
 class SpinBoson(Potential):
@@ -39,9 +40,17 @@ class SpinBoson(Potential):
             return np.zeros_like(x)
 
         def v22(x):
-            return -v11(x)
+            return -np.sqrt(2)*self.gamma*np.ones_like(x) + harmonic_deriv(x)
 
         def harmonic_deriv(x):
             return self.m * self.omega**2 * x
 
         return np.array([v11, v12, v12, v22])
+
+    def compute_cell_potential(self, density=100):
+        x = np.linspace(self.cell[0][0], self.cell[0][1], density)
+        v11 = self(x, i=0, j=0)
+        v22 = self(x, i=1, j=1)
+        v12 = self(x, i=1, j=0)
+
+        return v11, v12, v22

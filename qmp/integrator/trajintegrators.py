@@ -19,9 +19,11 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>#
 """Integrators that propagate the PhaseSpace system."""
 
-from numpy.random import standard_normal
-import numpy as np
 from abc import ABC, abstractmethod
+import progressbar
+
+import numpy as np
+from numpy.random import standard_normal
 
 
 class AbstractVelocityVerlet(ABC):
@@ -95,7 +97,7 @@ class AbstractVelocityVerlet(ABC):
         print('Integrating...')
 
         self.system.compute_acceleration(self.potential)
-        for i in range(steps):
+        for i in progressbar.progressbar(range(steps)):
 
             self.propagate_system()
 
@@ -111,10 +113,10 @@ class AbstractVelocityVerlet(ABC):
         algorithm. It requires that the systems taking advantage of this
         integrator implement the three functions used within it.
         """
-        self.system.propagate_velocities(self.dt)
+        self.system.propagate_velocities(self.dt*0.5)
         self.system.propagate_positions(self.dt)
         self.system.compute_acceleration(self.potential)
-        self.system.propagate_velocities(self.dt)
+        self.system.propagate_velocities(self.dt*0.5)
 
     @abstractmethod
     def store_result(self):

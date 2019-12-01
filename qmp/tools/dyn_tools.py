@@ -229,3 +229,10 @@ def get_v_maxwell(m, T):
     s = np.sqrt(T/m)
     x_rand = np.random.random(1)
     return maxwell.ppf(x_rand, loc=0., scale=s)
+
+
+def kronecker(i, j):
+    if i == j:
+        return 1
+    else:
+        return 0

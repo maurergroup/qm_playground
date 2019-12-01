@@ -64,9 +64,9 @@ class Hopping(PhaseSpace):
         given to the potential as a list of functions. This then calculates
         them for the current position and reshapes.
         """
-        d11 = np.diag(potential.deriv(r, n=0))
-        d22 = np.diag(potential.deriv(r, n=3))
-        d12 = np.diag(potential.deriv(r, n=1))
+        d11 = np.diag(potential.deriv(r, i=0, j=0))
+        d22 = np.diag(potential.deriv(r, i=1, j=1))
+        d12 = np.diag(potential.deriv(r, i=0, j=1))
         D = np.block([[d11, d12], [d12, d22]])
         return D
 

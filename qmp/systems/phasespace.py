@@ -55,7 +55,7 @@ class PhaseSpace:
         self.r = self.r + self.v * dt
 
     def propagate_velocities(self, dt):
-        self.v = self.v + 0.5 * self.acceleration * dt
+        self.v = self.v + self.acceleration * dt
 
     def compute_acceleration(self, potential):
         F = self.compute_force(potential)

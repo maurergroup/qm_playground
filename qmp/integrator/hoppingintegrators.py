@@ -1,6 +1,5 @@
 import numpy as np
 from .trajintegrators import AbstractVelocityVerlet
-from .rpmdintegrators import RPMD_VelocityVerlet
 
 
 class HoppingIntegrator:

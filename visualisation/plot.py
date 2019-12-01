@@ -22,6 +22,7 @@ from traj_plot2D import TrajPlot2D
 from traj_plot1D import TrajPlot1D
 from rpmd_plot2D import RPMDPlot2D
 from rpmd_plot1D import RPMDPlot1D
+from nrpmd_plot1D import NRPMDPlot1D
 
 
 class FileReader():
@@ -73,6 +74,10 @@ class FileReader():
                 self.plot = RPMDPlot1D(self.data)
             elif ndim == 2:
                 self.plot = RPMDPlot2D(self.data)
+
+        elif self.data.mode =='nrpmd':
+            self.plot = NRPMDPlot1D(self.data)
+
 
         self.layout.children.append((self.plot.get_layout(), self.i, self.j))
         if self.j == 1:

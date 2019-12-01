@@ -1,9 +1,10 @@
-from bokeh.plotting import figure, curdoc, ColumnDataSource
+import itertools
+
+import colorcet
+import numpy as np
 from bokeh.driving import repeat
 from bokeh.layouts import row
-import numpy as np
-import colorcet
-import itertools
+from bokeh.plotting import ColumnDataSource, curdoc, figure
 
 
 class RPMDPlot1D:
@@ -30,6 +31,7 @@ class RPMDPlot1D:
 
     def plot_potential(self):
         pot = self.raw_data['potential']
+        print(pot)
         x = np.linspace(self.cell[0][0], self.cell[0][1], len(pot))
         self.particle_movie.line(x=x, y=pot)
 

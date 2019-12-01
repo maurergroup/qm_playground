@@ -21,8 +21,9 @@
 This module contains the Potential class.
 """
 
-from qmp.tools import derivatives
 import numpy as np
+
+from qmp.tools import derivatives
 
 
 class Potential:
@@ -72,21 +73,37 @@ class Potential:
                   + ' You must provide n**2 elements.')
             raise
 
-        if not isinstance(firstd, (list, np.ndarray)):
-            firstd = [firstd]
-        self.firstd = firstd
+        if firstd is not None:
+            try:
+                self.firstd = np.array(firstd).reshape((self.states,
+                                                        self.states))
+            except ValueError:
+                print('The list of functions given for derivative is not of '
+                      + 'the correct size to match the number of states.'
+                      + ' You must provide n**2 elements.')
+                raise
+        else:
+            self.firstd = firstd
 
-        if not isinstance(secondd, list):
-            secondd = [secondd]
-        self.secondd = secondd
+        if secondd is not None:
+            try:
+                self.secondd = np.array(secondd).reshape((self.states,
+                                                          self.states))
+            except ValueError:
+                print('The list of functions given for hessian is not of '
+                      + 'the correct size to match the number of states.'
+                      + ' You must provide n**2 elements.')
+                raise
+        else:
+            self.secondd = secondd
 
-        if not isinstance(d1, list):
-            d1 = [d1]
-        self.d1 = d1
+        # if not isinstance(d1, list):
+        #     d1 = [d1]
+        # self.d1 = d1
 
-        if not isinstance(d2, list):
-            d2 = [d2]
-        self.d2 = d2
+        # if not isinstance(d2, list):
+        #     d2 = [d2]
+        # self.d2 = d2
 
     def __call__(self, *points, i=0, j=0):
         """Calculate the potential at the point(s) given.
@@ -105,36 +122,38 @@ class Potential:
         f = self.f[i, j]
         return f(*points)
 
-    def deriv(self, points, n=0):
+    def deriv(self, points, i=0, j=0):
         """Calculate 1st derivative at point(s)."""
         # Need to make these functions n-dimensional, very ugly right now
-        firstd = self.firstd[n]
-        if firstd is None:
+        if self.firstd is None:
             if self.dimension == 1:
-                return derivatives.num_deriv(self, points)
+                return derivatives.num_deriv(self, points, i, j)
             elif self.dimension == 2:
                 d = np.empty_like(points)
-                for i, point in enumerate(points):
-                    d[i] = derivatives.num_deriv_2D(self, point[0], point[1])
+                for k, point in enumerate(points):
+                    d[k] = derivatives.num_deriv_2D(self, point[0],
+                                                    point[1], i, j)
                 return d
         else:
+            firstd = self.firstd[i, j]
             if self.dimension == 1:
                 return firstd(points)
             elif self.dimension == 2:
                 d = np.empty_like(points)
-                for i, point in enumerate(points):
-                    d[i] = firstd(point[0], point[1])
+                for k, point in enumerate(points):
+                    d[k] = firstd(point[0], point[1])
                 return d
 
     def hess(self, points, i=0, j=0):
         """Calculate 2nd derivative at point(s)."""
-        secondd = self.secondd[i]
-        if secondd is None:
+        if self.secondd is None:
             if self.dimension == 1:
-                return derivatives.num_deriv2(self, points)
+                return derivatives.num_deriv2(self, points, i, j)
             elif self.dimension == 2:
-                return derivatives.num_deriv2_2D(self, points[:, 0], points[:, 1])
+                return derivatives.num_deriv2_2D(self, points[:, 0],
+                                                 points[:, 1], i, j)
         else:
+            secondd = self.secondd[i, j]
             return secondd(*points)
 
     #### coupling is different for different PES pairs
