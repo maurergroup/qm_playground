@@ -1,5 +1,6 @@
 import numpy as np
-from .trajintegrators import AbstractVelocityVerlet
+
+from .integrator import Integrator, SimulationTerminated
 
 
 class HoppingIntegrator:
@@ -11,22 +12,22 @@ class HoppingIntegrator:
     def run(self, system, steps, potential, data, **kwargs):
 
         self.system = system
-        self.read_kwargs(kwargs)
+        self._read_kwargs(kwargs)
 
-        self.initialise_start(data, steps)
+        self._initialise_start(data, steps)
 
         for i in range(self.ntraj):
             self.traj.run(system, steps, potential, data, **kwargs)
 
-        self.assign_data(data)
+        self._assign_data(data)
 
         print(f'{self.ntraj} successful trajectories completed.')
 
-    def read_kwargs(self, kwargs):
+    def _read_kwargs(self, kwargs):
         self.dt = kwargs.get('dt', self.dt)
         self.ntraj = kwargs.get('ntraj', 2000)
 
-    def initialise_start(self, data, steps):
+    def _initialise_start(self, data, steps):
         data.state_t = np.zeros(steps+1)
         data.outcome = np.zeros((self.system.nstates, 2))
         self.traj = SingleTrajectoryHopper(self.dt)
@@ -34,19 +35,19 @@ class HoppingIntegrator:
         print(f'Running {self.ntraj} surface hopping trajectories'
               + f' for momentum = {momentum}')
 
-    def assign_data(self, data):
+    def _assign_data(self, data):
         data.outcome = data.outcome / self.ntraj
         data.state_t = data.state_t / self.ntraj
 
 
-class SingleTrajectoryHopper(AbstractVelocityVerlet):
+class SingleTrajectoryHopper(Integrator):
     """Single trajectory surface hopping.
 
     This class must be used in conjunction with a managing class, otherwise the
     outcome attribute of the data object has not been initilised.
     """
 
-    def initialise_start(self):
+    def _initialise_start(self):
         """Reset system and prepare logging variables."""
         self.r_t = [self.system.r]
         self.v_t = [self.system.v]
@@ -54,32 +55,23 @@ class SingleTrajectoryHopper(AbstractVelocityVerlet):
 
         self.system.reset_system(self.potential)
         self.outcome = np.zeros((self.system.nstates, 2))
-
-    def integrate(self, steps):
-        """Carry out main integration loop.
-
-        Parameters
-        ----------
-        steps : int
-            The number of steps.
-        """
-
         self.current_acc = self.system.compute_acceleration(self.potential)
-        for i in range(steps):
 
-            self.propagate_system()
+    def _perform_timestep(self, iteration):
+        self._propagate_system()
 
-            self.system.propagate_density_matrix(self.dt)
+        self.system.propagate_density_matrix(self.dt)
 
-            self.execute_hopping()
+        self._execute_hopping()
 
-            if (i+1) % self.output_freq == 0:
-                self.store_result()
+        if (iteration+1) % self.output_freq == 0:
+            self._store_result()
 
-            if self.is_finished():
-                break
+        if self._is_finished():
+            raise SimulationTerminated
 
-    def is_finished(self):
+
+    def _is_finished(self):
         """ Checks criteria for a successful trajectory.
 
         Check if the particle has left the cell, if so, the outcome is
@@ -94,16 +86,16 @@ class SingleTrajectoryHopper(AbstractVelocityVerlet):
             exit = True
         return exit
 
-    def execute_hopping(self):
+    def _execute_hopping(self):
         """Carry out the hop between surfaces."""
 
         g = self.system.get_probabilities(self.dt)
-        can_hop = self.check_possible_hop(g)
+        can_hop = self._check_possible_hop(g)
 
         if can_hop:
             self.system.attempt_hop()
 
-    def check_possible_hop(self, g):
+    def _check_possible_hop(self, g):
         """Determine whether a hop should occur.
 
         A random number is compared with the hopping probability, if the
@@ -118,13 +110,13 @@ class SingleTrajectoryHopper(AbstractVelocityVerlet):
         zeta = np.random.uniform()
         return g > zeta
 
-    def assign_data(self, data):
+    def _assign_data(self, data):
         """Add to the cumulative outcome."""
         data.outcome += self.outcome
         for i in range(len(self.state_t)):
             data.state_t[i] += self.state_t[i]
 
-    def store_result(self):
+    def _store_result(self):
         """Store trajectory data but this is currently not used."""
         self.r_t.append(self.system.r)
         self.v_t.append(self.system.v)
@@ -133,6 +125,6 @@ class SingleTrajectoryHopper(AbstractVelocityVerlet):
 
 class RingHoppingIntegrator(HoppingIntegrator):
 
-    def initialise_start(self, data, steps):
-        super().initialise_start(data, steps)
+    def _initialise_start(self, data, steps):
+        super()._initialise_start(data, steps)
         self.system.initialise_propagators(self.dt)

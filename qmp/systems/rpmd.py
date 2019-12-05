@@ -2,11 +2,9 @@ import pickle
 
 import numpy as np
 import scipy.linalg as la
-import scipy.sparse as sp
-from numpy.fft import fft, fftfreq, ifft
 
 from qmp.systems.phasespace import PhaseSpace
-from qmp.tools.dyn_tools import get_v_maxwell
+from qmp.tools.dyn_tools import atomic_to_kelvin
 
 
 class RPMD(PhaseSpace):
@@ -37,7 +35,7 @@ class RPMD(PhaseSpace):
         else:
             self.n_beads = n_beads
 
-        self.temp = T #/ 3.15777504e5
+        self.temp = T / atomic_to_kelvin
         self.beta = 1 / (self.temp * self.n_beads)
         self.omega = 1 / (self.beta)
         self.omega = self.temp * self.n_beads

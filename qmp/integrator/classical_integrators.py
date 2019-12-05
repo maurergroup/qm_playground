@@ -19,94 +19,25 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>#
 """Integrators that propagate the PhaseSpace system."""
 
-from abc import ABC, abstractmethod
+import numpy as np
 import progressbar
 
-import numpy as np
-from numpy.random import standard_normal
+from .integrator import Integrator
 
 
-class AbstractVelocityVerlet(ABC):
-    """Abstract base class for other classical integrators to implement.
+class VelocityVerlet(Integrator):
+    """Velocity verlet integrator for classical dynamics."""
 
-    Only the functions decorated by '@abstractmethod' should be extended,
-    all others should remain the same for all integrators.
+    def _initialise_start(self):
+        self.r_t = [self.system.r]
+        self.v_t = [self.system.v]
 
-    Attributes
-    ----------
-    dt : float or int
-    system : qmp.systems.phasespace.PhaseSpace
-    potential : qmp.potential.potential.Potential
-    current_acc : array_like
-        Current acceleration of each particle.
-    """
-    def __init__(self, dt=1):
-        """Class is initialised with a timestep as a single argument."""
-        self.dt = dt
-
-    def run(self, system, steps, potential, data, **kwargs):
-        """This function is called by the model to run the integration process.
-
-        This function handles the operation of the integrator. The integrator
-        is first set up and then the system is integrated for the specified
-        number of steps. Finally, the data object is assigned.
-
-        Parameters
-        ----------
-        system : qmp.systems.phasespace.PhaseSpace
-        steps : int
-        potential : qmp.potential.potential.Potential
-        data : qmp.data_containers.Data
-        kwargs : {'dt', 'output_freq'}
-        """
-
-        self.system = system
-        self.potential = potential
-
-        self.read_kwargs(kwargs)
-
-        self.initialise_start()
-
-        self.integrate(steps)
-
-        self.assign_data(data)
-
-    def read_kwargs(self, kwargs):
-        """Allowed keyword arguments are read here.
-
-        Parameters
-        ----------
-        kwargs : {'dt', 'output_freq'}
-        """
-        self.dt = kwargs.get('dt', self.dt)
-        self.output_freq = kwargs.get('output_freq', 2)
-
-    @abstractmethod
-    def initialise_start(self):
-        """Prepare any logging variables and calculate intial values."""
-        pass
-
-    def integrate(self, steps):
-        """Carry out main integration loop.
-
-        Parameters
-        ----------
-        steps : int
-            The number of steps.
-        """
-        print('Integrating...')
+        self.E_pot = [self.system.compute_potential_energy(self.potential)]
+        self.E_kin = [self.system.compute_kinetic_energy()]
 
         self.system.compute_acceleration(self.potential)
-        for i in progressbar.progressbar(range(steps)):
 
-            self.propagate_system()
-
-            if (i+1) % self.output_freq == 0:
-                self.store_result()
-
-        print('INTEGRATED')
-
-    def propagate_system(self):
+    def _propagate_system(self):
         """Propagate the system by a single timestep.
 
         This function carries out the shortened form of the velocity verlet
@@ -118,35 +49,14 @@ class AbstractVelocityVerlet(ABC):
         self.system.compute_acceleration(self.potential)
         self.system.propagate_velocities(self.dt*0.5)
 
-    @abstractmethod
-    def store_result(self):
-        """Store the results of the current step."""
-        pass
-
-    @abstractmethod
-    def assign_data(self, data):
-        """Assign the data at the end of the simulation."""
-        pass
-
-
-class VelocityVerlet(AbstractVelocityVerlet):
-    """Velocity verlet integrator for classical dynamics."""
-
-    def initialise_start(self):
-        self.r_t = [self.system.r]
-        self.v_t = [self.system.v]
-
-        self.E_pot = [self.system.compute_potential_energy(self.potential)]
-        self.E_kin = [self.system.compute_kinetic_energy()]
-
-    def store_result(self):
+    def _store_result(self):
         self.r_t.append(self.system.r)
         self.v_t.append(self.system.v)
 
         self.E_pot.append(self.system.compute_potential_energy(self.potential))
         self.E_kin.append(self.system.compute_kinetic_energy())
 
-    def assign_data(self, data):
+    def _assign_data(self, data):
         data.r_t = np.array(self.r_t)
         data.v_t = np.array(self.v_t)
         data.E_kin_t = np.array(self.E_kin)
@@ -234,8 +144,8 @@ class Langevin:
         f = self.system.compute_force(potential)
         for i_step in range(1, steps):
 
-            random1 = standard_normal(size=(N, ndim))
-            random2 = standard_normal(size=(N, ndim))
+            random1 = np.random.standard_normal(size=(N, ndim))
+            random2 = np.random.standard_normal(size=(N, ndim))
             rrnd = self.sdpos * random1
             prnd = (self.sdmom * self.pmcor * random1 +
                     self.sdmom * self.cnst * random2)

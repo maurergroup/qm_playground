@@ -25,6 +25,7 @@ import numpy as np
 from scipy.stats import maxwell
 
 kB = 1.380649e-23
+atomic_to_kelvin = 3.15777504e5
 
 
 def project_wvfn(wvfn, evecs):

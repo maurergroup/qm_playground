@@ -22,7 +22,7 @@
 """
 from .derivatives import num_deriv, num_deriv2, num_deriv3, num_deriv4
 from .derivatives import num_deriv_2D, num_deriv2_2D
-from .dyn_tools import kB
+from .dyn_tools import kB, atomic_to_kelvin
 from .dyn_tools import project_wvfn, create_gaussian, create_real_gaussian
 from .dyn_tools import create_gaussian2D, create_real_gaussian2D
 from .dyn_tools import create_thermostat, EOM_morse_analyt, get_v_init

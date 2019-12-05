@@ -1,7 +1,5 @@
 import numpy as np
-from scipy.linalg import cosm, sinm
 
-from ..tools.dyn_tools import kronecker
 from .rpmd import RPMD
 
 

@@ -1,11 +1,13 @@
 import unittest
-from qmp.systems.grid import Grid
+
 import numpy as np
 import numpy.testing as test
-from qmp.potential import tullymodels
-from qmp.integrator.waveintegrators import SOFT_Propagator
-from qmp.data_containers import Data
 from scipy import signal
+
+from qmp.data_containers import Data
+from qmp.integrator.waveintegrators import SOFT_Propagator
+from qmp.potential import tullymodels
+from qmp.systems.grid import Grid
 
 
 class SOFT_PropagatorTestCase(unittest.TestCase):
@@ -22,16 +24,17 @@ class SOFT_PropagatorTestCase(unittest.TestCase):
         self.pot = tullymodels.TullySimpleAvoidedCrossing()
         self.dt = 0.5
         self.integrator = SOFT_Propagator(self.dt)
+        self.integrator.potential = self.pot
         self.integrator.system = self.system
         self.integrator.V = self.system.construct_V_matrix(self.pot)
         self.system.compute_k()
         psi = signal.gaussian(self.N, 0.5)
         self.system.set_initial_wvfn(psi)
-        self.integrator.propT = self.integrator.expT(self.dt/2)
-        self.integrator.propV = self.integrator.expV(self.dt)
+        self.integrator.propT = self.integrator._expT(self.dt/2)
+        self.integrator.propV = self.integrator._expV(self.dt)
 
     def test_initialise_start(self):
-        self.integrator.initialise_start()
+        self.integrator._initialise_start()
         test.assert_equal(self.system.V.shape,
                           (self.size, self.size))
         test.assert_equal(self.system.k.shape, (self.size,))
@@ -39,26 +42,26 @@ class SOFT_PropagatorTestCase(unittest.TestCase):
                           (1, self.size))
 
     def test_expT(self):
-        expT = self.integrator.expT(self.dt)
+        expT = self.integrator._expT(self.dt)
         test.assert_equal(expT.shape, (self.size,))
 
     def test_expV(self):
-        expV = self.integrator.expV(self.dt)
+        expV = self.integrator._expV(self.dt)
         test.assert_equal(expV.shape, (self.size, self.size))
 
-    def test_propagate_psi(self):
-        self.integrator.propagate_psi()
+    def test_propagate_system(self):
+        self.integrator._propagate_system()
         shape_after = self.system.psi.shape
         test.assert_equal(shape_after, (self.size,))
 
     def test_compute_current_energy(self):
-        E = self.integrator.compute_current_energy()
+        E = self.integrator._compute_current_energy()
         test.assert_equal(type(E), np.float64)
 
     def test_store_result(self):
         self.integrator.psi_t = [self.system.psi]
         self.integrator.E_t = []
-        self.integrator.store_result()
+        self.integrator._store_result()
         shape = np.shape(self.integrator.psi_t)
         test.assert_equal(shape, (2, self.size))
         shape = np.shape(self.integrator.E_t)
@@ -66,12 +69,13 @@ class SOFT_PropagatorTestCase(unittest.TestCase):
 
     def test_assign_data(self):
         # No assertions but runs without error.
+        self.integrator.status = 'good'
         self.system.absorbed_density = [0.2, 0.8]
         self.integrator.psi_t = np.array([self.system.psi])
         self.integrator.E_t = np.array([5.02])
-        self.integrator.compute_current_energy()
+        self.integrator._compute_current_energy()
         data = Data()
-        self.integrator.assign_data(data)
+        self.integrator._assign_data(data)
 
 
 if __name__ == "__main__":

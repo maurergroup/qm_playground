@@ -20,6 +20,7 @@
 from .grid import Grid
 from .hopping import Hopping
 from .nrpmd import NRPMD
+from .mf_rpmd import MF_RPMD
 from .phasespace import PhaseSpace
 from .rpmd import RPMD
 from .rpsh import RPSH
