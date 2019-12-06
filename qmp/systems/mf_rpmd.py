@@ -73,8 +73,10 @@ class MF_RPMD(RPMD):
 
         for i in range(self.ndim):
 
-            s_plus, lam_plus, exp_plus = self.get_finite_difference_quantities(i, h, potential)
-            s_minus, lam_minus, exp_minus = self.get_finite_difference_quantities(i, -h, potential)
+            s_plus, lam_plus, exp_plus = (
+                self.get_finite_difference_quantities(i, 0.5*h, potential))
+            s_minus, lam_minus, exp_minus = (
+                self.get_finite_difference_quantities(i, -0.5*h, potential))
 
             self.s_deriv[:, :, i] = 0.5*(s_plus-s_minus)/h
             self.lam_deriv[:, :, i] = 0.5*(lam_plus-lam_minus)/h
