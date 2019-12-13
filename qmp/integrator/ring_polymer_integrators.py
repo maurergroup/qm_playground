@@ -132,3 +132,9 @@ class MF_RPMD_Propagator(RingPolymerPropagator):
 
     def _save_potential(self, data):
         data.v11, data.v12, data.v22 = self.potential.compute_cell_potential(density=1000)
+
+
+class Thermostatted_MF_PIMD(PIMD_LangevinThermostat):
+
+    def _save_potential(self, data):
+        data.v11, data.v12, data.v22 = self.potential.compute_cell_potential(density=1000)

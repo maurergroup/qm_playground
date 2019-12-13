@@ -25,5 +25,6 @@ from .classical_integrators import Langevin, VelocityVerlet
 from .hoppingintegrators import HoppingIntegrator, RingHoppingIntegrator
 from .ring_polymer_integrators import (NRPMD, TRPMD, MF_RPMD_Propagator,
                                        PIMD_LangevinThermostat,
-                                       RingPolymerPropagator)
+                                       RingPolymerPropagator,
+                                       Thermostatted_MF_PIMD)
 from .waveintegrators import PrimitivePropagator, SOFT_Propagator
