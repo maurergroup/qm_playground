@@ -75,6 +75,9 @@ class Integrator(ABC):
         if (iteration+1) % self.output_freq == 0:
             self._store_result()
 
+        if self._is_finished():
+            raise SimulationTerminated
+
     @abstractmethod
     def _propagate_system(self):
         """Propagate the system by a single timestep."""
@@ -83,9 +86,13 @@ class Integrator(ABC):
     def _store_result(self):
         """Store the results of the current step."""
 
+    def _is_finished(self):
+        return False
+
     @abstractmethod
     def _assign_data(self, data):
         """Assign the data at the end of the simulation."""
 
 
-class SimulationTerminated(Exception): pass
+class SimulationTerminated(Exception):
+    pass

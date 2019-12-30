@@ -125,7 +125,16 @@ class Hopping(PhaseSpace):
         return (self.hamiltonian
                 - 1.0j * self.derivative_coupling * self.get_velocity())
 
-    def get_probabilities(self, dt):
+    def execute_hopping(self, dt):
+        """Carry out the hop between surfaces."""
+
+        g = self._get_probabilities(dt)
+        can_hop = self._check_possible_hop(g)
+
+        if can_hop:
+            self._attempt_hop()
+
+    def _get_probabilities(self, dt):
         """Calculate the hopping probability.
 
         Returns an array where prob[i] is the probability of hopping from the
@@ -141,7 +150,22 @@ class Hopping(PhaseSpace):
 
         return prob[n].clip(0, 1)
 
-    def attempt_hop(self):
+    def _check_possible_hop(self, g):
+        """Determine whether a hop should occur.
+
+        A random number is compared with the hopping probability, if the
+        probability is higher than the random number, a hop occurs. This
+        currently only works for a two level system.
+
+        Parameters
+        ----------
+        g : float
+            The hopping probability.
+        """
+        zeta = np.random.uniform()
+        return g > zeta
+
+    def _attempt_hop(self):
         """Carry out a hop if the particle has sufficient kinetic energy.
 
         If the energy is sufficient the velocity is rescaled accordingly and

@@ -1,6 +1,6 @@
 import numpy as np
 
-from .integrator import Integrator, SimulationTerminated
+from .integrator import Integrator
 
 
 class FSSH(Integrator):
@@ -19,19 +19,6 @@ class FSSH(Integrator):
         self.outcome = np.zeros((self.system.nstates, 2))
         self.current_acc = self.system.compute_acceleration(self.potential)
 
-    def _perform_timestep(self, iteration):
-        self._propagate_system()
-
-        self.system.propagate_density_matrix(self.dt)
-
-        self._execute_hopping()
-
-        if (iteration+1) % self.output_freq == 0:
-            self._store_result()
-
-        if self._is_finished():
-            raise SimulationTerminated
-
     def _propagate_system(self):
         """Propagate the system by a single timestep.
 
@@ -43,6 +30,9 @@ class FSSH(Integrator):
         self.system.propagate_positions(self.dt)
         self.system.compute_acceleration(self.potential)
         self.system.propagate_velocities(self.dt*0.5)
+
+        self.system.propagate_density_matrix(self.dt)
+        self.system.execute_hopping(self.dt)
 
     def _is_finished(self):
         """ Checks criteria for a successful trajectory.
@@ -58,30 +48,6 @@ class FSSH(Integrator):
             self.outcome[self.system.state, 1] = 1
             quit = True
         return quit
-
-    def _execute_hopping(self):
-        """Carry out the hop between surfaces."""
-
-        g = self.system.get_probabilities(self.dt)
-        can_hop = self._check_possible_hop(g)
-
-        if can_hop:
-            self.system.attempt_hop()
-
-    def _check_possible_hop(self, g):
-        """Determine whether a hop should occur.
-
-        A random number is compared with the hopping probability, if the
-        probability is higher than the random number, a hop occurs. This
-        currently only works for a two level system.
-
-        Parameters
-        ----------
-        g : float
-            The hopping probability.
-        """
-        zeta = np.random.uniform()
-        return g > zeta
 
     def _assign_data(self, data):
         """Add to the cumulative outcome."""
@@ -112,3 +78,6 @@ class RingPolymerFSSH(FSSH):
         self.system.propagate_positions()
         self.system.compute_acceleration(self.potential)
         self.system.propagate_velocities(self.dt*0.5)
+
+        self.system.propagate_density_matrix(self.dt)
+        self.system.execute_hopping(self.dt)
