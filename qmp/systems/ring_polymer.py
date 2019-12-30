@@ -7,7 +7,7 @@ from qmp.systems.phasespace import PhaseSpace
 from qmp.tools.dyn_tools import atomic_to_kelvin
 
 
-class RPMD(PhaseSpace):
+class RingPolymer(PhaseSpace):
 
     def __init__(self, coordinates, velocities, masses, n_beads=4, T=298):
         """Initialise the ring polymer system.

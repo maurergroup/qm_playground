@@ -17,9 +17,13 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>#
-from qmp.solver.solver import ScipySolver
-from qmp.data_containers import Data
+import copy
 import pickle
+
+import numpy as np
+
+from qmp.data_containers import Data
+from qmp.solver.solver import ScipySolver
 
 
 class Model:
@@ -94,26 +98,24 @@ class Model:
         """
         self.solver.solve()
 
-    def run(self, steps, **kwargs):
+    def run(self, steps, ntraj=1, **kwargs):
         """
         Wrapper for integrator.run
         """
 
-        add_info = kwargs.get('additional', None)
-
-        integ = type(self.integrator).__name__
-        if (integ == 'EigenPropagator' or add_info == 'coefficients') and \
-                self.system.solved is False:
-            print('Projection onto eigenbasis '
-                  + 'requires solving eigenvalue problem...')
-            self.solve()
-
-        self.integrator.run(self.system, steps=int(steps),
-                            potential=self.potential, data=self.data, **kwargs)
+        all_data = []
+        for _ in range(ntraj):
+            sys = copy.deepcopy(self.system)
+            dat = copy.deepcopy(self.data)
+            self.integrator.run(sys, steps=int(steps),
+                                potential=self.potential, data=dat, **kwargs)
+            all_data.append(dat)
 
         print('Simulation complete.\nData contains the following entries:')
-        for key in self.data:
+        for key in dat:
             print(key)
+
+        self.data = np.array(all_data)
 
     def write_output(self, name='simulation.end'):
 

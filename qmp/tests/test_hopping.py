@@ -1,8 +1,10 @@
 import unittest
-from qmp.systems.hopping import Hopping
-from qmp.potential.tullymodels import TullySimpleAvoidedCrossing
+
 import numpy as np
 import numpy.testing as test
+
+from qmp.potential.tullymodels import TullySimpleAvoidedCrossing
+from qmp.systems.hopping import Hopping
 
 
 class HoppingTestCase(unittest.TestCase):
@@ -14,7 +16,7 @@ class HoppingTestCase(unittest.TestCase):
         state = 0
         self.pot = TullySimpleAvoidedCrossing()
         self.hop = Hopping(x, v, m, state, self.pot)
-        self.hop.reset_system(self.pot)
+        self.hop.update_electronics(self.pot)
 
     def test_construct_V_matrix(self):
         V = self.hop.construct_V_matrix(self.hop.r, self.pot)
@@ -53,6 +55,7 @@ class HoppingTestCase(unittest.TestCase):
         self.hop.compute_derivative_coupling(coeffs, D)
         correct = [[0, 1.6],
                    [-1.6, 0]]
+        print(self.hop.derivative_coupling)
         test.assert_array_almost_equal(self.hop.derivative_coupling, correct)
 
     def test_compute_propagating_hamiltonian(self):

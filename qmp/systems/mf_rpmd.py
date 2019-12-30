@@ -1,9 +1,9 @@
 import numpy as np
 
-from .rpmd import RPMD
+from .ring_polymer import RingPolymer
 
 
-class MF_RPMD(RPMD):
+class MF_RPMD(RingPolymer):
     """ Mean-Field RPMD as shown in Tim Hele's MChem thesis."""
 
     def __init__(self, coordinates, velocities, masses,

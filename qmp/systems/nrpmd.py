@@ -1,9 +1,9 @@
 import numpy as np
 
-from .rpmd import RPMD
+from .ring_polymer import RingPolymer
 
 
-class NRPMD(RPMD):
+class NRPMD(RingPolymer):
 
     def __init__(self, coordinates, velocities, masses, initial_state,
                  start_file=None, equilibration_end=None,

@@ -1,6 +1,8 @@
-import numpy as np
-from qmp.systems.phasespace import PhaseSpace
 import copy
+
+import numpy as np
+
+from qmp.systems.phasespace import PhaseSpace
 
 
 class Hopping(PhaseSpace):
@@ -12,28 +14,14 @@ class Hopping(PhaseSpace):
         self.potential = potential
         self.nstates = nstates
 
-        self.initial_r = coordinates
-        self.initial_v = velocities
-        self.initial_state = initial_state
+        self.r = coordinates
+        self.v = velocities
+        self.state = initial_state
         self.coeffs = None
-
-    def reset_system(self, potential):
-        """ Resets all quantities to the initial state.
-
-        This is used to refresh the system before starting a new trajectory.
-        """
-
-        self.copy_initial_values()
-        self.update_electronics(potential)
 
         self.density_matrix = np.zeros((self.nstates,
                                         self.nstates))
-        self.density_matrix[self.current_state, self.current_state] = 1.0
-
-    def copy_initial_values(self):
-        self.r = copy.deepcopy(self.initial_r)
-        self.v = copy.deepcopy(self.initial_v)
-        self.current_state = copy.deepcopy(self.initial_state)
+        self.density_matrix[self.state, self.state] = 1.0
 
     def update_electronics(self, potential):
         """Update all the electronic quantities.
@@ -112,7 +100,7 @@ class Hopping(PhaseSpace):
     def compute_acceleration(self, potential):
         """Evaluate electronics and return force."""
         self.update_electronics(potential)
-        force = np.split(self.force, 2)[self.current_state]
+        force = np.split(self.force, 2)[self.state]
         self.acceleration = force / self.masses
 
     def propagate_density_matrix(self, dt):
@@ -146,7 +134,7 @@ class Hopping(PhaseSpace):
         A = self.density_matrix
         R = self.get_velocity()
         d = self.derivative_coupling
-        n = self.current_state
+        n = self.state
 
         prob = 2 * np.real(A[n] * R * d[n] / A[n, n]) * dt
         n ^= 1
@@ -159,9 +147,9 @@ class Hopping(PhaseSpace):
         If the energy is sufficient the velocity is rescaled accordingly and
         the state changed. Otherwise nothing happens.
         """
-        desired_state = self.current_state ^ 1
+        desired_state = self.state ^ 1
 
-        old = self.energies[self.current_state]
+        old = self.energies[self.state]
         new = self.energies[desired_state]
 
         deltaV = new - old
@@ -169,7 +157,7 @@ class Hopping(PhaseSpace):
 
         if kinetic >= deltaV:
             self.rescale_velocity(deltaV, desired_state)
-            self.current_state = desired_state
+            self.state = desired_state
 
     def rescale_velocity(self, deltaV, desired_state):
         """ Rescale velocity.
@@ -185,7 +173,7 @@ class Hopping(PhaseSpace):
             The state that is being hopped to.
         """
         d = self.derivative_coupling[desired_state,
-                                     self.current_state]
+                                     self.state]
 
         direction = d / np.sqrt(np.dot(d, d))
         Md = self.masses * direction
