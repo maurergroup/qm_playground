@@ -87,9 +87,12 @@ class FileReader():
             self.j += 1
 
     def load_data(self):
-        """Load the pickled data from the file specified in the text field."""
+        """Load the pickled data from the file specified in the text field.
+        
+        Currently loads the first entry which should contain the data from the
+        first trajectory."""
         file = open(self.file_input.value, 'rb')
-        self.data = pickle.load(file)
+        self.data = pickle.load(file)[0]
 
 
 reader = FileReader()

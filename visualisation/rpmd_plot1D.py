@@ -31,7 +31,6 @@ class RPMDPlot1D:
 
     def plot_potential(self):
         pot = self.raw_data['potential']
-        print(pot)
         x = np.linspace(self.cell[0][0], self.cell[0][1], len(pot))
         self.particle_movie.line(x=x, y=pot)
 
