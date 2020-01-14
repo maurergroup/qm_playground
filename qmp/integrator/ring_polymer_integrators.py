@@ -95,13 +95,14 @@ class NRPMD(RingPolymerPropagator):
 
         self.system.calculate_state_probability()
         self.state_occupation = [self.system.state_prob]
+        self.outcome = np.zeros((self.system.n_states, 2))
 
     def _propagate_system(self):
         """Propagate the system by a single timestep.
         """
         self.system.propagate_positions()
 
-        self.system.compute_V_matrix(self.system.r, self.potential)
+        self.system.V_matrix = self.system.compute_V_matrix(self.system.r, self.potential)
         self.system.compute_V_prime_matrix(self.potential)
         self.system.diagonalise_V()
         self.system.compute_propagators(self.dt)
@@ -126,6 +127,22 @@ class NRPMD(RingPolymerPropagator):
         super()._assign_data(data)
 
         data.state_occupation_t = np.array(self.state_occupation)
+        data.outcome = self.outcome
+
+    def _is_finished(self):
+        """ Checks criteria for a successful trajectory.
+
+        Check if the particle has left the cell, if so, the outcome is
+        recorded.
+        """
+        quit = False
+        if self.system.has_reflected(self.potential):
+            self.outcome[:, 0] = self.system.state_prob
+            quit = True
+        elif self.system.has_transmitted(self.potential):
+            self.outcome[:, 1] = self.system.state_prob
+            quit = True
+        return quit
 
 
 class MF_RPMD_Propagator(RingPolymerPropagator):
