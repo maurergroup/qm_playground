@@ -156,27 +156,6 @@ class Potential:
             secondd = self.secondd[i, j]
             return secondd(*points)
 
-    #### coupling is different for different PES pairs
-    #def coupling_d1(self,x,n=0, m=1):
-        #"""
-        #calculate nonadiabatic vectorial 1st order coupling
-        #"""
-        #d1 = self.d1[n]
-        #if d1 is None:
-            #return np.zeros_like(x)
-        #else:
-            #return d1(x)
-
-    #def coupling_d2(self,x,n=0, m=1):
-        #"""
-        #calculate nonadiabatic vectorial 1st order coupling
-        #"""
-        #d2 = self.d2[n,m]
-        #if d2 is None:
-            #return np.zeros_like(x)
-        #else:
-            #return d2(x)
-
     def compute_cell_potential(self, density=100):
         """Calculate the potential on a grid over the whole cell."""
 

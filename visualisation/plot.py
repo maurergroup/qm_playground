@@ -12,17 +12,20 @@ This framework should be easily extendable to allow for more visualisations in
 the future, just add another option to the if, else statement and copy one of
 the current working Plot classes.
 """
-from bokeh.models import TextInput, Button
-from bokeh.plotting import curdoc
-from bokeh.layouts import column, grid
 import pickle
+
+from bokeh.layouts import column, grid
+from bokeh.models import Button, TextInput
+from bokeh.plotting import curdoc
+
+from nrpmd_plot1D import NRPMDPlot1D
+from rpmd_hopping import RPMDHoppingPlot1D
+from rpmd_plot1D import RPMDPlot1D
+from rpmd_plot2D import RPMDPlot2D
+from traj_plot1D import TrajPlot1D
+from traj_plot2D import TrajPlot2D
 from wave_plot import WavePlot
 from wave_plot2D import WavePlot2D
-from traj_plot2D import TrajPlot2D
-from traj_plot1D import TrajPlot1D
-from rpmd_plot2D import RPMDPlot2D
-from rpmd_plot1D import RPMDPlot1D
-from nrpmd_plot1D import NRPMDPlot1D
 
 
 class FileReader():
@@ -75,9 +78,11 @@ class FileReader():
             elif ndim == 2:
                 self.plot = RPMDPlot2D(self.data)
 
-        elif self.data.mode =='nrpmd':
+        elif self.data.mode == 'nrpmd':
             self.plot = NRPMDPlot1D(self.data)
 
+        elif self.data.mode == 'rpmd_hopping':
+            self.plot = RPMDHoppingPlot1D(self.data)
 
         self.layout.children.append((self.plot.get_layout(), self.i, self.j))
         if self.j == 1:
@@ -88,7 +93,7 @@ class FileReader():
 
     def load_data(self):
         """Load the pickled data from the file specified in the text field.
-        
+
         Currently loads the first entry which should contain the data from the
         first trajectory."""
         file = open(self.file_input.value, 'rb')

@@ -101,7 +101,7 @@ class NRPMD(RingPolymerPropagator):
         """
         self.system.propagate_positions()
 
-        self.system.compute_V_matrix(self.potential)
+        self.system.compute_V_matrix(self.system.r, self.potential)
         self.system.compute_V_prime_matrix(self.potential)
         self.system.diagonalise_V()
         self.system.compute_propagators(self.dt)

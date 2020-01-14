@@ -44,6 +44,14 @@ class TullySimpleAvoidedCrossing(Potential):
 
         return np.array([v11, v12, v12, v22])
 
+    def compute_cell_potential(self, density=100):
+        x = np.linspace(self.cell[0][0], self.cell[0][1], density)
+        v11 = self(x, i=0, j=0)
+        v22 = self(x, i=1, j=1)
+        v12 = self(x, i=1, j=0)
+
+        return v11, v12, v22
+
 
 class TullyDualAvoidedCrossing(Potential):
 
@@ -84,6 +92,13 @@ class TullyDualAvoidedCrossing(Potential):
 
         return np.array([v11, v12, v12, v22])
 
+    def compute_cell_potential(self, density=100):
+        x = np.linspace(self.cell[0][0], self.cell[0][1], density)
+        v11 = self(x, i=0, j=0)
+        v22 = self(x, i=1, j=1)
+        v12 = self(x, i=1, j=0)
+
+        return v11, v12, v22
 
 class TullyExtendedCoupling(Potential):
     def __init__(self, cell=[[-10, 10]], a=0.0006, b=0.10, c=0.90):
@@ -128,3 +143,11 @@ class TullyExtendedCoupling(Potential):
             return 0 * x
 
         return np.array([v11, v12, v12, v22])
+
+    def compute_cell_potential(self, density=100):
+        x = np.linspace(self.cell[0][0], self.cell[0][1], density)
+        v11 = self(x, i=0, j=0)
+        v22 = self(x, i=1, j=1)
+        v12 = self(x, i=1, j=0)
+
+        return v11, v12, v22

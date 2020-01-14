@@ -1,10 +1,4 @@
-import itertools
-
-import colorcet
 import numpy as np
-from bokeh.driving import repeat
-from bokeh.layouts import row
-from bokeh.plotting import ColumnDataSource, curdoc, figure
 from rpmd_plot1D import RPMDPlot1D
 
 

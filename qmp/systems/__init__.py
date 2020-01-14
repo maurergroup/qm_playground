@@ -23,4 +23,5 @@ from .nrpmd import NRPMD
 from .mf_rpmd import MF_RPMD
 from .phasespace import PhaseSpace
 from .ring_polymer import RingPolymer
-from .rpsh import RPSH
+from .centroid_hopping import CentroidHopping
+from .kinked_hopping import KinkedHopping

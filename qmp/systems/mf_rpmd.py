@@ -1,9 +1,9 @@
 import numpy as np
 
-from .ring_polymer import RingPolymer
+from .nonadiabatic_ring_polymer import NonadiabaticRingPolymer
 
 
-class MF_RPMD(RingPolymer):
+class MF_RPMD(NonadiabaticRingPolymer):
     """ Mean-Field RPMD as shown in Tim Hele's MChem thesis."""
 
     def __init__(self, coordinates, velocities, masses,
@@ -11,12 +11,8 @@ class MF_RPMD(RingPolymer):
                  n_beads=4, T=298,
                  n_states=2):
 
-        super().__init__(coordinates, velocities, masses, n_beads, T)
-
-        self.n_states = n_states
-
-        if start_file is not None and equilibration_end is not None:
-            self.set_position_from_trajectory(start_file, equilibration_end)
+        super().__init__(coordinates, velocities, masses, start_file,
+                         equilibration_end, n_beads, T, n_states)
 
         self.s_deriv = np.zeros((self.n_particles, self.n_beads, self.ndim,
                                  self.n_states, self.n_states))
@@ -30,29 +26,6 @@ class MF_RPMD(RingPolymer):
         self.G_matrix = np.zeros_like(self.M_matrix)
         self.H_matrix = np.zeros_like(self.M_matrix)
 
-    def compute_V_matrix(self, r, potential):
-        V = np.zeros((self.n_particles,
-                      self.n_beads,
-                      self.n_states,
-                      self.n_states))
-        dim_split_r = np.array(np.split(r, self.ndim, axis=2))
-        for i in range(self.n_states):
-            for j in range(self.n_states):
-                V[:, :, i, j] = potential(*dim_split_r, i=i, j=j).squeeze()
-        return V
-
-    def diagonalise_matrix(self, V):
-        S_matrix = np.zeros((self.n_particles, self.n_beads,
-                             self.n_states, self.n_states))
-        lambdas = np.zeros_like(S_matrix)
-        for i in range(self.n_particles):
-            for j in range(self.n_beads):
-                eigval, S_matrix[i, j] = np.linalg.eigh(V[i, j])
-                lambdas[i, j] = np.diag(eigval)
-                if S_matrix[i, j, 0, 0] < 0:
-                    S_matrix[i, j] *= -1
-        return S_matrix, lambdas
-
     def exponentiate_lambdas(self, lambdas):
         out = np.zeros_like(lambdas)
         for i in range(self.n_particles):
@@ -62,9 +35,6 @@ class MF_RPMD(RingPolymer):
 
     def set_V_matrix(self, potential):
         self.V_matrix = self.compute_V_matrix(self.r, potential)
-
-    def diagonalise_at_current_position(self):
-        self.S_matrix, self.lambdas = self.diagonalise_matrix(self.V_matrix)
 
     def set_exp_lambdas(self):
         self.exp_lambdas = self.exponentiate_lambdas(self.lambdas)
@@ -133,7 +103,7 @@ class MF_RPMD(RingPolymer):
 
     def compute_acceleration(self, potential):
         self.set_V_matrix(potential)
-        self.diagonalise_at_current_position()
+        self.diagonalise_V()
         self.set_exp_lambdas()
 
         self.calculate_derivatives(potential)
@@ -147,7 +117,7 @@ class MF_RPMD(RingPolymer):
 
     def compute_bead_potential_energy(self, potential):
         self.set_V_matrix(potential)
-        self.diagonalise_at_current_position()
+        self.diagonalise_V()
         self.set_exp_lambdas()
 
         self.calculate_derivatives(potential)

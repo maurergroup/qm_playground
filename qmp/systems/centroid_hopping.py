@@ -1,17 +1,19 @@
 import numpy as np
 
 from .hopping import Hopping
-from .ring_polymer import RingPolymer
+from .nonadiabatic_ring_polymer import NonadiabaticRingPolymer
 
 
-class RPSH(RingPolymer, Hopping):
+class CentroidHopping(NonadiabaticRingPolymer, Hopping):
 
     def __init__(self, coordinates, velocities, masses,
                  initial_state, potential, start_file=None,
                  equilibration_end=None,
-                 nstates=2, n_beads=4, T=298):
+                 n_states=2, n_beads=4, T=298):
 
-        RingPolymer.__init__(self, coordinates, velocities, masses, n_beads, T)
+        NonadiabaticRingPolymer.__init__(self, coordinates, velocities,
+                                         masses, start_file, equilibration_end,
+                                         n_beads, T, n_states)
 
         self.state = initial_state
         self.initial_r = coordinates
@@ -19,16 +21,12 @@ class RPSH(RingPolymer, Hopping):
         self.potential = potential
         self.start_file = start_file
         self.equilibration_end = equilibration_end
-        self.nstates = nstates
 
         self.coeffs = None
         self.centroid_U = None
 
-        if start_file is not None and equilibration_end is not None:
-            self.set_position_from_trajectory(start_file, equilibration_end)
-
-        self.density_matrix = np.zeros((self.nstates,
-                                        self.nstates))
+        self.density_matrix = np.zeros((self.n_states,
+                                        self.n_states))
         self.density_matrix[self.state, self.state] = 1.0
 
         self.v += self.initial_v
@@ -57,13 +55,13 @@ class RPSH(RingPolymer, Hopping):
         self.compute_derivative_coupling(self.centroid_U, self.centroid_deriv)
 
     def compute_coeffs(self):
-        """Compute the eigenvalues and eigenstates of the V matrix.
+        """Compute the eigenvalues and eigen_states of the V matrix.
 
         These are used as a basis for the calculation of the rest of the
         electronic properties.
         """
-        energies = np.zeros((self.n_beads, self.nstates))
-        coeffs = np.zeros((self.n_beads, self.nstates, self.nstates))
+        energies = np.zeros((self.n_beads, self.n_states))
+        coeffs = np.zeros((self.n_beads, self.n_states, self.n_states))
 
         V = self.V
         n = self.n_beads

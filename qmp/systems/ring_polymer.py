@@ -37,7 +37,6 @@ class RingPolymer(PhaseSpace):
 
         self.temp = T / atomic_to_kelvin
         self.beta = 1 / (self.temp * self.n_beads)
-        self.omega = 1 / (self.beta)
         self.omega = self.temp * self.n_beads
 
         self.initialise_beads()
@@ -59,7 +58,7 @@ class RingPolymer(PhaseSpace):
     def compute_kinetic_energy(self):
         return 0.5 * np.einsum('i,ijk->ij', self.masses, self.v ** 2)
 
-    def compute_bead_potential_energy(self, potential):
+    def _compute_bead_potential_energy(self, potential):
         if self.ndim == 1:
             pot = potential(self.r[:, :, 0])
         elif self.ndim == 2:
@@ -68,7 +67,7 @@ class RingPolymer(PhaseSpace):
 
     def compute_potential_energy(self, potential):
         """Compute the potential energy for each bead."""
-        bead = self.compute_bead_potential_energy(potential)
+        bead = self._compute_bead_potential_energy(potential)
         spring = self.compute_spring_potential()
         return bead + spring
 
@@ -179,7 +178,7 @@ class RingPolymer(PhaseSpace):
 
     def set_position_from_trajectory(self, file, equilibration_end):
         file = open(file, 'rb')
-        trajectory = pickle.load(file)
+        trajectory = pickle.load(file)[0]
         positions = trajectory['rb_t']
         velocities = trajectory['vb_t']
 

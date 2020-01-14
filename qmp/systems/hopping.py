@@ -8,19 +8,19 @@ from qmp.systems.phasespace import PhaseSpace
 class Hopping(PhaseSpace):
 
     def __init__(self, coordinates, velocities, masses,
-                 initial_state, potential, nstates=2):
+                 initial_state, potential, n_states=2):
         PhaseSpace.__init__(self, coordinates, velocities, masses)
 
         self.potential = potential
-        self.nstates = nstates
+        self.n_states = n_states
 
         self.r = coordinates
         self.v = velocities
         self.state = initial_state
         self.coeffs = None
 
-        self.density_matrix = np.zeros((self.nstates,
-                                        self.nstates))
+        self.density_matrix = np.zeros((self.n_states,
+                                        self.n_states))
         self.density_matrix[self.state, self.state] = 1.0
 
     def update_electronics(self, potential):
@@ -59,7 +59,7 @@ class Hopping(PhaseSpace):
         return D
 
     def compute_coeffs(self):
-        """Compute the eigenvalues and eigenstates of the V matrix.
+        """Compute the eigenvalues and eigen_states of the V matrix.
 
         These are used as a basis for the calculation of the rest of the
         electronic properties. The second part is to correct the phase.
