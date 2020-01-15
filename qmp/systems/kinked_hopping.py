@@ -61,13 +61,10 @@ class KinkedHopping(NonadiabaticRingPolymer):
         self._compute_density_propagator()
 
     def _compute_adiabatic_force(self):
-        for i in range(self.n_particles):
-            for j in range(self.n_beads):
-                S = self.S_matrix[i, j]
-                for k in range(self.ndim):
-                    V = self.V_prime_matrix[i, j, k]
-                    f = S.T.conj() @ V @ S
-                    self.adiabatic_V_prime[i, j, k] = f
+        F = (np.transpose(self.S_matrix[:, :, None], (0, 1, 2, 4, 3))
+             @ self.V_prime_matrix
+             @ self.S_matrix[:, :, None])
+        self.adiabatic_V_prime = F
 
     def _compute_nonadiabatic_coupling(self):
         for i in range(self.n_particles):
@@ -156,13 +153,9 @@ class KinkedHopping(NonadiabaticRingPolymer):
         return F * self.n_beads
 
     def _compute_bead_force(self):
-        F = np.zeros((self.n_particles, self.n_beads, self.ndim))
-        for i in range(self.n_particles):
-            for j in range(self.n_beads):
-                n = self.state_occupations[i, j]
-                for k in range(self.ndim):
-                    d = self.adiabatic_V_prime[i, j, k, n, n]
-                    F[i, j, k] = -np.real(d)
+        diag = np.diagonal(self.adiabatic_V_prime, axis1=-2, axis2=-1)
+        i, j = np.indices(self.state_occupations.shape)
+        F = -np.real(diag[i, j, :, self.state_occupations[i, j]])
         return F
 
     def propagate_density_matrix(self, dt):
