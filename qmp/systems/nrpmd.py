@@ -26,31 +26,25 @@ class NRPMD(NonadiabaticRingPolymer):
         self.p_map = self.q_map * np.tan(-theta)
 
     def compute_propagators(self, dt):
-        C_matrix = np.zeros((self.n_particles, self.n_beads, self.n_states,
-                             self.n_states), dtype=complex)
-        D_matrix = np.zeros_like(C_matrix)
+        _, _, n, m = np.indices(self.lambdas.shape)
 
-        for i in range(self.n_particles):
-            for j in range(self.n_beads):
-                cos = np.diag(np.cos(np.diag(self.lambdas[i, j]) * dt))
-                sin = np.diag(np.sin(-np.diag(self.lambdas[i, j]) * dt))
-                C_matrix[i, j] = self.S_matrix[i, j] @ cos @ self.S_matrix[i, j].T
-                D_matrix[i, j] = self.S_matrix[i, j] @ sin @ self.S_matrix[i, j].T
+        cos = np.zeros((self.n_particles, self.n_beads,
+                        self.n_states, self.n_states), dtype=complex)
+        cos[n == m] = np.cos(self.lambdas[n == m] * dt)
 
-        self.C_matrix = C_matrix
-        self.D_matrix = D_matrix
+        sin = np.zeros_like(cos)
+        sin[n == m] = -np.sin(self.lambdas[n == m] * dt)
+
+        C = (self.S_matrix @ cos @ np.transpose(self.S_matrix, (0, 1, 3, 2)))
+        D = (self.S_matrix @ sin @ np.transpose(self.S_matrix, (0, 1, 3, 2)))
+
+        self.C_matrix = C
+        self.D_matrix = D
 
     def compute_adiabatic_derivative(self):
-        dv = self.V_prime_matrix
-        W = np.zeros((self.n_particles, self.n_beads, self.ndim,
-                      self.n_states, self.n_states),
-                     dtype=complex)
-
-        for i in range(self.n_particles):
-            for j in range(self.n_beads):
-                for k in range(self.ndim):
-                    W[i, j, k] = self.S_matrix[i, j].T @ dv[i, j, k] @ self.S_matrix[i, j]
-
+        W = (np.transpose(self.S_matrix[:, :, None], (0, 1, 2, 4, 3))
+             @ self.V_prime_matrix
+             @ self.S_matrix[:, :, None])
         self.W_matrix = W
 
     def compute_gamma_and_epsilon(self, dt):
@@ -69,6 +63,7 @@ class NRPMD(NonadiabaticRingPolymer):
                             gamma[i, j, k, m, n] = g
                             epsilon[i, j, k, m, n] = e
 
+                    print(np.tril(gamma[i, j, k], -1))
                     gamma[i, j, k] = np.tril(gamma[i, j, k], -1) + np.triu(gamma[i, j, k].T, 1)
                     gamma[i, j, k] += np.diag(np.diag(W[i, j, k]) * dt)
                     epsilon[i, j, k] = np.tril(epsilon[i, j, k], -1) - np.triu(epsilon[i, j, k].T, 1)
@@ -97,35 +92,22 @@ class NRPMD(NonadiabaticRingPolymer):
 
     def propagate_mapping_variables(self):
         q = np.real(np.einsum('ijkl,ijl->ijk', self.C_matrix, self.q_map)
-                    -np.einsum('ijkl,ijl->ijk', self.D_matrix, self.p_map))
+                    - np.einsum('ijkl,ijl->ijk', self.D_matrix, self.p_map))
         p = np.real(np.einsum('ijkl,ijl->ijk', self.C_matrix, self.p_map)
-                    +np.einsum('ijkl,ijl->ijk', self.D_matrix, self.q_map))
+                    + np.einsum('ijkl,ijl->ijk', self.D_matrix, self.q_map))
 
         self.q_map = q
         self.p_map = p
 
     def propagate_bead_velocities(self, dt):
 
-        # print(self.q_map.shape, self.E.shape)
-        # qEq = np.einsum('...j,...ijk,...k->...ijk', self.q_map, self.E, self.q_map)
-        # qEq = self.q_map[:, :, None].T @ self.E @ self.q_map[:, :, None]
-        # print(qEq)
-        # a = 1
-        # self.v = self.v - a
+        qEq = np.einsum('ijl,ijklm,ijm->ijk', self.q_map, self.E, self.q_map)
+        pEp = np.einsum('ijl,ijklm,ijm->ijk', self.p_map, self.E, self.p_map)
+        qFp = np.einsum('ijl,ijklm,ijm->ijk', self.q_map, self.F, self.p_map)
+        traceV = np.einsum('ijkll', self.V_prime_matrix)
 
-        for i in range(self.n_particles):
-            for j in range(self.n_beads):
-                for k in range(self.ndim):
-                    q = self.q_map[i, j]
-                    p = self.p_map[i, j]
-                    E = np.real(self.E[i, j, k])
-                    F = np.real(self.F[i, j, k])
-                    dv = np.real(self.V_prime_matrix[i, j, k])
-                    trV = np.trace(dv)
-                    # print(q.T@E@q)
-                    self.v[i, j, k] = self.v[i, j, k] - (0.5
-                        * (q.T@E@q + p.T@E@p - 2*q.T@F@p - trV*dt)
-                        / self.masses[i])
+        force = 0.5 * np.real(qEq + pEp - 2*qFp - traceV*dt)
+        self.v = self.v - force / self.masses
 
     def calculate_total_electronic_probability(self):
         self.total_prob = 0.5 * np.sum(self.q_map**2 + self.p_map**2 - 1) / self.n_beads
@@ -135,15 +117,11 @@ class NRPMD(NonadiabaticRingPolymer):
 
     def _compute_bead_potential_energy(self, potential):
         self.V_matrix = self.compute_V_matrix(self.r, potential)
-        energy = np.zeros((self.n_particles, self.n_beads))
 
-        for i in range(self.n_particles):
-            for j in range(self.n_beads):
-                q = self.q_map[i, j]
-                p = self.p_map[i, j]
-                V = np.real(self.V_matrix[i, j])
-                trV = np.trace(V)
-                energy[i, j] = energy[i, j] + 0.5 * (q.T@V@q + p.T@V@p - trV)
+        qVq = np.einsum('ijl,ijlm,ijm->ij', self.q_map, self.V_matrix, self.q_map)
+        pVp = np.einsum('ijl,ijlm,ijm->ij', self.p_map, self.V_matrix, self.p_map)
+        traceV = np.einsum('ijll', self.V_matrix)
+        energy = 0.5 * np.real(qVq + pVp - traceV)
         return energy
 
     def has_reflected(self, potential):
