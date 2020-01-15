@@ -15,6 +15,10 @@ class NRPMD(NonadiabaticRingPolymer):
 
         self.initialise_mapping_variables(initial_state, seed)
 
+        self.gamma = np.zeros((self.n_particles, self.n_beads, self.ndim,
+                               self.n_states, self.n_states), dtype=complex)
+        self.epsilon = np.zeros_like(self.gamma, dtype=complex)
+
     def initialise_mapping_variables(self, initial_state, seed=None):
         if seed is not None:
             np.random.seed(seed)
@@ -49,27 +53,15 @@ class NRPMD(NonadiabaticRingPolymer):
 
     def compute_gamma_and_epsilon(self, dt):
         W = self.W_matrix
-        gamma = np.zeros_like(W, dtype=complex)
-        epsilon = np.zeros_like(W, dtype=complex)
 
-        for i in range(self.n_particles):
-            for j in range(self.n_beads):
-                for k in range(self.ndim):
-                    for n in range(self.n_states):
-                        for m in range(n+1, self.n_states):
-                            lam = self.lambdas[i, j, m, m] - self.lambdas[i, j, n, n]
-                            g = self.compute_gamma_element(lam, dt, W[i, j, k, m, n])
-                            e = self.compute_epsilon_element(lam, dt, W[i, j, k, m, n])
-                            gamma[i, j, k, m, n] = g
-                            epsilon[i, j, k, m, n] = e
+        i, j, n, m = np.indices(self.lambdas.shape)
+        _, _, _, s, t = np.indices(self.W_matrix.shape)
 
-                    print(np.tril(gamma[i, j, k], -1))
-                    gamma[i, j, k] = np.tril(gamma[i, j, k], -1) + np.triu(gamma[i, j, k].T, 1)
-                    gamma[i, j, k] += np.diag(np.diag(W[i, j, k]) * dt)
-                    epsilon[i, j, k] = np.tril(epsilon[i, j, k], -1) - np.triu(epsilon[i, j, k].T, 1)
+        lambdas = self.lambdas[i, j, m, m] - self.lambdas[i, j, n, n]
 
-        self.gamma = gamma
-        self.epsilon = epsilon
+        self.gamma[s != t] = self.compute_gamma_element(lambdas[n != m], dt, W[s != t])
+        self.gamma[s == t] = W[s == t] * dt
+        self.epsilon[s != t] = self.compute_epsilon_element(lambdas[n != m], dt, W[s != t])
 
     @staticmethod
     def compute_gamma_element(lam, dt, W):
