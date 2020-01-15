@@ -19,11 +19,8 @@ class NonadiabaticRingPolymer(ABC, RingPolymer):
                  n_beads=4, T=298,
                  n_states=2):
 
-        super().__init__(coordinates, velocities, masses, n_beads, T)
-
-        if start_file is not None and equilibration_end is not None:
-            self.set_position_from_trajectory(start_file, equilibration_end)
-            self.v += velocities
+        super().__init__(coordinates, velocities, masses, n_beads, T,
+                         start_file, equilibration_end)
 
         self.n_states = n_states
         self.S_matrix = None

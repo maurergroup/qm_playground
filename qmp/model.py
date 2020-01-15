@@ -106,6 +106,7 @@ class Model:
         all_data = []
         for _ in range(ntraj):
             sys = copy.deepcopy(self.system)
+            sys.reinitialise()
             dat = copy.deepcopy(self.data)
             self.integrator.run(sys, steps=int(steps),
                                 potential=self.potential, data=dat, **kwargs)

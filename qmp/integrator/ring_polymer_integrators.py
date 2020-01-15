@@ -90,6 +90,8 @@ class TRPMD(PIMD_LangevinThermostat):
 class NRPMD(RingPolymerPropagator):
 
     def _initialise_start(self):
+
+        self.system.V_matrix = self.system.compute_V_matrix(self.system.r, self.potential)
         super()._initialise_start()
         self.system.initialise_propagators(self.dt/2)
 
@@ -137,9 +139,11 @@ class NRPMD(RingPolymerPropagator):
         """
         quit = False
         if self.system.has_reflected(self.potential):
+            self.system.calculate_state_probability()
             self.outcome[:, 0] = self.system.state_prob
             quit = True
         elif self.system.has_transmitted(self.potential):
+            self.system.calculate_state_probability()
             self.outcome[:, 1] = self.system.state_prob
             quit = True
         return quit

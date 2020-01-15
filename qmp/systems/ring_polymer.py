@@ -9,7 +9,8 @@ from qmp.tools.dyn_tools import atomic_to_kelvin
 
 class RingPolymer(PhaseSpace):
 
-    def __init__(self, coordinates, velocities, masses, n_beads=4, T=298):
+    def __init__(self, coordinates, velocities, masses, n_beads=4, T=298,
+                 start_file=None, equilibration_end=None):
         """Initialise the ring polymer system.
 
         Parameters
@@ -42,6 +43,14 @@ class RingPolymer(PhaseSpace):
         self.initialise_beads()
         self.initialise_normal_frequencies()
         self.initialise_transformer()
+
+        self.equilibration_end = equilibration_end
+        self.start_file = start_file
+        self.initial_v = velocities
+
+        if start_file is not None and equilibration_end is not None:
+            self.set_position_from_trajectory()
+            self.v += velocities
 
     def initialise_beads(self):
 
@@ -176,13 +185,18 @@ class RingPolymer(PhaseSpace):
                           * self.c2[None, :, None] * randoms)
         self.transform_from_normal_modes()
 
-    def set_position_from_trajectory(self, file, equilibration_end):
-        file = open(file, 'rb')
+    def set_position_from_trajectory(self):
+        file = open(self.start_file, 'rb')
         trajectory = pickle.load(file)[0]
         positions = trajectory['rb_t']
         velocities = trajectory['vb_t']
 
-        choice = np.random.randint(low=equilibration_end, high=len(positions))
+        choice = np.random.randint(low=self.equilibration_end, high=len(positions))
 
         self.r = positions[choice]
         self.v = velocities[choice]
+
+    def reinitialise(self):
+        if self.start_file is not None and self.equilibration_end is not None:
+            self.set_position_from_trajectory()
+            self.v += self.initial_v

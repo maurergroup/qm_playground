@@ -60,3 +60,6 @@ class PhaseSpace:
     def compute_acceleration(self, potential):
         F = self.compute_force(potential)
         self.acceleration = F / self.masses[:, np.newaxis]
+
+    def reinitialise(self):
+        pass

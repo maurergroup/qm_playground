@@ -8,25 +8,29 @@ class NRPMD(NonadiabaticRingPolymer):
     def __init__(self, coordinates, velocities, masses, initial_state,
                  start_file=None, equilibration_end=None,
                  n_beads=4, T=298,
-                 n_states=2, seed=None):
+                 n_states=2):
 
         super().__init__(coordinates, velocities, masses, start_file,
                          equilibration_end, n_beads, T, n_states)
 
-        self.initialise_mapping_variables(initial_state, seed)
+        self.initial_state = initial_state
+
+        self.initialise_mapping_variables()
 
         self.gamma = np.zeros((self.n_particles, self.n_beads, self.ndim,
                                self.n_states, self.n_states), dtype=complex)
         self.epsilon = np.zeros_like(self.gamma, dtype=complex)
 
-    def initialise_mapping_variables(self, initial_state, seed=None):
-        if seed is not None:
-            np.random.seed(seed)
+    def reinitialise(self):
+        super().reinitialise()
+        self.initialise_mapping_variables()
+
+    def initialise_mapping_variables(self):
         theta = np.random.rand(self.n_particles, self.n_beads,
                                self.n_states) * 2 * np.pi
 
         self.q_map = np.sqrt(1 / (np.tan(-theta)**2 + 1))
-        self.q_map[:, :, initial_state] *= np.sqrt(3)
+        self.q_map[:, :, self.initial_state] *= np.sqrt(3)
         self.p_map = self.q_map * np.tan(-theta)
 
     def compute_propagators(self, dt):
@@ -108,8 +112,6 @@ class NRPMD(NonadiabaticRingPolymer):
         self.state_prob = 0.5 * np.sum(self.q_map**2 + self.p_map**2 - 1, axis=1) / self.n_beads
 
     def _compute_bead_potential_energy(self, potential):
-        self.V_matrix = self.compute_V_matrix(self.r, potential)
-
         qVq = np.einsum('ijl,ijlm,ijm->ij', self.q_map, self.V_matrix, self.q_map)
         pVp = np.einsum('ijl,ijlm,ijm->ij', self.p_map, self.V_matrix, self.p_map)
         traceV = np.einsum('ijll', self.V_matrix)

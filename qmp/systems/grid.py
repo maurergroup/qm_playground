@@ -1,7 +1,6 @@
 import numpy as np
 import scipy.sparse as sp
-from numpy.fft import fftn
-from numpy.fft import ifftn
+from numpy.fft import fftn, ifftn
 
 
 class Grid:
@@ -326,3 +325,6 @@ class Grid:
         start_zone = end_zone[::-1]
 
         return start_zone + end_zone
+
+    def reinitialise(self):
+        pass
