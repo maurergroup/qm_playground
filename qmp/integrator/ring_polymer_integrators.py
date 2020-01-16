@@ -138,14 +138,14 @@ class NRPMD(RingPolymerPropagator):
         recorded.
         """
         quit = False
-        if self.system.has_reflected(self.potential):
-            self.system.calculate_state_probability()
-            self.outcome[:, 0] = self.system.state_prob
-            quit = True
-        elif self.system.has_transmitted(self.potential):
-            self.system.calculate_state_probability()
-            self.outcome[:, 1] = self.system.state_prob
-            quit = True
+        # if self.system.has_reflected(self.potential):
+        #     self.system.calculate_state_probability()
+        #     self.outcome[:, 0] = self.system.state_prob
+        #     quit = True
+        # elif self.system.has_transmitted(self.potential):
+        #     self.system.calculate_state_probability()
+        #     self.outcome[:, 1] = self.system.state_prob
+        #     quit = True
         return quit
 
 

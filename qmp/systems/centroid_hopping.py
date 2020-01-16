@@ -22,6 +22,8 @@ class CentroidHopping(NonadiabaticRingPolymer, Hopping):
         self.start_file = start_file
         self.equilibration_end = equilibration_end
 
+        self.state_occupations = np.full((self.n_particles, self.n_beads),
+                                         self.state, dtype=int)
         self.coeffs = None
         self.centroid_U = None
 
@@ -37,10 +39,10 @@ class CentroidHopping(NonadiabaticRingPolymer, Hopping):
         Whenever the position is updated this function should be called to give
         consistent electronics.
         """
-        self.V = self.construct_V_matrix(self.r, potential)
-        self.D = self.construct_Nabla_matrix(self.r, potential)
-        energies, self.coeffs = self.compute_coeffs()
-        self.compute_force()
+        self.V_matrix = self.compute_V_matrix(self.r, potential)
+        self.compute_V_prime_matrix(potential)
+        self.diagonalise_V()
+        self._compute_adiabatic_force()
 
         self.centroid_r = np.array([np.mean(self.r)])
         self.centroid_v = np.array([np.mean(self.v)])
@@ -53,36 +55,6 @@ class CentroidHopping(NonadiabaticRingPolymer, Hopping):
 
         self.compute_hamiltonian(self.centroid_U, self.centroid_potential)
         self.compute_derivative_coupling(self.centroid_U, self.centroid_deriv)
-
-    def compute_coeffs(self):
-        """Compute the eigenvalues and eigen_states of the V matrix.
-
-        These are used as a basis for the calculation of the rest of the
-        electronic properties.
-        """
-        energies = np.zeros((self.n_beads, self.n_states))
-        coeffs = np.zeros((self.n_beads, self.n_states, self.n_states))
-
-        V = self.V
-        n = self.n_beads
-        for i in range(n):
-            mat = [[V[i, i],   V[i, i+n]],
-                   [V[i+n, i], V[i+n, i+n]]]
-            w, v = np.linalg.eigh(mat)
-            energies[i] = w
-            coeffs[i] = v
-
-        u11 = np.diag(coeffs[:, 0, 0])
-        u12 = np.diag(coeffs[:, 0, 1])
-        u21 = np.diag(coeffs[:, 1, 0])
-        u22 = np.diag(coeffs[:, 1, 1])
-        U = np.block([[u11, u12], [u21, u22]])
-
-        if self.coeffs is not None:
-            column_sum = np.sum(U * self.coeffs, axis=1)
-            U = np.where(column_sum < 0, -U, U)
-
-        return energies, U
 
     def diagonalise_centroid(self):
         E, U = np.linalg.eigh(self.centroid_potential)
@@ -121,14 +93,28 @@ class CentroidHopping(NonadiabaticRingPolymer, Hopping):
         d12 = np.diag(potential.deriv(r, i=0, j=1))
         return np.block([[d11, d12], [d12, d22]])
 
-    def compute_force(self):
-        """Compute <psi_i|dH/dR|psi_j>"""
-        force_matrix = -self.coeffs.T @ self.D @ self.coeffs
-        self.force = force_matrix.diagonal()
+    def _compute_adiabatic_force(self):
+        F = (np.transpose(self.S_matrix[:, :, None], (0, 1, 2, 4, 3))
+             @ self.V_prime_matrix
+             @ self.S_matrix[:, :, None])
+        self.adiabatic_V_prime = F
 
     def compute_acceleration(self, potential):
         """Evaluate electronics and return force."""
         self.update_electronics(potential)
-        force = np.split(self.force, 2)[self.state]
-        self.acceleration = force.reshape(self.n_particles, self.n_beads,
-                                          self.ndim) / self.masses
+        self.acceleration = self._compute_bead_force()/self.masses
+
+    def _compute_bead_force(self):
+        diag = np.diagonal(self.adiabatic_V_prime, axis1=-2, axis2=-1)
+        i, j = np.indices(self.state_occupations.shape)
+        F = -np.real(diag[i, j, :, self.state_occupations[i, j]])
+        return F
+
+    def _attempt_hop(self):
+        """Carry out a hop if the particle has sufficient kinetic energy.
+
+        If the energy is sufficient the velocity is rescaled accordingly and
+        the state changed. Otherwise nothing happens.
+        """
+        super()._attempt_hop()
+        self.state_occupations[:, :] = self.state

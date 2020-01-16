@@ -198,7 +198,6 @@ class KinkedHopping(NonadiabaticRingPolymer):
             states[i] = choice
         return states
 
-
     def _compute_probabilities(self, states, dt, efficiency=5):
         current = self._compute_total_energy()
         prospective = self._compute_total_energy(states)
@@ -208,11 +207,9 @@ class KinkedHopping(NonadiabaticRingPolymer):
         return prob * dt * efficiency
 
     def _compute_bead_potential(self, state_occupation):
-        energy = np.zeros((self.n_particles, self.n_beads))
-        for i in range(self.n_particles):
-            for j in range(self.n_beads):
-                n = state_occupation[i, j]
-                energy[i, j] = self.lambdas[i, j, n, n]
+        i, j = np.indices(state_occupation.shape)
+        diag = np.diagonal(self.lambdas, axis1=-2, axis2=-1)
+        energy = diag[i, j, state_occupation[i, j]]
         return energy
 
     def compute_kink_potential(self):
