@@ -19,10 +19,10 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>#
 from .grid import Grid
 from .hopping import Hopping
-from .nrpmd import NRPMD
-from .mf_rpmd import MF_RPMD
+from .ring_polymer.nrpmd import NRPMD
+from .ring_polymer.mf_rpmd import MF_RPMD
 from .phasespace import PhaseSpace
-from .ring_polymer import RingPolymer
-from .centroid_hopping import CentroidHopping
-from .kinked_hopping import KinkedHopping
+from .ring_polymer.ring_polymer import RingPolymer
+from .ring_polymer.centroid_hopping import CentroidHopping
+from .ring_polymer.kinked_hopping import KinkedHopping
 from .quantum_trajectory import QTSH

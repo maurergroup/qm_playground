@@ -1,6 +1,6 @@
 import numpy as np
 
-from .hopping import Hopping
+from ..hopping import Hopping
 from .nonadiabatic_ring_polymer import NonadiabaticRingPolymer
 
 

@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 import scipy.linalg as la
 
-from qmp.systems.phasespace import PhaseSpace
+from ..phasespace import PhaseSpace
 from qmp.tools.dyn_tools import atomic_to_kelvin
 
 
