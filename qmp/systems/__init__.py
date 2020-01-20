@@ -25,3 +25,4 @@ from .phasespace import PhaseSpace
 from .ring_polymer import RingPolymer
 from .centroid_hopping import CentroidHopping
 from .kinked_hopping import KinkedHopping
+from .quantum_trajectory import QTSH

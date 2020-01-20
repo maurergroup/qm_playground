@@ -26,6 +26,7 @@ from traj_plot1D import TrajPlot1D
 from traj_plot2D import TrajPlot2D
 from wave_plot import WavePlot
 from wave_plot2D import WavePlot2D
+from hopping import HoppingPlot1D
 
 
 class FileReader():
@@ -83,6 +84,9 @@ class FileReader():
 
         elif self.data.mode == 'rpmd_hopping':
             self.plot = RPMDHoppingPlot1D(self.data)
+
+        elif self.data.mode == 'hopping':
+            self.plot = HoppingPlot1D(self.data)
 
         self.layout.children.append((self.plot.get_layout(), self.i, self.j))
         if self.j == 1:

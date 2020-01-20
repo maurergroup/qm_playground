@@ -7,7 +7,7 @@ from bokeh.plotting import figure
 from rpmd_plot1D import RPMDPlot1D
 
 
-class RPMDHoppingPlot1D(RPMDPlot1D):
+class HoppingPlot1D(RPMDPlot1D):
 
     # def setup_plot(self):
     #     self.particle_movie = figure(toolbar_location=None)
@@ -41,17 +41,14 @@ class RPMDHoppingPlot1D(RPMDPlot1D):
         r_t = self.raw_data['r_t']
         state_t = self.raw_data['state_occ_t']
 
-        x = r_t[i, :].flatten()
+        x = r_t[i].flatten()
         indices = np.digitize(x, self.x)
-        state = state_t[i, :].flatten()
+        state = state_t[i]
 
-        ys = []
-        for bead in range(len(indices)):
-            n = state[bead]
-            if n == 0:
-                ys.append(self.v1[indices[bead]])
-            elif n == 1:
-                ys.append(self.v2[indices[bead]])
+        if state == 0:
+            ys = self.v1[indices]
+        elif state == 1:
+            ys = self.v2[indices]
 
         self.source.data = dict(x=x, y=ys)
 
@@ -61,9 +58,7 @@ class RPMDHoppingPlot1D(RPMDPlot1D):
         E_t = self.raw_data['E_t']
         E_kin_t = self.raw_data['E_kin_t']
         E_pot_t = self.raw_data['E_pot_t']
-        E_kink_t = self.raw_data['E_kink_t']
-        print(E_kink_t.shape)
-        energies = [E_t, E_kin_t, E_pot_t, E_kink_t]
+        energies = [E_t, E_kin_t, E_pot_t]
         nparticles = np.shape(E_t)[1]
         x = np.linspace(0, 1, len(E_t))
         for i in range(nparticles):

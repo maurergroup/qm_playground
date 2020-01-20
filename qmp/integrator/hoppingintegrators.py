@@ -17,9 +17,14 @@ class FSSH(Integrator):
         self.r_t = [self.system.r]
         self.v_t = [self.system.v]
         self.state_t = [self.system.state]
+        self.system.update_electronics(self.potential)
+        self.E_pot = [self.system.compute_potential_energy(self.potential)]
+        self.E_kin = [self.system.compute_kinetic_energy()]
 
         self.outcome = np.zeros((self.system.n_states, 2))
+        self.system.dt = self.dt
         self.current_acc = self.system.compute_acceleration(self.potential)
+
 
     def _propagate_system(self):
         """Propagate the system by a single timestep.
@@ -54,9 +59,12 @@ class FSSH(Integrator):
     def _assign_data(self, data):
         """Add to the cumulative outcome."""
         data.outcome = self.outcome
-        data.state_t = np.array(self.state_t)
+        data.state_occ_t = np.array(self.state_t)
         data.r_t = np.array(self.r_t)
         data.v_t = np.array(self.v_t)
+        data.E_kin_t = np.array(self.E_kin)
+        data.E_pot_t = np.array(self.E_pot)
+        data.E_t = data.E_kin_t + data.E_pot_t
         self._save_potential(data)
 
     def _store_result(self):
@@ -64,6 +72,8 @@ class FSSH(Integrator):
         self.r_t.append(self.system.r)
         self.v_t.append(self.system.v)
         self.state_t.append(self.system.state)
+        self.E_kin.append(self.system.compute_kinetic_energy())
+        self.E_pot.append(self.system.compute_potential_energy(self.potential))
 
     def _save_potential(self, data):
         data.v11, data.v12, data.v22 = self.potential.compute_cell_potential(density=1000)

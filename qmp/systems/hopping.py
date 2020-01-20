@@ -19,8 +19,10 @@ class Hopping(PhaseSpace):
         self.state = initial_state
         self.coeffs = None
 
+        self.derivative_coupling = 0
         self.density_matrix = np.zeros((self.n_states,
-                                        self.n_states))
+                                        self.n_states),
+                                       dtype=complex)
         self.density_matrix[self.state, self.state] = 1.0
 
     def update_electronics(self, potential):
@@ -219,3 +221,9 @@ class Hopping(PhaseSpace):
 
     def get_position(self):
         return self.r
+
+    def compute_kinetic_energy(self):
+        return 0.5 * self.masses * self.v ** 2
+
+    def compute_potential_energy(self, _):
+        return [self.energies[self.state]]
