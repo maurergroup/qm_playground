@@ -17,14 +17,12 @@ class FSSH(Integrator):
         self.r_t = [self.system.r]
         self.v_t = [self.system.v]
         self.state_t = [self.system.state]
-        self.system.update_electronics(self.potential)
+        self.system.dt = self.dt
+        self.current_acc = self.system.compute_acceleration(self.potential)
         self.E_pot = [self.system.compute_potential_energy(self.potential)]
         self.E_kin = [self.system.compute_kinetic_energy()]
 
-        self.outcome = np.zeros((self.system.n_states, 2))
-        self.system.dt = self.dt
-        self.current_acc = self.system.compute_acceleration(self.potential)
-
+        self.outcome = np.zeros(2)
 
     def _propagate_system(self):
         """Propagate the system by a single timestep.
@@ -49,10 +47,10 @@ class FSSH(Integrator):
         """
         quit = False
         if self.system.has_reflected():
-            self.outcome[self.system.state, 0] = 1
+            self.outcome[0] = self.system.state
             quit = True
         elif self.system.has_transmitted():
-            self.outcome[self.system.state, 1] = 1
+            self.outcome[1] = self.system.state
             quit = True
         return quit
 
@@ -78,6 +76,7 @@ class FSSH(Integrator):
     def _save_potential(self, data):
         data.v11, data.v12, data.v22 = self.potential.compute_cell_potential(density=1000)
 
+
 class RingPolymerFSSH(FSSH):
 
     def _initialise_start(self):
@@ -85,8 +84,6 @@ class RingPolymerFSSH(FSSH):
         self.system.initialise_propagators(self.dt)
 
         self.state_occ_t = [copy.copy(self.system.state_occupations)]
-        self.E_pot = [self.system.compute_potential_energy(self.potential)]
-        self.E_kin = [self.system.compute_kinetic_energy()]
         self.E_kink = [self.system.compute_kink_potential()]
 
     def _propagate_system(self):
@@ -117,19 +114,18 @@ class RingPolymerFSSH(FSSH):
         """Store trajectory data but this is currently not used."""
         super()._store_result()
         self.state_occ_t.append(copy.copy(self.system.state_occupations))
-        self.E_pot.append(self.system.compute_potential_energy(self.potential))
-        self.E_kin.append(self.system.compute_kinetic_energy())
         self.E_kink.append(self.system.compute_kink_potential())
 
     def _is_finished(self):
         quit = False
         if np.mean(self.system.r) < -15:
-            self.outcome[self.system.state, 0] = 1
+            self.outcome[0] = self.system.state
             quit = True
         elif np.mean(self.system.r) > 15:
-            self.outcome[self.system.state, 1] = 1
+            self.outcome[1] = self.system.state
             quit = True
         return quit
+
 
 class RingPolymerEquilibriumHopping(RingPolymerFSSH):
 
@@ -148,3 +144,19 @@ class RingPolymerEquilibriumHopping(RingPolymerFSSH):
         self.system.propagate_velocities(self.dt*0.5)
 
         self.system.execute_hopping(self.dt*0.5)
+
+
+class RingPolymerQTSH(RingPolymerFSSH):
+
+    def _propagate_system(self):
+        """Propagate the system by a single timestep.
+        """
+        self.system.apply_quantum_force(self.dt*0.5)
+        self.system.propagate_velocities(self.dt*0.5)
+        self.system.propagate_positions()
+        self.system.compute_acceleration(self.potential)
+        self.system.propagate_velocities(self.dt*0.5)
+        self.system.apply_quantum_force(self.dt*0.5)
+
+        self.system.propagate_density_matrix(self.dt)
+        self.system.execute_hopping(self.dt)

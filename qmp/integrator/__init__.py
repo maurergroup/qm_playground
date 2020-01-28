@@ -23,7 +23,7 @@ Integrators
 
 from .classical_integrators import Langevin, VelocityVerlet
 from .hoppingintegrators import (FSSH, RingPolymerEquilibriumHopping,
-                                 RingPolymerFSSH)
+                                 RingPolymerFSSH, RingPolymerQTSH)
 from .ring_polymer_integrators import (NRPMD, TRPMD, MF_RPMD_Propagator,
                                        PIMD_LangevinThermostat,
                                        RingPolymerPropagator,

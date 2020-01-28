@@ -8,6 +8,7 @@ from .ring_polymer import RingPolymer
 def get_nonadiabatic_coupling(state1, state2, derivative, e1, e2):
     return state1.T.conj() @ derivative @ state2 / (e2 - e1)
 
+
 def get_overlap_integral(state1, state2):
     return state1.T.conj() @ state2
 

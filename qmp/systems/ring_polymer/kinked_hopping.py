@@ -1,12 +1,12 @@
 import numpy as np
+from scipy.linalg import expm
 
-from ..hopping import Hopping
 from .nonadiabatic_ring_polymer import (NonadiabaticRingPolymer,
                                         get_nonadiabatic_coupling,
                                         get_overlap_integral)
 
 
-class KinkedHopping(NonadiabaticRingPolymer, Hopping):
+class KinkedHopping(NonadiabaticRingPolymer):
 
     def __init__(self, coordinates, velocities, masses, initial_state,
                  start_file=None, equilibration_end=None,
@@ -20,9 +20,10 @@ class KinkedHopping(NonadiabaticRingPolymer, Hopping):
         self.state = initial_state
 
         self.centroid_U = None
-        self.density_matrix = np.zeros((self.n_states,
-                                        self.n_states), dtype=complex)
-        self.density_matrix[self.state, self.state] = 1.0
+        self.density_matrix = np.zeros((self.n_particles, self.n_beads,
+                                        self.n_states, self.n_states),
+                                       dtype=complex)
+        self.density_matrix[:, :, self.state, self.state] = 1.0
 
         self.nonadiabatic_coupling = np.zeros((self.n_particles, self.n_beads,
                                                self.ndim, self.n_states,
@@ -36,15 +37,15 @@ class KinkedHopping(NonadiabaticRingPolymer, Hopping):
                                            self.ndim,
                                            self.n_states, self.n_states),
                                           dtype=complex)
-        self.density_prop = np.zeros((self.n_particles, self.n_beads,
-                                      self.ndim, self.n_states, self.n_states),
+        self.density_prop = np.zeros((self.n_particles, self.ndim,
+                                      self.n_states, self.n_states),
                                      dtype=complex)
 
     def compute_acceleration(self, potential):
         self._update_electronics(potential)
-        kink = self._compute_kink_force(potential)
+        self._compute_kink_force(potential)
         bead = self._compute_bead_force()
-        self.acceleration = (kink + bead) / self.masses
+        self.acceleration = (self.kink_force + bead) / self.masses
 
     def _update_electronics(self, potential):
 
@@ -56,28 +57,6 @@ class KinkedHopping(NonadiabaticRingPolymer, Hopping):
         self.overlap_integrals = self._compute_overlap_integrals()
         self._compute_density_propagator()
 
-        self.centroid_r = np.array([np.mean(self.r)])
-        self.centroid_v = np.array([np.mean(self.v)])
-
-        self.centroid_potential = self.construct_V_matrix(self.centroid_r,
-                                                          potential)
-        self.centroid_deriv = self.construct_Nabla_matrix(self.centroid_r,
-                                                          potential)
-        self.diagonalise_centroid()
-
-        self.compute_hamiltonian(self.centroid_U, self.centroid_potential)
-        self.compute_derivative_coupling(self.centroid_U, self.centroid_deriv)
-
-    def diagonalise_centroid(self):
-        E, U = np.linalg.eigh(self.centroid_potential)
-
-        if self.centroid_U is not None:
-            column_sum = np.sum(U * self.centroid_U, axis=1)
-            U = np.where(column_sum < 0, -U, U)
-
-        self.centroid_U = U
-        self.energies = E
-
     def _compute_adiabatic_force(self):
         F = (np.transpose(self.S_matrix[:, :, None], (0, 1, 2, 4, 3))
              @ self.V_prime_matrix
@@ -85,6 +64,7 @@ class KinkedHopping(NonadiabaticRingPolymer, Hopping):
         self.adiabatic_V_prime = F
 
     def _compute_nonadiabatic_coupling(self):
+        self.old_coupling = np.copy(self.nonadiabatic_coupling)
         for i in range(self.n_particles):
             for j in range(self.n_beads):
                 for k in range(self.ndim):
@@ -124,6 +104,10 @@ class KinkedHopping(NonadiabaticRingPolymer, Hopping):
         return s_plus
 
     def _compute_density_propagator(self):
+        self.density_prop = np.zeros((self.n_particles, self.n_beads,
+                                      self.ndim,
+                                      self.n_states, self.n_states),
+                                     dtype=complex)
         for i in range(self.n_particles):
             for j in range(self.n_beads):
                 V = self.lambdas[i, j]
@@ -131,6 +115,21 @@ class KinkedHopping(NonadiabaticRingPolymer, Hopping):
                     d = self.nonadiabatic_coupling[i, j, k]
                     v = self.v[i, j, k]
                     self.density_prop[i, j, k] = V - 1j*d*v
+        # self.density_prop /= self.n_beads
+
+    def propagate_density_matrix(self, dt):
+        """ Propagates the density matrix by dt.
+
+        This is taken from smparker's FSSH implementation.
+        """
+
+        new_density = np.zeros_like(self.density_matrix)
+        for i in range(self.n_particles):
+            for j in range(self.n_beads):
+                for k in range(self.ndim):
+                    U = expm(-1j * self.density_prop[i, j, k] * dt)
+                    new_density[i, j] += U @ self.density_matrix[i, j] @ U.T.conj()
+        self.density_matrix = new_density
 
     def _compute_kink_force(self, potential):
         F = np.zeros((self.n_particles, self.n_beads, self.ndim))
@@ -155,15 +154,6 @@ class KinkedHopping(NonadiabaticRingPolymer, Hopping):
             for j in range(self.n_beads):
                 s_back = self.overlap_integrals[i, j-1]
                 s_forward = self.overlap_integrals[i, j]
-                # if s_back == 0:
-                #     s_back = 1e-17
-                # if s_forward == 0:
-                #     s_forward = 1e-17
-                # if np.abs(s_back) < 1e-15:
-                #     s_back = np.copysign(1e-15, np.real(s_back))
-                # if np.abs(s_forward) < 1e-15:
-                #     s_forward = np.copysign(1e-15, np.real(s_forward))
-                # print(s_back, s_forward)
 
                 n = self.state_occupations[i, j]
                 n1 = self.state_occupations[i, j-1]
@@ -177,7 +167,7 @@ class KinkedHopping(NonadiabaticRingPolymer, Hopping):
                                               self.S_matrix[i, forward_j, :, n2])
                     F[i, j, k] = np.real(s1/s_back + s2/s_forward)
         F /= self.beta
-        return F * self.n_beads
+        self.kink_force = F * self.n_beads
 
     def _compute_bead_force(self):
         diag = np.diagonal(self.adiabatic_V_prime, axis1=-2, axis2=-1)
@@ -195,9 +185,8 @@ class KinkedHopping(NonadiabaticRingPolymer, Hopping):
         return self._compute_kink_potential(self.overlap_integrals)
 
     def _compute_kink_potential(self, overlaps):
-        kink = (np.log(np.abs(np.real(np.prod(overlaps, axis=1))))
-                / self.beta)
-        return -kink
+        kink = np.log(np.abs(np.prod(np.real(overlaps), axis=1)))
+        return -kink / self.beta
 
     def _compute_total_energy(self, state_occupation=None):
         if state_occupation is None:
@@ -213,47 +202,37 @@ class KinkedHopping(NonadiabaticRingPolymer, Hopping):
         spring = self.compute_spring_potential()
         return bead + spring
 
-    def get_velocity(self):
-        return self.centroid_v
-
-    def get_position(self):
-        return self.centroid_r
-
     def execute_hopping(self, dt):
         """Carry out the hop between surfaces."""
 
         g = self._get_probabilities(dt)
-        can_hop = self._check_possible_hop(g)
-        # print()
-        # if can_hop:
-        # self._attempt_hop()
+        self._hop_those_beads(g)
 
     def _get_probabilities(self, dt):
-        """Calculate the hopping probability.
-
-        Returns an array where prob[i] is the probability of hopping from the
-        current state to state i.
+        """Calculate the hopping probability for each bead.
         """
-        A = self.density_matrix
-        R = self.get_velocity()
-        d = self.derivative_coupling
-
-        probability = np.zeros((self.n_states, self.n_states))
-        for i in range(self.n_states):
-            for j in range(self.n_states):
-                if A[i, i] == 0:
+        probability = np.zeros((self.n_particles, self.n_beads,
+                                self.n_states))
+        for i in range(self.n_particles):
+            for j in range(self.n_beads):
+                A = self.density_matrix[i, j]
+                state = self.state_occupations[i, j]
+                if A[state, state] == 0:
                     continue
-                probability[i, j] = np.real(d[i, j] * A[j, i] / A[i, i])
-        probability *= 2 * R * dt
-        np.fill_diagonal(probability, 0)
-        return probability.clip(0, 1)
+                for k in range(self.ndim):
+                    R = self.v[i, j, k]
+                    for n in range(self.n_states):
+                        if n != state:
+                            d = self.nonadiabatic_coupling[i, j, k, state, n]
+                            p = np.real(d * A[n, state] / A[state, state]) * R
+                            probability[i, j, n] += p
+        return probability.clip(0, 1) * 2 * dt
 
-    def _check_possible_hop(self, g):
-        """Determine whether a hop should occur.
+    def _hop_those_beads(self, g):
+        """Hop each bead to other states if probability is big.
 
         A random number is compared with the hopping probability, if the
-        probability is higher than the random number, a hop occurs. This
-        currently only works for a two level system.
+        probability is higher than the random number, a hop occurs.
 
         Parameters
         ----------
@@ -261,26 +240,53 @@ class KinkedHopping(NonadiabaticRingPolymer, Hopping):
             The hopping probability.
         """
         zeta = np.random.rand(self.n_particles, self.n_beads)
-        # dest = np.zeros((self.n_particles, self.n_beads))
         for i in range(self.n_particles):
             for j in range(self.n_beads):
                 current_state = self.state_occupations[i, j]
-                for m in range(self.n_states):
+                for m in reversed(range(self.n_states)):
                     if m != current_state:
-                        if g[current_state, m] > zeta[i, j]:
-                            print('hop')
-                            print(m)
+                        if g[i, j, m] > zeta[i, j]:
                             self.state_occupations[i, j] = m
-                    # dest[i, j] = np.searchsorted(g[state], current) - 1
+                            break
+        self.state = np.mean(self.state_occupations)
 
-    def _attempt_hop(self):
-        """Carry out a hop if the particle has sufficient kinetic energy.
+    def apply_quantum_force(self, dt):
 
-        If the energy is sufficient the velocity is rescaled accordingly and
-        the state changed. Otherwise nothing happens.
-        """
-        super()._attempt_hop()
-        self.state_occupations[:, :] = self.state
+        force = self._get_quantum_force(dt)
+        self.v = self.v + force * dt / self.masses
+
+        dq = self._get_quantum_delta_q()
+        self.r = self.r - dq * dt
+
+    def _get_quantum_force(self, dt):
+        force = np.zeros((self.n_particles, self.n_beads, self.ndim))
+        d_dot = (self.nonadiabatic_coupling-self.old_coupling)/dt
+        for i in range(self.n_particles):
+            for j in range(self.n_beads):
+                A = self.density_matrix[i, j]
+                state = self.state_occupations[i, j]
+                for k in range(self.ndim):
+                    for n in range(self.n_states):
+                        if n != state:
+                            force[i, j, k] += np.real(2 * np.imag(A[state, n])
+                                                      * d_dot[i, j, k, state, n])
+        return force
+
+    def _get_quantum_delta_q(self):
+        dq = np.zeros_like(self.r)
+        d = self.nonadiabatic_coupling
+        for i in range(self.n_particles):
+            for j in range(self.n_beads):
+                A = self.density_matrix[i, j]
+                state = self.state_occupations[i, j]
+                for k in range(self.ndim):
+                    for n in range(self.n_states):
+                        if n != state:
+                            dq[i, j, k] += np.real(2 * np.imag(A[state, n])
+                                                   * d[i, j, k, state, n]
+                                                   / self.masses[i])
+        return dq
+
 
     # def execute_hopping(self, dt):
 
