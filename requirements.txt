@@ -3,3 +3,6 @@ scipy
 bokeh
 matplotlib
 progressbar
+itertools
+colorcet
+surface3d
