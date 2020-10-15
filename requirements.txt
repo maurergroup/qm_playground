@@ -2,3 +2,4 @@ numpy
 scipy
 bokeh
 matplotlib
+progressbar
