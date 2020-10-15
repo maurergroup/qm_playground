@@ -31,16 +31,16 @@ except:
     #]
 
 packages = ['qmp',
-            'qmp.basis',
             'qmp.integrator',
-            'qmp.solver',
-            'qmp.tools',
             'qmp.potential',
+            'qmp.solver',
+            'qmp.systems',
+            'qmp.tools',
             ]
 
 config = {
     'description': 'playground code for solving simple 1D/2D QM problems',
-    'author': 'Reinhard J. Maurer',
+    'author': 'Reinhard J. Maurer and James Gardner',
     'url': 'https://github.com/maurergroup/qm_playground.git',
     'download_url': 'https://github.com/maurergroup/qm_playground.git',
     'author_email': 'r.maurer@warwick.ac.uk',
