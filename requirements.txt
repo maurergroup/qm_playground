@@ -6,3 +6,4 @@ progressbar
 itertools
 colorcet
 surface3d
+nose
