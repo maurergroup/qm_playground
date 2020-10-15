@@ -108,6 +108,16 @@ class Box(ModelPotential):
         width = kwargs.get('width', np.full(dimension, 1./2.)) / 2.
         height = kwargs.get('height', 1000000)
 
+        if isinstance(position,(list,np.ndarray)):
+            pass
+        else:
+            position = np.array(position)
+        if isinstance(width,(list,np.ndarray)):
+            pass
+        else:
+            width = np.array(width)
+        
+
         def f_box(*coordinates):
 
             coordinates_length = np.size(coordinates, 0)
