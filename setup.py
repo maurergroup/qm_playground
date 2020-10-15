@@ -46,12 +46,12 @@ config = {
     'author_email': 'r.maurer@warwick.ac.uk',
     'version': '0.1',
     'install_requires': [
-        nose,
-        numpy,
-        scipy,
-        bokeh,
-        matplotlib,
-        progressbar,
+        'nose',
+        'numpy',
+        'scipy',
+        'bokeh',
+        'matplotlib',
+        'progressbar',
         ],
     'packages': packages, 
     'name': 'qm_playground'
